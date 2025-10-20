@@ -65,7 +65,9 @@ struct StudyView: View {
                 HStack(spacing: 0) {
                     /// 좌측: 미디어 + 키워드
                     VStack(spacing: 0) {
-                        MediaView()
+                        
+                        //MARK: test용 임시 링크
+                        MediaView(videoURL: "https://youtu.be/LBqJwmFMQHI?si=G1aD3hiMw5-ZSdWk")
                         
                         Divider()
                             .background(Color.borderColor)
