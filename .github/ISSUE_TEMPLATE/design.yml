@@ -1,0 +1,33 @@
+name: "🎨 디자인 반영"
+description: "디자인 시안을 반영하여 UI/UX를 구현할 때 사용합니다."
+title: "🎨 Design: "
+labels: ["Design"]
+assignees: []
+body:
+  - type: textarea
+    id: design-goal
+    attributes:
+      label: "📌 반영 목표"
+      description: "디자인 반영의 핵심 내용을 작성해주세요."
+      placeholder: "ex) 하단 탭바를 새 디자인으로 교체"
+    validations:
+      required: true
+
+  - type: textarea
+    id: tasks
+    attributes:
+      label: "📋 작업 항목"
+      value: "- [ ] "
+      placeholder: |
+        - [ ] UI 구성 변경
+        - [ ] 애니메이션 처리
+    validations:
+      required: true
+
+  - type: input
+    id: figma
+    attributes:
+      label: "🎨 Figma 링크"
+      placeholder: "ex) https://figma.com/file/..."
+    validations:
+      required: false
