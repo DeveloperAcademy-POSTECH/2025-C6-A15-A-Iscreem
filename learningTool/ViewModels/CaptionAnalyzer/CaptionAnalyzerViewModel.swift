@@ -54,8 +54,13 @@ final class CaptionAnalyzer: ObservableObject {
     @Published var summaryStatus: SummaryStatus = .idle
     @Published var summaryText: String = ""
     @Published var chapters: [Chapter] = []
+
     /// Full raw text per chapter (keyed by Chapter.id)
     @Published var chapterTexts: [UUID: String] = [:]
+
+    /// 각 챕터의 4줄 요약 (불릿 없이 한 문장씩)
+    @Published var chapterBullets: [UUID: [String]] = [:]
+    
     /// Turn this on to automatically kick off summarization once transcript is ready.
     var autoSummarizeEnabled: Bool = false
     /// 통합(최종) 요약 텍스트
@@ -205,6 +210,32 @@ final class CaptionAnalyzer: ObservableObject {
                         let cleanedTitle = title.replacingOccurrences(of: "\n", with: " ").trimmingCharacters(in: .whitespacesAndNewlines)
                         await MainActor.run { self.setChapterTitle(id: ch.id, title: cleanedTitle) }
 
+                        // Bullets: 4개의 핵심 포인트 생성 (불릿 기호 없이 한 문장씩)
+                        do {
+                            let bulletsRaw = try await summarizer.summarizeChunk(
+                                text: sample, // body가 너무 길면 sample(최대 2,000자) 사용
+                                instruction: "다음 챕터 내용을 한국어로 4개의 핵심 포인트로 요약. 각 항목은 1문장, 불릿/숫자/머리말 없이, 간결하게. 줄바꿈으로 항목을 구분."
+                            )
+                            // 줄 단위로 분해하여 앞의 4개만 사용
+                            let lines = bulletsRaw
+                                .replacingOccurrences(of: "\r\n", with: "\n")
+                                .replacingOccurrences(of: "\r", with: "\n")
+                                .components(separatedBy: "\n")
+                                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                                .filter { !$0.isEmpty }
+                            let top4 = Array(lines.prefix(4))
+                            await MainActor.run { self.setChapterBullets(id: ch.id, bullets: top4) }
+                        } catch {
+                            // 실패 시 gist를 문장 단위로 잘라 최대 4개까지 사용 (간단 폴백)
+                            let fallback = cleanedGist
+                                .replacingOccurrences(of: "•", with: "")
+                                .replacingOccurrences(of: "-", with: "")
+                                .split(whereSeparator: { ".!?".contains($0) })
+                                .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
+                            let top4 = Array(fallback.prefix(4)).filter { !$0.isEmpty }
+                            await MainActor.run { self.setChapterBullets(id: ch.id, bullets: top4) }
+                        }
+                        
                         self.log.info("sum[\(runTag)] chapter gist+title ok for \(idx+1)/\(built.count)")
                     } catch {
                         let ns = error as NSError
@@ -342,6 +373,12 @@ final class CaptionAnalyzer: ObservableObject {
         if let idx = chapters.firstIndex(where: { $0.id == id }) {
             chapters[idx].gist = gist
         }
+    }
+    
+    /// Setter
+    @MainActor
+    private func setChapterBullets(id: UUID, bullets: [String]) {
+        chapterBullets[id] = bullets
     }
     
     // MARK: - youtubei (player API) Prefetch

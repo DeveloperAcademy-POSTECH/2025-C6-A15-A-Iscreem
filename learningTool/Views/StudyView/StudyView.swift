@@ -11,6 +11,8 @@ struct StudyView: View {
     @StateObject private var viewModel: StudyViewModel
     let onDismiss: (() -> Void)?
     
+    @EnvironmentObject private var captionAnalyzer: CaptionAnalyzer
+    
     init(note: Note? = nil, onDismiss: (() -> Void)? = nil) {
         _viewModel = StateObject(wrappedValue: StudyViewModel(note: note))
         self.onDismiss = onDismiss
@@ -104,6 +106,7 @@ struct StudyView: View {
         }
         .background(Color.background2)
         .keyboardOverlay()
+        .onAppear { captionAnalyzer.autoSummarizeEnabled = true }
     }
 }
 
