@@ -9,9 +9,12 @@ import SwiftUI
 
 @main
 struct LearningToolApp: App {
+    
+    @StateObject private var CaptionAnalyzerViewModel = CaptionAnalyzer()
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView().environmentObject(CaptionAnalyzerViewModel)
         }
     }
 }
