@@ -8,19 +8,7 @@
 import SwiftUI
 
 struct KeywordView: View {
-    /// 샘플 키워드 데이터
-    private let keywords = [
-        "트랜스포트",
-        "데이터링크",
-        "세션",
-        "물리 매체",
-        "응용",
-        "OSI",
-        "7계층",
-        "물리 매체",
-        "데이터신",
-        "표현",
-    ]
+    @ObservedObject var analyzer: CaptionAnalyzer
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -33,7 +21,7 @@ struct KeywordView: View {
             /// 키워드 태그들 (가로 스크롤)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
-                    ForEach(keywords, id: \.self) { keyword in
+                    ForEach(analyzer.extractedKeywords, id: \.self) { keyword in
                         KeywordTag(keyword: keyword)
                     }
                 }
@@ -42,6 +30,11 @@ struct KeywordView: View {
             .padding(.bottom, 12)
         }
         .background(Color.background1)
+        .onAppear {
+            if !analyzer.finalSummary.isEmpty && analyzer.extractedKeywords.isEmpty {
+                analyzer.extractedKeywords = analyzer.extractKeywords()
+            }
+        }
     }
 }
 
@@ -64,6 +57,9 @@ struct KeywordTag: View {
 }
 
 #Preview(traits: .landscapeLeft) {
-    KeywordView()
+    let analyzer = CaptionAnalyzer()
+    analyzer.finalSummary = "트랜스포트 데이터링크 세션 물리 매체 응용 OSI 7계층 데이터신 표현"
+    analyzer.extractedKeywords = analyzer.extractKeywords()
+    return KeywordView(analyzer: analyzer)
         .frame(height: 180)
 }

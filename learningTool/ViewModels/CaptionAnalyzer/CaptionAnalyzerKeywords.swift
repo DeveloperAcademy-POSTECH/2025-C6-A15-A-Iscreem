@@ -21,7 +21,7 @@ extension CaptionAnalyzer {
 
     // MARK: - 전체 요약 기반 키워드 추출
     func extractKeywords(topN: Int = 10) -> [String] {
-        let words = preprocess(summaryText)
+        let words = preprocess(finalSummary)
         guard !words.isEmpty else { return [] }
 
         // 단어 빈도 계산
