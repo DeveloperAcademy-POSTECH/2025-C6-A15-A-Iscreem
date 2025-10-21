@@ -89,7 +89,7 @@ struct StudyView: View {
                     
                     /// 우측: 요약 + 질문
                     VStack(spacing: 0) {
-                        SummaryView(viewModel: viewModel)
+                        SummaryView()
                             .frame(maxHeight: .infinity)
                         
                         Divider()
@@ -109,6 +109,7 @@ struct StudyView: View {
         }
         .background(Color.background2)
         .keyboardOverlay()
+        .onAppear { captionAnalyzer.autoSummarizeEnabled = true }
         .sheet(isPresented: $showingAPISettings) {
             APISettingsView()
         }
