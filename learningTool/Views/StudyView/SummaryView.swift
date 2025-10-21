@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct SummaryView: View {
+    @ObservedObject var viewModel: StudyViewModel
+    
     /// 샘플 요약 데이터
     private let summaries = [
         Summary(
@@ -45,10 +47,23 @@ struct SummaryView: View {
             }
         }
         .background(Color.background1)
+        .onAppear {
+            updateSummaryContext()
+        }
+    }
+    
+    /// 요약 컨텍스트 업데이트
+    private func updateSummaryContext() {
+        let context = summaries.map { summary in
+            "\(summary.title)\n" + summary.items.joined(separator: "\n")
+        }.joined(separator: "\n\n")
+        viewModel.summaryContext = context
+        print("📋 [SummaryView] 컨텍스트 업데이트됨 - 길이: \(context.count)자")
+        print("📋 [SummaryView] 컨텍스트 내용:\n\(context)")
     }
 }
 
-struct Summary: Identifiable {
+struct Summary: Identifiable, Equatable {
     let id: Int
     let title: String
     let items: [String]
@@ -101,5 +116,5 @@ struct SummaryCard: View {
 }
 
 #Preview(traits: .landscapeLeft) {
-    SummaryView()
+    SummaryView(viewModel: StudyViewModel())
 }

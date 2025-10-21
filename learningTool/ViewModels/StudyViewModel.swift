@@ -12,6 +12,14 @@ class StudyViewModel: ObservableObject {
     @Published var selectedTab = StudyTab.media
     @Published var currentNote: Note?
     
+    // 키워드 선택 및 질문 자동 입력을 위한 프로퍼티
+    @Published var selectedKeyword: String?
+    @Published var shouldInsertKeyword: Bool = false
+    @Published var shouldGenerateSuggestions: Bool = false  // 추천질문 자동 생성 트리거
+    
+    // 요약 컨텍스트 (추천 질문 생성용)
+    @Published var summaryContext: String = ""
+    
     enum StudyTab: String, CaseIterable {
         case media = "미디어"
         case keyword = "키워드"
@@ -38,5 +46,22 @@ class StudyViewModel: ObservableObject {
     
     func closeButtonTapped() {
         print("Close button tapped")
+    }
+    
+    /// 키워드 선택 처리 (자동으로 추천질문도 생성)
+    func selectKeyword(_ keyword: String) {
+        selectedKeyword = keyword
+        shouldInsertKeyword = true
+        shouldGenerateSuggestions = true  // 추천질문 자동 생성 트리거
+    }
+    
+    /// 키워드 삽입 완료 처리
+    func keywordInserted() {
+        shouldInsertKeyword = false
+    }
+    
+    /// 추천질문 생성 완료 처리
+    func suggestionsGenerated() {
+        shouldGenerateSuggestions = false
     }
 }
