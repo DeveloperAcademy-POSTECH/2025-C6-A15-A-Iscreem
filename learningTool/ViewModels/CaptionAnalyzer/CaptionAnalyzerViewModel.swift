@@ -229,7 +229,7 @@ final class CaptionAnalyzer: ObservableObject {
                             // 실패 시 gist를 문장 단위로 잘라 최대 4개까지 사용 (간단 폴백)
                             let fallback = cleanedGist
                                 .replacingOccurrences(of: "•", with: "")
-                                .replacingOccurrences(of: "-", with: "")
+//                                .replacingOccurrences(of: "-", with: "")
                                 .split(whereSeparator: { ".!?".contains($0) })
                                 .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
                             let top4 = Array(fallback.prefix(4)).filter { !$0.isEmpty }

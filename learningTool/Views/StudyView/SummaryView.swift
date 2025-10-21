@@ -148,7 +148,7 @@ struct SummaryView: View {
         // gist 기반 최대 4줄
         let s = chapter.gist
             .replacingOccurrences(of: "•", with: "")
-            .replacingOccurrences(of: "-", with: "")
+//            .replacingOccurrences(of: "-", with: "")
         let parts = s.split(whereSeparator: { ".!?".contains($0) }).map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
         let top4 = Array(parts.prefix(4))
         return top4.isEmpty ? [s] : top4
@@ -189,12 +189,6 @@ private struct SummaryDisclosureCard: View {
                 }
             }
 
-            HStack {
-                Spacer()
-                Text(summary.progress)
-                    .font(.system(size: 13))
-                    .foregroundStyle(Color.text3)
-            }
         }
         .padding(16)
         .background(Color.background2)
