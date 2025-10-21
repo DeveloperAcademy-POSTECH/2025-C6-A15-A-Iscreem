@@ -74,7 +74,7 @@ struct StudyView: View {
                         Divider()
                             .background(Color.borderColor)
                         
-                        KeywordView()
+                        KeywordView(analyzer: captionAnalyzer)
                             .frame(height: 180)
                         
                         Spacer()

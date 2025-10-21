@@ -67,6 +67,9 @@ final class CaptionAnalyzer: ObservableObject {
     @Published var finalSummary: String = ""
     /// 통합 요약 진행 여부 (UI 스피너용)
     @Published var isMergingFinal: Bool = false
+
+    /// 추출된 키워드
+    @Published var extractedKeywords: [String] = []
     
     struct SummaryDebug {
         var runId = UUID()
@@ -351,6 +354,8 @@ final class CaptionAnalyzer: ObservableObject {
                 await MainActor.run {
                     self.finalSummary = merged.trimmingCharacters(in: .whitespacesAndNewlines)
                     self.isMergingFinal = false
+                    // Update extractedKeywords after setting finalSummary
+                    self.extractedKeywords = self.extractKeywords()
                 }
                 self.log.info("sum[\(runTag)] merge done")
             } catch {
