@@ -10,6 +10,9 @@ import SwiftUI
 struct SidebarView: View {
     @StateObject private var viewModel = SidebarViewModel()
     
+    // 256:762 비율 유지 (사이드바:메인 컨텐츠)
+    private let sidebarRatio: CGFloat = 256.0 / (256.0 + 762.0) // ≈ 0.2514
+    
     var body: some View {
         List {
             /// 상단 폴더 섹션
@@ -122,16 +125,20 @@ struct SidebarView: View {
 }
 
 #Preview(traits: .landscapeLeft) {
-    NavigationSplitView {
-        SidebarView()
-            .navigationSplitViewColumnWidth(
-                min: 280,
-                ideal: 320,
-                max: 400
-            )
-    } detail: {
-        Color.background1
-            .ignoresSafeArea()
+    GeometryReader { geometry in
+        let sidebarWidth = geometry.size.width * (256.0 / (256.0 + 762.0))
+        
+        NavigationSplitView {
+            SidebarView()
+                .navigationSplitViewColumnWidth(
+                    min: sidebarWidth * 0.9,
+                    ideal: sidebarWidth,
+                    max: sidebarWidth * 1.1
+                )
+        } detail: {
+            Color.background1
+                .ignoresSafeArea()
+        }
+        .navigationSplitViewStyle(.balanced)
     }
-    .navigationSplitViewStyle(.balanced)
 }
