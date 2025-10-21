@@ -12,8 +12,6 @@ struct StudyView: View {
     let onDismiss: (() -> Void)?
     @State private var showingAPISettings = false
     
-    @EnvironmentObject private var captionAnalyzer: CaptionAnalyzer
-    
     init(note: Note? = nil, onDismiss: (() -> Void)? = nil) {
         _viewModel = StateObject(wrappedValue: StudyViewModel(note: note))
         self.onDismiss = onDismiss
@@ -70,14 +68,12 @@ struct StudyView: View {
                 HStack(spacing: 0) {
                     /// 좌측: 미디어 + 키워드
                     VStack(spacing: 0) {
-                        
-                        //MARK: test용 임시 링크
-                        MediaView(videoURL: "https://youtu.be/LBqJwmFMQHI?si=G1aD3hiMw5-ZSdWk")
+                        MediaView()
                         
                         Divider()
                             .background(Color.borderColor)
                         
-                        KeywordView(analyzer: captionAnalyzer)
+                        KeywordView()
                             .frame(height: 180)
                         
                         Spacer()
@@ -109,6 +105,7 @@ struct StudyView: View {
         }
         .background(Color.background2)
         .keyboardOverlay()
+<<<<<<< HEAD
         .sheet(isPresented: $showingAPISettings) {
             APISettingsView()
         }
@@ -299,6 +296,8 @@ struct InfoRow: View {
             
             Spacer()
         }
+=======
+>>>>>>> parent of d420096 (Merge branch 'dev' into feat/#2-sidebar-view)
     }
 }
 
