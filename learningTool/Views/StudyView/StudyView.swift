@@ -11,6 +11,8 @@ struct StudyView: View {
     @StateObject private var viewModel: StudyViewModel
     let onDismiss: (() -> Void)?
     
+    @EnvironmentObject private var captionAnalyzer: CaptionAnalyzer
+    
     init(note: Note? = nil, onDismiss: (() -> Void)? = nil) {
         _viewModel = StateObject(wrappedValue: StudyViewModel(note: note))
         self.onDismiss = onDismiss
@@ -65,12 +67,14 @@ struct StudyView: View {
                 HStack(spacing: 0) {
                     /// 좌측: 미디어 + 키워드
                     VStack(spacing: 0) {
-                        MediaView()
+                        
+                        //MARK: test용 임시 링크
+                        MediaView(videoURL: "https://youtu.be/LBqJwmFMQHI?si=G1aD3hiMw5-ZSdWk")
                         
                         Divider()
                             .background(Color.borderColor)
                         
-                        KeywordView()
+                        KeywordView(analyzer: captionAnalyzer)
                             .frame(height: 180)
                         
                         Spacer()
@@ -102,6 +106,7 @@ struct StudyView: View {
         }
         .background(Color.background2)
         .keyboardOverlay()
+        .onAppear { captionAnalyzer.autoSummarizeEnabled = true }
     }
 }
 
