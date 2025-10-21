@@ -9,6 +9,8 @@ import SwiftUI
 
 struct QuestionView: View {
     @ObservedObject var studyViewModel: StudyViewModel
+    let scaleFactor: CGFloat
+    
     @StateObject private var viewModel = QuestionViewModel()
     @State private var isAPIKeyConfigured = GeminiAPIService.shared.isAPIKeyConfigured()
     @FocusState private var isTextFieldFocused: Bool
@@ -20,30 +22,36 @@ struct QuestionView: View {
         VStack(spacing: 0) {
             /// 헤더
             HStack {
-                Text("AI에게 무엇이든 물어보세요!")
-                    .font(.system(size: 15))
-                    .foregroundStyle(Color.text2)
+                VStack(alignment: .leading, spacing: ScaleCalculator.scaled(4, with: scaleFactor)) {
+                    Text("AI에게 무엇이든 물어보세요!")
+                        .font(.system(size: ScaleCalculator.scaled(15, with: scaleFactor)))
+                        .foregroundStyle(Color.text2)
+                    
+                    Rectangle()
+                        .fill(Color.text2)
+                        .frame(height: 1)
+                }
+                .fixedSize()
                 
                 Spacer()
                 
                 if viewModel.messages.count > 2 {
                     Button(action: { viewModel.clearMessages() }) {
                         Image(systemName: "trash")
-                            .font(.system(size: 14))
+                            .font(.system(size: ScaleCalculator.scaled(14, with: scaleFactor)))
                             .foregroundStyle(Color.errorColor)
                     }
                     .buttonStyle(.plain)
                 }
             }
-            .padding(16)
+            .padding(.horizontal, ScaleCalculator.scaled(16, with: scaleFactor))
+            .padding(.top, ScaleCalculator.scaled(16, with: scaleFactor))
+            .padding(.bottom, ScaleCalculator.scaled(12, with: scaleFactor))
             
-            Divider()
-                .background(Color.borderColor)
-            
-            /// 채팅 영역
+            /// 채팅 영역 (302 x 297)
             ScrollViewReader { proxy in
                 ScrollView {
-                    VStack(spacing: 16) {
+                    VStack(spacing: ScaleCalculator.scaled(16, with: scaleFactor)) {
                         if !isAPIKeyConfigured {
                             /// API 키 미설정 안내
                             VStack(spacing: 12) {
@@ -53,6 +61,8 @@ struct QuestionView: View {
                                 
                                 Text("API 키가 설정되지 않았습니다")
                                     .font(.system(size: 16, weight: .semibold))
+//                                Text("AI가 답변을 생성중입니다...")
+//                                    .font(.system(size: ScaleCalculator.scaled(13, with: scaleFactor)))
                                     .foregroundStyle(Color.text3)
                                 
                                 Text("우측 상단의 톱니바퀴 버튼을 눌러\nGemini API 키를 설정해주세요.")
@@ -95,10 +105,17 @@ struct QuestionView: View {
                                 .padding(.horizontal, 16)
                                 .id("loading")
                             }
+                            .padding(.horizontal, ScaleCalculator.scaled(12, with: scaleFactor))
                         }
                     }
-                    .padding(16)
+                    .padding(ScaleCalculator.scaled(12, with: scaleFactor))
                 }
+                .frame(
+                    width: ScaleCalculator.scaled(302, with: scaleFactor),
+                    height: ScaleCalculator.scaled(297, with: scaleFactor)
+                )
+                .background(.white)
+                .cornerRadius(ScaleCalculator.scaled(12, with: scaleFactor))
                 .onChange(of: viewModel.messages.count) {
                     if let lastMessage = viewModel.messages.last {
                         withAnimation {
@@ -124,9 +141,7 @@ struct QuestionView: View {
                     }
                 }
             }
-            
-            Divider()
-                .background(Color.borderColor)
+            .padding(.horizontal, ScaleCalculator.scaled(16, with: scaleFactor))
             
             /// 추천 질문 메뉴 (팝업 스타일)
             if showingSuggestions {
@@ -285,23 +300,28 @@ struct QuestionView: View {
             }
             
             /// 입력 영역
-            HStack(spacing: 12) {
-                TextField(
-                    isAPIKeyConfigured ? "메시지를 입력하세요" : "API 키를 먼저 설정해주세요",
-                    text: $viewModel.currentMessage,
-                    axis: .horizontal
-                )
-                .focused($isTextFieldFocused)
-                .font(.system(size: 15))
-                .lineLimit(1)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .background(Color.background2)
-                .cornerRadius(20)
-                .disabled(viewModel.isLoading || !isAPIKeyConfigured)
-                .onSubmit {
-                    if isAPIKeyConfigured {
-                        viewModel.sendMessage()
+            HStack(spacing: ScaleCalculator.scaled(12, with: scaleFactor)) {
+                VStack(spacing: ScaleCalculator.scaled(4, with: scaleFactor)) {
+                    TextField(
+                        isAPIKeyConfigured ? "메시지를 입력하세요" : "API 키를 먼저 설정해주세요",
+                        text: $viewModel.currentMessage,
+                        axis: .horizontal
+                    )
+                    .focused($isTextFieldFocused)
+                    .font(.system(size: ScaleCalculator.scaled(15, with: scaleFactor)))
+                    .lineLimit(1)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(Color.background2)
+                    .cornerRadius(20)
+                    .disabled(viewModel.isLoading || !isAPIKeyConfigured)
+                    .onSubmit {
+                        if isAPIKeyConfigured {
+                            viewModel.sendMessage()
+                        }
+                        Rectangle()
+                            .fill(Color.text3.opacity(0.5))
+                            .frame(height: 1)
                     }
                 }
                 
@@ -334,16 +354,18 @@ struct QuestionView: View {
                 
                 Button(action: { viewModel.sendMessage() }) {
                     Image(systemName: "paperplane.fill")
-                        .font(.system(size: 18))
+                        .font(.system(size: ScaleCalculator.scaled(16, with: scaleFactor)))
                         .foregroundStyle(.white)
-                        .frame(width: 40, height: 40)
+                        .frame(
+                            width: ScaleCalculator.scaled(36, with: scaleFactor),
+                            height: ScaleCalculator.scaled(36, with: scaleFactor)
+                        )
                         .background(
                             viewModel.isLoading
                                 || viewModel.currentMessage.isEmpty
                                 || !isAPIKeyConfigured
                                 ? Color.text3.opacity(0.5)
                                 : Color.secondColor
-                        )
                         .clipShape(Circle())
                 }
                 .disabled(
@@ -352,8 +374,9 @@ struct QuestionView: View {
                         || !isAPIKeyConfigured
                 )
             }
-            .padding(16)
-            .background(Color.background1)
+            .padding(.horizontal, ScaleCalculator.scaled(16, with: scaleFactor))
+            .padding(.top, ScaleCalculator.scaled(8, with: scaleFactor))
+            .padding(.bottom, ScaleCalculator.scaled(16, with: scaleFactor))
         }
         .background(Color.background1)
         .animation(.easeInOut(duration: 0.25), value: showingSuggestions)
@@ -553,39 +576,46 @@ struct QuestionView: View {
                 }
             }
         }
+        .frame(
+            width: ScaleCalculator.scaled(334, with: scaleFactor),
+            height: ScaleCalculator.scaled(396, with: scaleFactor)
+        )
+        .background(Color.background2)
+        .cornerRadius(ScaleCalculator.scaled(12, with: scaleFactor))
     }
 }
 
 struct ChatBubble: View {
     let message: ChatMessage
+    let scaleFactor: CGFloat
     
     var body: some View {
-        HStack(alignment: .bottom, spacing: 8) {
+        HStack(alignment: .bottom, spacing: ScaleCalculator.scaled(8, with: scaleFactor)) {
             if message.isUser {
-                Spacer(minLength: 40)
+                Spacer(minLength: ScaleCalculator.scaled(40, with: scaleFactor))
             }
             
-            VStack(alignment: message.isUser ? .trailing : .leading, spacing: 4) {
+            VStack(alignment: message.isUser ? .trailing : .leading, spacing: ScaleCalculator.scaled(4, with: scaleFactor)) {
                 Text(message.text)
-                    .font(.system(size: 14))
+                    .font(.system(size: ScaleCalculator.scaled(14, with: scaleFactor)))
                     .foregroundStyle(message.isUser ? .white : Color.text1)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
+                    .padding(.horizontal, ScaleCalculator.scaled(16, with: scaleFactor))
+                    .padding(.vertical, ScaleCalculator.scaled(12, with: scaleFactor))
                     .background(
                         message.isUser
                             ? Color.primaryColor
                             : Color.secondColor.opacity(0.15)
                     )
-                    .cornerRadius(16)
+                    .cornerRadius(ScaleCalculator.scaled(16, with: scaleFactor))
                 
                 Text(timeString(from: message.timestamp))
-                    .font(.system(size: 11))
+                    .font(.system(size: ScaleCalculator.scaled(11, with: scaleFactor)))
                     .foregroundStyle(Color.text3)
-                    .padding(.horizontal, 4)
+                    .padding(.horizontal, ScaleCalculator.scaled(4, with: scaleFactor))
             }
             
             if !message.isUser {
-                Spacer(minLength: 40)
+                Spacer(minLength: ScaleCalculator.scaled(40, with: scaleFactor))
             }
         }
     }

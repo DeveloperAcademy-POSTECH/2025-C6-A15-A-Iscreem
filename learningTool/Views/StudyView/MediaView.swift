@@ -7,63 +7,53 @@
 
 import SwiftUI
 import OSLog
+import WebKit
 
 struct MediaView: View {
     @EnvironmentObject private var captionAnalyzer: CaptionAnalyzer
     /// Note에서 내려받는 YouTube 링크 (없으면 플레이스홀더 유지)
     let videoURL: String?
+    let scaleFactor: CGFloat
 
-    @State private var representable: YouTubeWebViewRepresentable?
+    @State private var host: YouTubeWebViewHost?
     @State private var loadedURL: String?
 
     var body: some View {
         ZStack {
-            if let rep = representable, let url = videoURL, !url.isEmpty {
-                rep
-                    .aspectRatio(16/9, contentMode: .fit)
+            if let host = host, let url = videoURL, !url.isEmpty {
+                YouTubeWebViewContainer(host: host)
                     .background(Color.background3)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                    .onAppear { loadIfNeeded(url) }
-                    .onChange(of: videoURL) { newValue in
-                        if let u = newValue, !u.isEmpty { loadIfNeeded(u) }
+                    .onChange(of: videoURL) { _, newValue in
+                        if let u = newValue, !u.isEmpty {
+                            loadIfNeeded(u)
+                        }
                     }
             } else {
                 /// 웹뷰가 표시될 영역 (YouTube 등)
                 Rectangle()
                     .fill(Color.background3)
-                    .aspectRatio(16/9, contentMode: .fit)
                     .overlay(
-                        VStack(spacing: 8) {
+                        VStack(spacing: ScaleCalculator.scaled(8, with: scaleFactor)) {
                             Image(systemName: "play.rectangle.fill")
-                                .font(.system(size: 60))
+                                .font(.system(size: ScaleCalculator.scaled(60, with: scaleFactor)))
                                 .foregroundStyle(.white.opacity(0.9))
                             Text("웹뷰 영역")
-                                .font(.system(size: 14))
+                                .font(.system(size: ScaleCalculator.scaled(14, with: scaleFactor)))
                                 .foregroundStyle(.white.opacity(0.7))
                         }
                     )
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
             }
         }
+        .frame(
+            width: ScaleCalculator.scaled(800, with: scaleFactor),
+            height: ScaleCalculator.scaled(450, with: scaleFactor)
+        )
         .onAppear {
-            if representable == nil {
-                // YouTubePane의 역할을 이 View에서 수행: 캡션 분석기와 연결된 WebView 브리지 준비
-                representable = YouTubeWebViewRepresentable(captionAnalyzer: captionAnalyzer)
+            if host == nil {
+                host = YouTubeWebViewHost(captionAnalyzer: captionAnalyzer)
             }
             if let url = videoURL, !url.isEmpty {
-                            DispatchQueue.main.async {
-                                loadIfNeeded(url)
-                            }
-                        }
-        }
-        .task(id: videoURL) {
-            if let u = videoURL, !u.isEmpty {
-                if representable == nil {
-                    representable = YouTubeWebViewRepresentable(captionAnalyzer: captionAnalyzer)
-                }
-                DispatchQueue.main.async {
-                    loadIfNeeded(u)
-                }
+                loadIfNeeded(url)
             }
         }
     }
@@ -72,12 +62,25 @@ struct MediaView: View {
     private func loadIfNeeded(_ url: String) {
         guard loadedURL != url else { return }
         loadedURL = url
-        representable?.load(url)
+        host?.load(urlString: url)
+    }
+}
+
+// MARK: - Container for UIViewRepresentable
+private struct YouTubeWebViewContainer: UIViewRepresentable {
+    let host: YouTubeWebViewHost
+    
+    func makeUIView(context: Context) -> WKWebView {
+        host.webView
+    }
+    
+    func updateUIView(_ uiView: WKWebView, context: Context) {
+        // no-op
     }
 }
 
 #Preview(traits: .landscapeLeft) {
     // 미리보기에서는 샘플 URL을 전달하거나 nil로 플레이스홀더를 볼 수 있습니다.
-    MediaView(videoURL: "https://youtu.be/LBqJwmFMQHI?si=G1aD3hiMw5-ZSdWk")
+    MediaView(videoURL: nil, scaleFactor: 1.0)
         .environmentObject(CaptionAnalyzer())
 }

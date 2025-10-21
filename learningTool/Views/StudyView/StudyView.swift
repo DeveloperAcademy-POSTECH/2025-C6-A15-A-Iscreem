@@ -20,27 +20,19 @@ struct StudyView: View {
     }
     
     var body: some View {
-        VStack(spacing: 0) {
-            /// 헤더
-            HStack {
-                Button(action: {
-                    viewModel.closeButtonTapped()
-                    onDismiss?()
-                }) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 20))
-                        .foregroundStyle(Color.text2)
-                }
-                .buttonStyle(.plain)
-                
-                Spacer()
-                
-                VStack(spacing: 2) {
+        GeometryReader { geo in
+            let scaleFactor = ScaleCalculator.calculateScaleFactor(for: geo.size)
+            
+            VStack(spacing: 0) {
+                /// 헤더
+                ZStack {
+                // 중앙 텍스트
+                VStack(spacing: 4) {
                     Text(
                         viewModel.currentNote?.title
-                            ?? "데이터통신 제1장"
+                            ?? "데이터통신 제1장 데이터통신과네트워킹"
                     )
-                        .font(.system(size: 18, weight: .semibold))
+                        .font(.system(size: ScaleCalculator.scaled(18, with: scaleFactor), weight: .semibold))
                         .foregroundStyle(Color.text1)
                     
                     Text("26:52/58:59")
@@ -54,22 +46,63 @@ struct StudyView: View {
                     showingAPISettings = true
                 }) {
                     Image(systemName: "gearshape")
-                        .font(.system(size: 20))
+                        .font(.system(size: ScaleCalculator.scaled(14, with: scaleFactor)))
                         .foregroundStyle(Color.text2)
                 }
-                .buttonStyle(.plain)
+                
+                // 좌우 버튼
+                HStack {
+                    Button(action: {
+                        viewModel.closeButtonTapped()
+                        onDismiss?()
+                    }) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: ScaleCalculator.scaled(22, with: scaleFactor)))
+                            .foregroundStyle(Color.text2)
+                            .frame(
+                                width: ScaleCalculator.scaled(40, with: scaleFactor),
+                                height: ScaleCalculator.scaled(40, with: scaleFactor)
+                            )
+                            .background(.white)
+                            .clipShape(Circle())
+                            .overlay(
+                                Circle()
+                                    .stroke(Color.borderColor, lineWidth: 1)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        viewModel.settingsButtonTapped()
+                    }) {
+                        Image(systemName: "gearshape")
+                            .font(.system(size: ScaleCalculator.scaled(22, with: scaleFactor)))
+                            .foregroundStyle(Color.text2)
+                            .frame(
+                                width: ScaleCalculator.scaled(40, with: scaleFactor),
+                                height: ScaleCalculator.scaled(40, with: scaleFactor)
+                            )
+                            .background(.white)
+                            .clipShape(Circle())
+                            .overlay(
+                                Circle()
+                                    .stroke(Color.borderColor, lineWidth: 1)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, ScaleCalculator.scaled(24, with: scaleFactor))
             }
-            .padding()
-            .background(Color.background1)
-            
-            Divider()
-                .background(Color.borderColor)
+            .padding(.vertical, ScaleCalculator.scaled(16, with: scaleFactor))
+            .background(.white)
             
             /// 메인 콘텐츠 (2열 레이아웃)
             GeometryReader { geometry in
-                HStack(spacing: 0) {
+                HStack(alignment: .top, spacing: ScaleCalculator.scaled(8, with: scaleFactor)) {
                     /// 좌측: 미디어 + 키워드
-                    VStack(spacing: 0) {
+                    VStack(alignment: .leading, spacing: ScaleCalculator.scaled(12, with: scaleFactor)) {
                         
                         //MARK: test용 임시 링크
                         MediaView(videoURL: "https://youtu.be/LBqJwmFMQHI?si=G1aD3hiMw5-ZSdWk")
@@ -84,11 +117,8 @@ struct StudyView: View {
                     }
                     .frame(maxWidth: .infinity)
                     
-                    Divider()
-                        .background(Color.borderColor)
-                    
                     /// 우측: 요약 + 질문
-                    VStack(spacing: 0) {
+                    VStack(alignment: .leading, spacing: ScaleCalculator.scaled(12, with: scaleFactor)) {
                         SummaryView()
                             .frame(maxHeight: .infinity)
                         
@@ -104,7 +134,18 @@ struct StudyView: View {
                             min(450, geometry.size.width * 0.35)
                         )
                     )
+
                 }
+            }
+            .padding(.horizontal, ScaleCalculator.scaled(24, with: scaleFactor))
+            .padding(.top, ScaleCalculator.scaled(16, with: scaleFactor))
+            .padding(.bottom, ScaleCalculator.scaled(32, with: scaleFactor))
+            }
+            .background(.white)
+            .keyboardOverlay()
+            .onAppear { captionAnalyzer.autoSummarizeEnabled = true }
+            .sheet(isPresented: $viewModel.showSettings) {
+                StudySettingsView()
             }
         }
         .background(Color.background2)
@@ -303,11 +344,13 @@ struct InfoRow: View {
     }
 }
 
-#Preview(traits: .landscapeLeft) {
-    StudyView(
-        note: Note(
-            title: "데이터통신 제1장",
-            lastRead: Date()
-        )
-    )
-}
+//#Preview(traits: .landscapeLeft) {
+//    StudyView(
+//        note: Note(
+//            title: "데이터통신 제1장",
+//            lastRead: Date(),
+//            thumbnailURL: nil
+//        )
+//    )
+//    .environmentObject(CaptionAnalyzer())
+//}
