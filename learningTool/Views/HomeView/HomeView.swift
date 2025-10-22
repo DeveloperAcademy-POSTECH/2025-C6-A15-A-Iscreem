@@ -9,7 +9,6 @@ import SwiftUI
 
 struct HomeView: View {
     @StateObject private var viewModel = HomeViewModel()
-    @State private var columnVisibility: NavigationSplitViewVisibility = .all
     @State private var showCreateNote = false
     
     /// 노트 선택 콜백
@@ -31,13 +30,14 @@ struct HomeView: View {
     }
     
     var body: some View {
-        NavigationSplitView(columnVisibility: $columnVisibility) {
+        NavigationSplitView {
             SidebarView()
                 .navigationSplitViewColumnWidth(
                     min: 280,
                     ideal: 320,
                     max: 400
                 )
+                .toolbar(.hidden, for: .navigationBar)
         } detail: {
             VStack(spacing: 0) {
                 /// 헤더 영역

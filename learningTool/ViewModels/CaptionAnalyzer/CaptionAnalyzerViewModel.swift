@@ -68,8 +68,10 @@ final class CaptionAnalyzer: ObservableObject {
     /// 통합 요약 진행 여부 (UI 스피너용)
     @Published var isMergingFinal: Bool = false
 
-    /// 추출된 키워드
+    /// 추출된 키워드 (최종 요약 기반)
     @Published var extractedKeywords: [String] = []
+    /// 챕터별 누적 키워드
+    @Published var accumulatedKeywords: [String] = []
     
     struct SummaryDebug {
         var runId = UUID()
@@ -354,7 +356,7 @@ final class CaptionAnalyzer: ObservableObject {
                 await MainActor.run {
                     self.finalSummary = merged.trimmingCharacters(in: .whitespacesAndNewlines)
                     self.isMergingFinal = false
-                    // Update extractedKeywords after setting finalSummary
+                    // finalSummary 기반 키워드 추출
                     self.extractedKeywords = self.extractKeywords()
                 }
                 self.log.info("sum[\(runTag)] merge done")
@@ -384,6 +386,64 @@ final class CaptionAnalyzer: ObservableObject {
     @MainActor
     private func setChapterBullets(id: UUID, bullets: [String]) {
         chapterBullets[id] = bullets
+        let chapterText = bullets.joined(separator: " ")
+        Task { @MainActor in
+            await updateKeywords(for: chapterText)
+        }
+    }
+
+    /// 챕터별 누적 키워드 추출 및 업데이트
+    @MainActor
+    func updateKeywords(for chapterText: String) {
+        // 1. 전처리: 불용어 제거 등
+        let cleanText = preprocess(chapterText)
+        // 2. 단어별 빈도 계산
+        let words = cleanText
+            .components(separatedBy: .whitespacesAndNewlines)
+            .map { $0.trimmingCharacters(in: .punctuationCharacters) }
+            .filter { !$0.isEmpty }
+        var freq: [String: Int] = [:]
+        for word in words {
+            freq[word, default: 0] += 1
+        }
+        // 3. 상위 N개 키워드 추출
+        let N = 10
+        let sorted = freq.sorted { $0.value > $1.value }
+        let topKeywords = sorted.prefix(N).map { $0.key }
+        // 4. 누적 키워드에 추가 (중복 제거)
+        for keyword in topKeywords {
+            if !accumulatedKeywords.contains(keyword) {
+                accumulatedKeywords.append(keyword)
+            }
+        }
+    }
+    /// 텍스트에서 불용어를 제거하는 간단한 전처리 함수
+    func preprocess(_ text: String) -> String {
+        // 한국어 불용어 예시 (간단 버전)
+        let stopwords: Set<String> = [
+            "이", "그", "저", "것", "등", "및", "의", "에", "를", "을", "로", "에서", "으로", "와", "과", "도", "는", "은", "가", "한", "하다", "되다", "있다"
+        ]
+        let words = text.components(separatedBy: .whitespacesAndNewlines)
+        let filtered = words.filter { !stopwords.contains($0) }
+        return filtered.joined(separator: " ")
+    }
+    
+    // finalSummary 기반 상위 N개 키워드 추출
+    func extractKeywords(topN: Int = 10) -> [String] {
+        // Tokenize into words before counting
+        let tokens = preprocess(finalSummary)
+            .components(separatedBy: .whitespacesAndNewlines)
+            .map { $0.trimmingCharacters(in: .punctuationCharacters) }
+            .filter { !$0.isEmpty }
+        guard !tokens.isEmpty else { return [] }
+
+        var freq: [String: Int] = [:]
+        for token in tokens {
+            freq[token, default: 0] += 1
+        }
+
+        let sorted = freq.sorted { $0.value > $1.value }
+        return sorted.prefix(topN).map { $0.key }
     }
     
     // MARK: - youtubei (player API) Prefetch

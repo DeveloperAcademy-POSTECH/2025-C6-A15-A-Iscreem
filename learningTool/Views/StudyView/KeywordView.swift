@@ -21,7 +21,7 @@ struct KeywordView: View {
             /// 키워드 태그들 (가로 스크롤)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
-                    ForEach(analyzer.extractedKeywords, id: \.self) { keyword in
+                    ForEach(analyzer.accumulatedKeywords, id: \.self) { keyword in
                         KeywordTag(keyword: keyword)
                     }
                 }
@@ -30,36 +30,52 @@ struct KeywordView: View {
             .padding(.bottom, 12)
         }
         .background(Color.background1)
-        .onAppear {
-            if !analyzer.finalSummary.isEmpty && analyzer.extractedKeywords.isEmpty {
-                analyzer.extractedKeywords = analyzer.extractKeywords()
-            }
-        }
     }
 }
 
 struct KeywordTag: View {
     let keyword: String
+    var isSelected: Bool = false
     
     var body: some View {
         Text(keyword)
-            .font(.system(size: 15))
-            .foregroundStyle(Color.text1)
+            .font(.system(size: 15, weight: isSelected ? .semibold : .regular))
+            .foregroundStyle(isSelected ? .white : Color.text1)
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
-            .background(Color.background2)
+            .background(
+                isSelected
+                    ? LinearGradient(
+                        colors: [Color.orange, Color.orange.opacity(0.8)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                      )
+                    : LinearGradient(
+                        colors: [Color.background2, Color.background2],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                      )
+            )
             .cornerRadius(20)
             .overlay(
                 RoundedRectangle(cornerRadius: 20)
-                    .stroke(Color.borderColor, lineWidth: 1)
+                    .stroke(isSelected ? Color.orange : Color.borderColor, lineWidth: isSelected ? 2 : 1)
+            )
+            .shadow(
+                color: isSelected ? Color.orange.opacity(0.3) : Color.clear,
+                radius: isSelected ? 8 : 0,
+                x: 0,
+                y: isSelected ? 2 : 0
             )
     }
 }
 
 #Preview(traits: .landscapeLeft) {
     let analyzer = CaptionAnalyzer()
-    analyzer.finalSummary = "트랜스포트 데이터링크 세션 물리 매체 응용 OSI 7계층 데이터신 표현"
-    analyzer.extractedKeywords = analyzer.extractKeywords()
+    // 예시: 여러 챕터에서 누적 키워드 추가
+    analyzer.accumulatedKeywords = [
+        "트랜스포트", "데이터링크", "세션", "물리", "매체", "응용", "OSI", "7계층", "데이터신", "표현", "프로토콜"
+    ]
     return KeywordView(analyzer: analyzer)
         .frame(height: 180)
 }
