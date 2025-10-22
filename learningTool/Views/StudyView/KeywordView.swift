@@ -40,37 +40,18 @@ struct KeywordView: View {
 
 struct KeywordTag: View {
     let keyword: String
-    var isSelected: Bool = false
     
     var body: some View {
         Text(keyword)
-            .font(.system(size: 15, weight: isSelected ? .semibold : .regular))
-            .foregroundStyle(isSelected ? .white : Color.text1)
+            .font(.system(size: 15))
+            .foregroundStyle(Color.text1)
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
-            .background(
-                isSelected
-                    ? LinearGradient(
-                        colors: [Color.orange, Color.orange.opacity(0.8)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                      )
-                    : LinearGradient(
-                        colors: [Color.background2, Color.background2],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                      )
-            )
+            .background(Color.background2)
             .cornerRadius(20)
             .overlay(
                 RoundedRectangle(cornerRadius: 20)
-                    .stroke(isSelected ? Color.orange : Color.borderColor, lineWidth: isSelected ? 2 : 1)
-            )
-            .shadow(
-                color: isSelected ? Color.orange.opacity(0.3) : Color.clear,
-                radius: isSelected ? 8 : 0,
-                x: 0,
-                y: isSelected ? 2 : 0
+                    .stroke(Color.borderColor, lineWidth: 1)
             )
     }
 }

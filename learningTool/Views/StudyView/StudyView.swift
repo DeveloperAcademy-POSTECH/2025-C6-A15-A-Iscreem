@@ -10,7 +10,6 @@ import SwiftUI
 struct StudyView: View {
     @StateObject private var viewModel: StudyViewModel
     let onDismiss: (() -> Void)?
-    @State private var showingAPISettings = false
     
     @EnvironmentObject private var captionAnalyzer: CaptionAnalyzer
     
@@ -50,9 +49,7 @@ struct StudyView: View {
                 
                 Spacer()
                 
-                Button(action: {
-                    showingAPISettings = true
-                }) {
+                Button(action: {}) {
                     Image(systemName: "gearshape")
                         .font(.system(size: 20))
                         .foregroundStyle(Color.text2)
@@ -95,7 +92,7 @@ struct StudyView: View {
                         Divider()
                             .background(Color.borderColor)
                         
-                        QuestionView(studyViewModel: viewModel)
+                        QuestionView()
                             .frame(maxHeight: .infinity)
                     }
                     .frame(
@@ -110,196 +107,6 @@ struct StudyView: View {
         .background(Color.background2)
         .keyboardOverlay()
         .onAppear { captionAnalyzer.autoSummarizeEnabled = true }
-        .sheet(isPresented: $showingAPISettings) {
-            APISettingsView()
-        }
-    }
-}
-
-struct APISettingsView: View {
-    @Environment(\.dismiss) private var dismiss
-    @State private var apiKey: String = ""
-    @State private var showingSuccessAlert = false
-    @State private var showingErrorAlert = false
-    @State private var errorMessage = ""
-    
-    var body: some View {
-        VStack(spacing: 0) {
-            /// 헤더
-            HStack {
-                Text("AI 설정")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(Color.text1)
-                
-                Spacer()
-                
-                Button(action: { dismiss() }) {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 16))
-                        .foregroundStyle(Color.text2)
-                }
-                .buttonStyle(.plain)
-            }
-            .padding(20)
-            
-            Divider()
-                .background(Color.borderColor)
-            
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    /// API 키 입력 섹션
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Gemini API 키")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(Color.text1)
-                        
-                        Text("Google AI Studio에서 Gemini API 키를 발급받아 입력하세요.")
-                            .font(.system(size: 13))
-                            .foregroundStyle(Color.text3)
-                        
-                        SecureField("API 키를 입력하세요", text: $apiKey)
-                            .font(.system(size: 14))
-                            .padding(12)
-                            .background(Color.background2)
-                            .cornerRadius(8)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color.borderColor, lineWidth: 1)
-                            )
-                    }
-                    
-                    /// 안내 섹션
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("API 키 발급 방법")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(Color.text1)
-                        
-                        VStack(alignment: .leading, spacing: 8) {
-                            InfoRow(number: "1", text: "Google AI Studio (ai.google.dev)에 접속")
-                            InfoRow(number: "2", text: "Google 계정으로 로그인")
-                            InfoRow(number: "3", text: "'Get API key' 버튼 클릭")
-                            InfoRow(number: "4", text: "생성된 API 키 복사 후 위에 입력")
-                        }
-                    }
-                    
-                    /// 현재 상태
-                    HStack {
-                        Image(systemName: GeminiAPIService.shared.isAPIKeyConfigured() 
-                              ? "checkmark.circle.fill" 
-                              : "exclamationmark.circle.fill")
-                            .foregroundStyle(GeminiAPIService.shared.isAPIKeyConfigured() 
-                                           ? Color.green 
-                                           : Color.orange)
-                        
-                        Text(GeminiAPIService.shared.isAPIKeyConfigured() 
-                             ? "API 키가 설정되어 있습니다" 
-                             : "API 키가 설정되지 않았습니다")
-                            .font(.system(size: 13))
-                            .foregroundStyle(Color.text2)
-                        
-                        Spacer()
-                    }
-                    .padding(12)
-                    .background(Color.background2)
-                    .cornerRadius(8)
-                    
-                    Spacer()
-                }
-                .padding(20)
-            }
-            
-            Divider()
-                .background(Color.borderColor)
-            
-            /// 버튼 영역
-            HStack(spacing: 12) {
-                if GeminiAPIService.shared.isAPIKeyConfigured() {
-                    Button(action: deleteAPIKey) {
-                        Text("API 키 삭제")
-                            .font(.system(size: 15, weight: .medium))
-                            .foregroundStyle(Color.errorColor)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .background(Color.errorColor.opacity(0.1))
-                            .cornerRadius(8)
-                    }
-                    .buttonStyle(.plain)
-                }
-                
-                Button(action: saveAPIKey) {
-                    Text("저장")
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(apiKey.isEmpty ? Color.text3 : Color.primaryColor)
-                        .cornerRadius(8)
-                }
-                .buttonStyle(.plain)
-                .disabled(apiKey.isEmpty)
-            }
-            .padding(20)
-        }
-        .frame(width: 500, height: 600)
-        .background(Color.background1)
-        .onAppear {
-            if let existingKey = GeminiAPIService.shared.getAPIKey() {
-                apiKey = existingKey
-            }
-        }
-        .alert("저장 완료", isPresented: $showingSuccessAlert) {
-            Button("확인", role: .cancel) {
-                dismiss()
-            }
-        } message: {
-            Text("API 키가 성공적으로 저장되었습니다.")
-        }
-        .alert("오류", isPresented: $showingErrorAlert) {
-            Button("확인", role: .cancel) {}
-        } message: {
-            Text(errorMessage)
-        }
-    }
-    
-    private func saveAPIKey() {
-        let trimmedKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedKey.isEmpty else {
-            errorMessage = "API 키를 입력해주세요."
-            showingErrorAlert = true
-            return
-        }
-        
-        GeminiAPIService.shared.saveAPIKey(trimmedKey)
-        showingSuccessAlert = true
-    }
-    
-    private func deleteAPIKey() {
-        GeminiAPIService.shared.deleteAPIKey()
-        apiKey = ""
-        errorMessage = "API 키가 삭제되었습니다."
-        showingErrorAlert = true
-    }
-}
-
-struct InfoRow: View {
-    let number: String
-    let text: String
-    
-    var body: some View {
-        HStack(alignment: .top, spacing: 8) {
-            Text(number)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(.white)
-                .frame(width: 20, height: 20)
-                .background(Color.secondColor)
-                .clipShape(Circle())
-            
-            Text(text)
-                .font(.system(size: 13))
-                .foregroundStyle(Color.text2)
-            
-            Spacer()
-        }
     }
 }
 
