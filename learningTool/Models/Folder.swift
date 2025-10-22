@@ -6,13 +6,19 @@
 //
 
 import Foundation
+import SwiftData
 
-struct Folder: Identifiable {
-    let id: UUID
-    let name: String
+@Model
+final class Folder {
+    @Attribute(.unique) var name: String
+    var createdAt: Date
     
-    init(id: UUID = UUID(), name: String) {
-        self.id = id
+    // 폴더 삭제 시 포함된 노트도 함께 삭제
+        @Relationship(deleteRule: .cascade, inverse: \Note.folder)
+        var notes: [Note] = []
+    
+    init(name: String, createdAt: Date = .now){
         self.name = name
+        self.createdAt = createdAt
     }
 }

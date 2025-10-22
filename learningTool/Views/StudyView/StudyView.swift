@@ -309,5 +309,6 @@ struct InfoRow: View {
             title: "데이터통신 제1장",
             lastRead: Date()
         )
-    )
+        )
+        .environmentObject(CaptionAnalyzer())
 }
