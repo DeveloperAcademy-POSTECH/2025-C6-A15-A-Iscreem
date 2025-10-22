@@ -11,7 +11,6 @@ import Combine
 class StudyViewModel: ObservableObject {
     @Published var selectedTab = StudyTab.media
     @Published var currentNote: Note?
-    @Published var showSettings = false
     
     // 키워드 선택 및 질문 자동 입력을 위한 프로퍼티
     @Published var selectedKeyword: String?
@@ -64,7 +63,5 @@ class StudyViewModel: ObservableObject {
     /// 추천질문 생성 완료 처리
     func suggestionsGenerated() {
         shouldGenerateSuggestions = false
-    func settingsButtonTapped() {
-        showSettings = true
     }
 }

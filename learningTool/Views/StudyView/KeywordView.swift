@@ -8,37 +8,28 @@
 import SwiftUI
 
 struct KeywordView: View {
-
     @ObservedObject var analyzer: CaptionAnalyzer
-
-    let scaleFactor: CGFloat
-
+    
     var body: some View {
-        VStack(alignment: .leading, spacing: ScaleCalculator.scaled(12, with: scaleFactor)) {
+        VStack(alignment: .leading, spacing: 12) {
             Text("이 강의에서 자주 언급되는 핵심 키워드들이 나열됩니다.")
-                .font(.system(size: ScaleCalculator.scaled(14, with: scaleFactor)))
+                .font(.system(size: 14))
                 .foregroundStyle(Color.text2)
-                .padding(.horizontal, ScaleCalculator.scaled(16, with: scaleFactor))
-                .padding(.top, ScaleCalculator.scaled(12, with: scaleFactor))
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
             
             /// 키워드 태그들 (가로 스크롤)
             ScrollView(.horizontal, showsIndicators: false) {
-
-                HStack(spacing: ScaleCalculator.scaled(12, with: scaleFactor)) {
+                HStack(spacing: 12) {
                     ForEach(analyzer.extractedKeywords, id: \.self) { keyword in
-                        KeywordTag(keyword: keyword, scaleFactor: scaleFactor)
+                        KeywordTag(keyword: keyword)
                     }
                 }
-                .padding(.horizontal, ScaleCalculator.scaled(16, with: scaleFactor))
+                .padding(.horizontal, 16)
             }
-            .padding(.bottom, ScaleCalculator.scaled(12, with: scaleFactor))
+            .padding(.bottom, 12)
         }
-        .frame(
-            width: ScaleCalculator.scaled(800, with: scaleFactor),
-            height: ScaleCalculator.scaled(214, with: scaleFactor)
-        )
-        .background(Color.background2)
-        .cornerRadius(ScaleCalculator.scaled(12, with: scaleFactor))
+        .background(Color.background1)
         .onAppear {
             if !analyzer.finalSummary.isEmpty && analyzer.extractedKeywords.isEmpty {
                 analyzer.extractedKeywords = analyzer.extractKeywords()
@@ -50,14 +41,13 @@ struct KeywordView: View {
 struct KeywordTag: View {
     let keyword: String
     var isSelected: Bool = false
-    let scaleFactor: CGFloat
     
     var body: some View {
         Text(keyword)
-            .font(.system(size: ScaleCalculator.scaled(15, with: scaleFactor), weight: isSelected ? .semibold : .regular))
+            .font(.system(size: 15, weight: isSelected ? .semibold : .regular))
             .foregroundStyle(isSelected ? .white : Color.text1)
-            .padding(.horizontal, ScaleCalculator.scaled(16, with: scaleFactor))
-            .padding(.vertical, ScaleCalculator.scaled(10, with: scaleFactor))
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
             .background(
                 isSelected
                     ? LinearGradient(
@@ -71,9 +61,9 @@ struct KeywordTag: View {
                         endPoint: .bottomTrailing
                       )
             )
-            .cornerRadius(ScaleCalculator.scaled(20, with: scaleFactor))
+            .cornerRadius(20)
             .overlay(
-                RoundedRectangle(cornerRadius: ScaleCalculator.scaled(20, with: scaleFactor))
+                RoundedRectangle(cornerRadius: 20)
                     .stroke(isSelected ? Color.orange : Color.borderColor, lineWidth: isSelected ? 2 : 1)
             )
             .shadow(
