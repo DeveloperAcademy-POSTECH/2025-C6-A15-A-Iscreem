@@ -64,6 +64,8 @@ class StudyViewModel: ObservableObject {
     /// 추천질문 생성 완료 처리
     func suggestionsGenerated() {
         shouldGenerateSuggestions = false
+    }
+    
     func settingsButtonTapped() {
         showSettings = true
     }

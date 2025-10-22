@@ -85,10 +85,10 @@ struct KeywordTag: View {
     }
 }
 
-#Preview(traits: .landscapeLeft) {
-    let analyzer = CaptionAnalyzer()
-    analyzer.finalSummary = "트랜스포트 데이터링크 세션 물리 매체 응용 OSI 7계층 데이터신 표현"
-    analyzer.extractedKeywords = analyzer.extractKeywords()
-    return KeywordView(analyzer: analyzer)
-        .frame(height: 180)
-}
+//#Preview(traits: .landscapeLeft) {
+//    let analyzer = CaptionAnalyzer()
+//    analyzer.finalSummary = "트랜스포트 데이터링크 세션 물리 매체 응용 OSI 7계층 데이터신 표현"
+//    analyzer.extractedKeywords = analyzer.extractKeywords()
+//    return KeywordView(analyzer: analyzer)
+//        .frame(height: 180)
+//}

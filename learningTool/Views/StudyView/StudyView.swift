@@ -105,12 +105,12 @@ struct StudyView: View {
                     VStack(alignment: .leading, spacing: ScaleCalculator.scaled(12, with: scaleFactor)) {
                         
                         //MARK: test용 임시 링크
-                        MediaView(videoURL: "https://youtu.be/LBqJwmFMQHI?si=G1aD3hiMw5-ZSdWk")
+                        MediaView(videoURL: "https://youtu.be/LBqJwmFMQHI?si=G1aD3hiMw5-ZSdWk", scaleFactor: scaleFactor)
                         
                         Divider()
                             .background(Color.borderColor)
                         
-                        KeywordView(analyzer: captionAnalyzer)
+                        KeywordView(analyzer: captionAnalyzer, scaleFactor: scaleFactor)
                             .frame(height: 180)
                         
                         Spacer()
@@ -119,13 +119,13 @@ struct StudyView: View {
                     
                     /// 우측: 요약 + 질문
                     VStack(alignment: .leading, spacing: ScaleCalculator.scaled(12, with: scaleFactor)) {
-                        SummaryView()
+                        SummaryView(scaleFactor: scaleFactor)
                             .frame(maxHeight: .infinity)
                         
                         Divider()
                             .background(Color.borderColor)
                         
-                        QuestionView(studyViewModel: viewModel)
+                        QuestionView(studyViewModel: viewModel, scaleFactor: scaleFactor)
                             .frame(maxHeight: .infinity)
                     }
                     .frame(
