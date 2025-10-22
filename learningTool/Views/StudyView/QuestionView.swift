@@ -61,6 +61,8 @@ struct QuestionView: View {
                                 
                                 Text("API 키가 설정되지 않았습니다")
                                     .font(.system(size: 16, weight: .semibold))
+//                                Text("AI가 답변을 생성중입니다...")
+//                                    .font(.system(size: ScaleCalculator.scaled(13, with: scaleFactor)))
                                     .foregroundStyle(Color.text3)
                                 
                                 Text("우측 상단의 톱니바퀴 버튼을 눌러\nGemini API 키를 설정해주세요.")
@@ -87,7 +89,7 @@ struct QuestionView: View {
                             .padding(40)
                         } else {
                             ForEach(viewModel.messages) { message in
-                                ChatBubble(message: message, scaleFactor: scaleFactor)
+                                ChatBubble(message: message)
                                     .id(message.id)
                             }
                             
@@ -103,6 +105,7 @@ struct QuestionView: View {
                                 .padding(.horizontal, 16)
                                 .id("loading")
                             }
+                            .padding(.horizontal, ScaleCalculator.scaled(12, with: scaleFactor))
                         }
                     }
                     .padding(ScaleCalculator.scaled(12, with: scaleFactor))
@@ -316,6 +319,9 @@ struct QuestionView: View {
                         if isAPIKeyConfigured {
                             viewModel.sendMessage()
                         }
+                        Rectangle()
+                            .fill(Color.text3.opacity(0.5))
+                            .frame(height: 1)
                     }
                 }
                 
@@ -360,9 +366,7 @@ struct QuestionView: View {
                                 || !isAPIKeyConfigured
                                 ? Color.text3.opacity(0.5)
                                 : Color.secondColor
-                            )
                         .clipShape(Circle())
-                            
                 }
                 .disabled(
                     viewModel.isLoading
@@ -430,7 +434,7 @@ struct QuestionView: View {
         print("🔍 [전구버튼] 선택된 키워드: \(studyViewModel.selectedKeyword ?? "없음")")
         print("🔍 [전구버튼] 현재 표시 상태: showingSuggestions=\(showingSuggestions), isLoading=\(isLoadingSuggestions)")
         
-        guard let _ = studyViewModel.selectedKeyword else {
+        guard let keyword = studyViewModel.selectedKeyword else {
             print("❌ [전구버튼] 키워드 없음 - 종료")
             return
         }
@@ -468,8 +472,8 @@ struct QuestionView: View {
         }
         
         // 요약 컨텍스트가 비어있어도 진행 (기본 질문 생성)
-        let contextText = studyViewModel.summaryContext.isEmpty
-            ? "강의 내용에 대한 학습"
+        let contextText = studyViewModel.summaryContext.isEmpty 
+            ? "강의 내용에 대한 학습" 
             : studyViewModel.summaryContext
         
         print("📝 [생성] 컨텍스트 길이: \(contextText.count)자")
@@ -572,6 +576,12 @@ struct QuestionView: View {
                 }
             }
         }
+        .frame(
+            width: ScaleCalculator.scaled(334, with: scaleFactor),
+            height: ScaleCalculator.scaled(396, with: scaleFactor)
+        )
+        .background(Color.background2)
+        .cornerRadius(ScaleCalculator.scaled(12, with: scaleFactor))
     }
 }
 
@@ -639,6 +649,6 @@ struct RoundedCorner: Shape {
     }
 }
 
-//#Preview(traits: .landscapeLeft) {
-//    QuestionView(studyViewModel: StudyViewModel())
-//}
+#Preview(traits: .landscapeLeft) {
+    QuestionView(studyViewModel: StudyViewModel())
+}
