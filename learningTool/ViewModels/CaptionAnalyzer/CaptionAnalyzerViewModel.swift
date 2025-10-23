@@ -386,7 +386,7 @@ final class CaptionAnalyzer: ObservableObject {
         }
     }
     
-    /// Setter for chapter bullets and triggers contextual keyword extraction or LLM-based extraction if available.
+    /// 챕터 불릿을 설정하고, 컨텍스트 기반 키워드 추출 또는 LLM 기반 추출을 트리거합니다.
     @MainActor
     private func setChapterBullets(id: UUID, bullets: [String]) {
         chapterBullets[id] = bullets
@@ -421,15 +421,15 @@ final class CaptionAnalyzer: ObservableObject {
         }
     }
 
-    /// Extracts contextual keywords from a given text using NaturalLanguage framework and NLEmbedding if available.
+    /// 주어진 텍스트에서 NaturalLanguage 프레임워크와 NLEmbedding(가능한 경우)을 활용하여 컨텍스트 기반 키워드를 추출합니다.
     @MainActor
     func extractChapterKeywordsContextual(from text: String) async -> [String] {
         guard !text.isEmpty else { return [] }
-        // 1. Preprocess text (remove stopwords, normalize)
+        // 1. 텍스트 전처리 (불용어 제거, 정규화)
         let cleanedText = preprocess(text)
         guard !cleanedText.isEmpty else { return [] }
 
-        // 2. Use NLTagger with both .lexicalClass and .nameType to collect nouns/proper nouns
+        // 2. NLTagger의 .lexicalClass와 .nameType을 모두 활용하여 명사/고유명사 후보 수집
         let tagger = NLTagger(tagSchemes: [.lexicalClass, .nameType])
         tagger.string = cleanedText
         let options: NLTagger.Options = [.omitPunctuation, .omitWhitespace, .joinNames]
@@ -442,7 +442,7 @@ final class CaptionAnalyzer: ObservableObject {
             }
             return true
         }
-        // Also collect named entities (proper nouns, organizations, etc.)
+        // 고유명사(인명, 지명, 조직 등)도 추가 수집
         tagger.enumerateTags(in: cleanedText.startIndex..<cleanedText.endIndex, unit: .word, scheme: .nameType, options: options) { tag, tokenRange in
             if let tag = tag, tag == .personalName || tag == .placeName || tag == .organizationName {
                 let word = String(cleanedText[tokenRange]).trimmingCharacters(in: .whitespacesAndNewlines)
@@ -453,10 +453,10 @@ final class CaptionAnalyzer: ObservableObject {
         }
         guard !candidateWords.isEmpty else { return [] }
 
-        // 3. If NLEmbedding is available, use semantic similarity
+        // 3. NLEmbedding이 지원되는 경우 의미적 유사도 활용
         var wordScores: [(word: String, score: Double)] = []
         if let embedding = NLEmbedding.wordEmbedding(for: .korean) {
-            // Compute vector for full text (mean of all vectors)
+            // 전체 텍스트의 벡터 계산 (각 단어 벡터의 평균)
             let allWords = cleanedText.components(separatedBy: .whitespacesAndNewlines)
             let textVectors = allWords.compactMap { embedding.vector(for: $0) }
             let textVector: [Double]
@@ -468,40 +468,40 @@ final class CaptionAnalyzer: ObservableObject {
             } else {
                 textVector = []
             }
-            // For each candidate, get its vector, compute similarity, combine with frequency
+            // 각 후보 단어에 대해 벡터, 유사도 계산 및 빈도와 결합
             for (word, freq) in candidateWords {
                 if let vec = embedding.vector(for: word), !textVector.isEmpty {
                     let sim = cosineSimilarity(vec1: vec, vec2: textVector)
-                    // Combine similarity (70%) and normalized frequency (30%)
+                    // 유사도(70%)와 정규화된 빈도(30%)를 결합
                     let freqNorm = min(Double(freq) / 5.0, 1.0) // scale freq
                     let score = sim * 0.7 + freqNorm * 0.3
                     wordScores.append((word, score))
                 } else {
-                    // If no vector, fallback to frequency only (lower score)
+                    // 벡터가 없으면 빈도 기반 점수만 사용 (낮은 점수)
                     let freqNorm = min(Double(freq) / 5.0, 1.0)
                     wordScores.append((word, freqNorm * 0.3))
                 }
             }
         } else {
-            // 4. Fallback: frequency-based ranking only
+            // 4. 폴백: 빈도 기반 정렬만 사용
             for (word, freq) in candidateWords {
                 wordScores.append((word, Double(freq)))
             }
         }
-        // 5. Sort descending by score, then alphabetically
+        // 5. 점수 내림차순 정렬 후, 동일 점수는 가나다순
         let sorted = wordScores.sorted { $0.score > $1.score || ($0.score == $1.score && $0.word < $1.word) }
-        // Remove duplicates or included substrings (e.g., "데이터" if "데이터베이스" exists)
+        // 중복 또는 포함 관계(예: "데이터"가 "데이터베이스"에 포함되면 제거)
         var filtered: [String] = []
         for (word, _) in sorted {
             if !filtered.contains(where: { $0.contains(word) && $0 != word }) {
                 filtered.append(word)
             }
         }
-        // Return top 8
+        // 상위 8개 반환
         return Array(filtered.prefix(8))
     }
 
-    /// Cosine similarity between two vectors
+    /// 두 벡터 간 코사인 유사도 계산
     func cosineSimilarity(vec1: [Double], vec2: [Double]) -> Double {
         guard vec1.count == vec2.count, !vec1.isEmpty else { return 0 }
         let dot = zip(vec1, vec2).map(*).reduce(0, +)
