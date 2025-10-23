@@ -5,6 +5,7 @@
 //  Created by coulson on 10/20/25.
 //
 
+import NaturalLanguage
 import Foundation
 import Combine
 import OSLog
@@ -60,6 +61,9 @@ final class CaptionAnalyzer: ObservableObject {
 
     /// 각 챕터의 4줄 요약 (불릿 없이 한 문장씩)
     @Published var chapterBullets: [UUID: [String]] = [:]
+
+    /// 챕터별 키워드 (chapter id → [String])
+    @Published var chapterKeywords: [UUID: [String]] = [:]
     
     /// Turn this on to automatically kick off summarization once transcript is ready.
     var autoSummarizeEnabled: Bool = false
@@ -382,40 +386,129 @@ final class CaptionAnalyzer: ObservableObject {
         }
     }
     
-    /// Setter
+    /// Setter for chapter bullets and triggers contextual keyword extraction or LLM-based extraction if available.
     @MainActor
     private func setChapterBullets(id: UUID, bullets: [String]) {
         chapterBullets[id] = bullets
         let chapterText = bullets.joined(separator: " ")
-        Task { @MainActor in
-            await updateKeywords(for: chapterText)
+        Task {
+            if #available(iOS 26.0, *), let summarizer = self.summarizer {
+                do {
+                    let keywordsText = try await summarizer.summarizeChunk(
+                        text: chapterText,
+                        instruction: "이 내용을 바탕으로 가장 중요한 핵심 키워드 5개를 한국어로 나열. 쉼표로 구분."
+                    )
+                    let keywords = keywordsText
+                        .split(separator: ",")
+                        .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                        .filter { !$0.isEmpty }
+                    await MainActor.run {
+                        self.chapterKeywords[id] = keywords
+                    }
+                } catch {
+                    // Fallback to contextual extraction if summarizer fails
+                    let keywords = await extractChapterKeywordsContextual(from: chapterText)
+                    await MainActor.run {
+                        self.chapterKeywords[id] = keywords
+                    }
+                }
+            } else {
+                let keywords = await extractChapterKeywordsContextual(from: chapterText)
+                await MainActor.run {
+                    self.chapterKeywords[id] = keywords
+                }
+            }
         }
     }
 
-    /// 챕터별 누적 키워드 추출 및 업데이트
+    /// Extracts contextual keywords from a given text using NaturalLanguage framework and NLEmbedding if available.
     @MainActor
-    func updateKeywords(for chapterText: String) {
-        // 1. 전처리: 불용어 제거 등
-        let cleanText = preprocess(chapterText)
-        // 2. 단어별 빈도 계산
-        let words = cleanText
-            .components(separatedBy: .whitespacesAndNewlines)
-            .map { $0.trimmingCharacters(in: .punctuationCharacters) }
-            .filter { !$0.isEmpty }
-        var freq: [String: Int] = [:]
-        for word in words {
-            freq[word, default: 0] += 1
+    func extractChapterKeywordsContextual(from text: String) async -> [String] {
+        guard !text.isEmpty else { return [] }
+        // 1. Preprocess text (remove stopwords, normalize)
+        let cleanedText = preprocess(text)
+        guard !cleanedText.isEmpty else { return [] }
+
+        // 2. Use NLTagger with both .lexicalClass and .nameType to collect nouns/proper nouns
+        let tagger = NLTagger(tagSchemes: [.lexicalClass, .nameType])
+        tagger.string = cleanedText
+        let options: NLTagger.Options = [.omitPunctuation, .omitWhitespace, .joinNames]
+        var candidateWords: [String: Int] = [:]
+        tagger.enumerateTags(in: cleanedText.startIndex..<cleanedText.endIndex, unit: .word, scheme: .lexicalClass, options: options) { tag, tokenRange in
+            if let tag = tag, tag == .noun {
+                let word = String(cleanedText[tokenRange]).trimmingCharacters(in: .whitespacesAndNewlines)
+                guard word.count > 1 else { return true }
+                candidateWords[word, default: 0] += 1
+            }
+            return true
         }
-        // 3. 상위 N개 키워드 추출
-        let N = 10
-        let sorted = freq.sorted { $0.value > $1.value }
-        let topKeywords = sorted.prefix(N).map { $0.key }
-        // 4. 누적 키워드에 추가 (중복 제거)
-        for keyword in topKeywords {
-            if !accumulatedKeywords.contains(keyword) {
-                accumulatedKeywords.append(keyword)
+        // Also collect named entities (proper nouns, organizations, etc.)
+        tagger.enumerateTags(in: cleanedText.startIndex..<cleanedText.endIndex, unit: .word, scheme: .nameType, options: options) { tag, tokenRange in
+            if let tag = tag, tag == .personalName || tag == .placeName || tag == .organizationName {
+                let word = String(cleanedText[tokenRange]).trimmingCharacters(in: .whitespacesAndNewlines)
+                guard word.count > 1 else { return true }
+                candidateWords[word, default: 0] += 2 // Give a little more weight to named entities
+            }
+            return true
+        }
+        guard !candidateWords.isEmpty else { return [] }
+
+        // 3. If NLEmbedding is available, use semantic similarity
+        var wordScores: [(word: String, score: Double)] = []
+        if let embedding = NLEmbedding.wordEmbedding(for: .korean) {
+            // Compute vector for full text (mean of all vectors)
+            let allWords = cleanedText.components(separatedBy: .whitespacesAndNewlines)
+            let textVectors = allWords.compactMap { embedding.vector(for: $0) }
+            let textVector: [Double]
+            if !textVectors.isEmpty {
+                let dim = textVectors.first!.count
+                textVector = (0..<dim).map { i in
+                    textVectors.map { $0[i] }.reduce(0, +) / Double(textVectors.count)
+                }
+            } else {
+                textVector = []
+            }
+            // For each candidate, get its vector, compute similarity, combine with frequency
+            for (word, freq) in candidateWords {
+                if let vec = embedding.vector(for: word), !textVector.isEmpty {
+                    let sim = cosineSimilarity(vec1: vec, vec2: textVector)
+                    // Combine similarity (70%) and normalized frequency (30%)
+                    let freqNorm = min(Double(freq) / 5.0, 1.0) // scale freq
+                    let score = sim * 0.7 + freqNorm * 0.3
+                    wordScores.append((word, score))
+                } else {
+                    // If no vector, fallback to frequency only (lower score)
+                    let freqNorm = min(Double(freq) / 5.0, 1.0)
+                    wordScores.append((word, freqNorm * 0.3))
+                }
+            }
+        } else {
+            // 4. Fallback: frequency-based ranking only
+            for (word, freq) in candidateWords {
+                wordScores.append((word, Double(freq)))
             }
         }
+        // 5. Sort descending by score, then alphabetically
+        let sorted = wordScores.sorted { $0.score > $1.score || ($0.score == $1.score && $0.word < $1.word) }
+        // Remove duplicates or included substrings (e.g., "데이터" if "데이터베이스" exists)
+        var filtered: [String] = []
+        for (word, _) in sorted {
+            if !filtered.contains(where: { $0.contains(word) && $0 != word }) {
+                filtered.append(word)
+            }
+        }
+        // Return top 8
+        return Array(filtered.prefix(8))
+    }
+
+    /// Cosine similarity between two vectors
+    func cosineSimilarity(vec1: [Double], vec2: [Double]) -> Double {
+        guard vec1.count == vec2.count, !vec1.isEmpty else { return 0 }
+        let dot = zip(vec1, vec2).map(*).reduce(0, +)
+        let norm1 = sqrt(vec1.map { $0 * $0 }.reduce(0, +))
+        let norm2 = sqrt(vec2.map { $0 * $0 }.reduce(0, +))
+        guard norm1 > 0, norm2 > 0 else { return 0 }
+        return dot / (norm1 * norm2)
     }
     /// 텍스트에서 불용어를 제거하는 간단한 전처리 함수
     func preprocess(_ text: String) -> String {
@@ -428,9 +521,7 @@ final class CaptionAnalyzer: ObservableObject {
         return filtered.joined(separator: " ")
     }
     
-    // finalSummary 기반 상위 N개 키워드 추출
     func extractKeywords(topN: Int = 10) -> [String] {
-        // Tokenize into words before counting
         let tokens = preprocess(finalSummary)
             .components(separatedBy: .whitespacesAndNewlines)
             .map { $0.trimmingCharacters(in: .punctuationCharacters) }
@@ -442,8 +533,18 @@ final class CaptionAnalyzer: ObservableObject {
             freq[token, default: 0] += 1
         }
 
-        let sorted = freq.sorted { $0.value > $1.value }
-        return sorted.prefix(topN).map { $0.key }
+        // 빈도순 정렬
+        let sorted = freq.sorted { $0.value > $1.value }.map { $0.key }
+
+        // ✅ 포함 관계 필터링 (예: '데이터'가 '데이터베이스'에 포함되면 제거)
+        var filtered: [String] = []
+        for word in sorted {
+            if !filtered.contains(where: { $0.contains(word) && $0 != word }) {
+                filtered.append(word)
+            }
+        }
+
+        return Array(filtered.prefix(topN))
     }
     
     // MARK: - youtubei (player API) Prefetch
