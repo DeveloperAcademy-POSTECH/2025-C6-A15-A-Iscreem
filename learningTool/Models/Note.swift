@@ -6,22 +6,27 @@
 //
 
 import Foundation
+import SwiftData
 
-struct Note: Identifiable {
-    let id: UUID
-    let title: String
-    let lastRead: Date
-    let thumbnailURL: String?
-    
+@Model
+final class Note {
+    var title: String
+    var lastRead: Date
+    var thumbnailURL: String?
+    var createdAt: Date
+    @Relationship var folder: Folder?
+
     init(
-        id: UUID = UUID(),
         title: String,
-        lastRead: Date,
-        thumbnailURL: String? = nil
+        lastRead: Date = .now,
+        thumbnailURL: String? = nil,
+        folder: Folder? = nil,
+        createdAt: Date = .now
     ) {
-        self.id = id
         self.title = title
         self.lastRead = lastRead
         self.thumbnailURL = thumbnailURL
+        self.folder = folder
+        self.createdAt = createdAt
     }
 }

@@ -9,7 +9,6 @@ import SwiftUI
 import Combine
 
 class HomeViewModel: ObservableObject {
-    @Published var notes: [Note] = []
     @Published var searchText = ""
     @Published var selectedViewMode = ViewMode.grid
     
@@ -19,9 +18,7 @@ class HomeViewModel: ObservableObject {
         case compact
     }
     
-    init() {
-        loadMockData()
-    }
+    init() {}
     
     func addButtonTapped() {
         print("Add button tapped")
@@ -29,15 +26,5 @@ class HomeViewModel: ObservableObject {
     
     func viewModeButtonTapped(_ mode: ViewMode) {
         selectedViewMode = mode
-    }
-    
-    private func loadMockData() {
-        notes = (0..<12).map { index in
-            Note(
-                title: "YouTube 제목",
-                lastRead: Date()
-                    .addingTimeInterval(-Double(index) * 3600)
-            )
-        }
     }
 }
