@@ -101,9 +101,10 @@ struct HomeView: View {
                 ScrollView {
                     LazyVGrid(columns: columns, spacing: 16) {
                         if isAllView {
-                            ForEach(allItems.indices, id: \.self) { idx in
-                                let item = allItems[idx]
-                                homeItemView(item)
+                            let items = searchQuery.isEmpty ? allItems : allItemsFiltered
+                                ForEach(items.indices, id: \.self) { idx in
+                                    let item = items[idx]
+                                    homeItemView(item)
                             }
                         } else {
                             ForEach(filteredNotes) { note in
@@ -191,7 +192,12 @@ struct HomeView: View {
             .frame(minWidth: 320)
         }
     }
+    
+    private var searchQuery: String {
+        viewModel.searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
 
+    /*
     private var filteredNotes: [Note] {
         // 1) 폴더 선택 필터
         let base: [Note]
@@ -202,6 +208,21 @@ struct HomeView: View {
         }
         // 2) 검색어 필터
         let q = viewModel.searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !q.isEmpty else { return base }
+        return base.filter { $0.title.lowercased().contains(q) }
+    }
+     */
+    
+    private var filteredNotes: [Note] {
+        // 1) 폴더 선택 필터
+        let base: [Note]
+        if let selected = selectedFolderName, selected != "__ALL__" {
+            base = notes.filter { $0.folder?.name == selected }
+        } else {
+            base = notes
+        }
+        // 2) 검색어 필터 (노트 제목만)
+        let q = searchQuery
         guard !q.isEmpty else { return base }
         return base.filter { $0.title.lowercased().contains(q) }
     }
@@ -221,6 +242,23 @@ struct HomeView: View {
         let folderItems = folders.map { HomeItem.folder($0) }
         let unfiledNotes = notes.filter { $0.folder == nil }.map { HomeItem.note($0) }
         let combined = folderItems + unfiledNotes
+        return combined.sorted { createdDate(for: $0) > createdDate(for: $1) }
+    }
+    
+    // 전체 보기에서 검색 시: 폴더 이름 + 미분류 노트 제목을 대상으로 필터링
+    private var allItemsFiltered: [HomeItem] {
+        let q = searchQuery
+        guard !q.isEmpty else { return allItems }
+
+        let matchedFolders = folders
+            .filter { $0.name.lowercased().contains(q) }
+            .map { HomeItem.folder($0) }
+
+        let matchedNotes = notes
+            .filter { $0.title.lowercased().contains(q) }
+            .map { HomeItem.note($0) }
+
+        let combined = matchedFolders + matchedNotes
         return combined.sorted { createdDate(for: $0) > createdDate(for: $1) }
     }
 
