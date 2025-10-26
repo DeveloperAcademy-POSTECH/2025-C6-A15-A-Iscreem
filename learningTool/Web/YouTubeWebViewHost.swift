@@ -51,14 +51,85 @@ final class YouTubeWebViewHost: NSObject, ObservableObject {
 
     // MARK: - Public
     func load(urlString: String) {
-        guard let url = URL(string: urlString) else { return }
-        var req = URLRequest(url: url)
-        req.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1", forHTTPHeaderField: "User-Agent")
-        log.info("WKNav allow → \(url.host ?? "-")")
-        // Reset bridge flags for a fresh navigation
+        guard let input = URL(string: urlString) else { return }
+
+        // 1) 영상 ID 추출 → embed(nocookie) URL로 강제 변환
+        if let vid = Self.extractVideoID(from: input),
+           let embed = Self.buildEmbedURL(for: vid) {
+            var req = URLRequest(url: embed)
+            req.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
+                         forHTTPHeaderField: "User-Agent")
+            log.info("WKNav allow → embed \(embed.host ?? "-")")
+            didProcessCfg = false
+            didProcessTracks = false
+            webView.load(req)
+            return
+        }
+
+        // 2) 폴백: 그래도 불가하면 원본 그대로
+        var req = URLRequest(url: input)
+        req.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
+                     forHTTPHeaderField: "User-Agent")
+        log.info("WKNav allow → \(input.host ?? "-")")
         didProcessCfg = false
         didProcessTracks = false
         webView.load(req)
+    }
+    
+    /// 다양한 URL 형식에서 YouTube 영상 ID 추출
+    private static func extractVideoID(from url: URL) -> String? {
+        let host = (url.host ?? "").lowercased()
+        let path = url.path
+
+        // youtu.be/<id>
+        if host.contains("youtu.be") {
+            let comps = path.split(separator: "/").map(String.init)
+            if let id = comps.first, id.count >= 6 { return id }
+        }
+
+        // youtube.com/watch?v=<id>
+        if host.contains("youtube.com") {
+            if path == "/watch" {
+                if let v = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+                    .queryItems?
+                    .first(where: { $0.name == "v" })?.value { return v }
+            }
+            // youtube.com/embed/<id>
+            if path.hasPrefix("/embed/") {
+                let comps = path.split(separator: "/").map(String.init)
+                if let id = comps.last, id.count >= 6 { return id }
+            }
+            // youtube.com/shorts/<id>
+            if path.hasPrefix("/shorts/") {
+                let comps = path.split(separator: "/").map(String.init)
+                if let id = comps.last, id.count >= 6 { return id }
+            }
+        }
+
+        // 마지막 시도: 쿼리의 v 파라미터
+        if let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems,
+           let v = items.first(where: { $0.name == "v" })?.value { return v }
+
+        return nil
+    }
+
+    /// privacy-enhanced 도메인으로 embed URL 생성
+    private static func buildEmbedURL(for videoID: String) -> URL? {
+        var c = URLComponents()
+        c.scheme = "https"
+        c.host = "www.youtube-nocookie.com"
+        c.path = "/embed/\(videoID)"
+        c.queryItems = [
+            .init(name: "playsinline", value: "1"),
+            .init(name: "rel", value: "0"),
+            .init(name: "modestbranding", value: "1"),
+            .init(name: "cc_load_policy", value: "1"),
+            .init(name: "cc_lang_pref", value: "ko"),
+            .init(name: "hl", value: "ko"),
+            .init(name: "iv_load_policy", value: "3"),
+            .init(name: "enablejsapi", value: "1")
+        ]
+        return c.url
     }
 
     // MARK: - JS Bootstrap
@@ -177,11 +248,48 @@ private final class WeakScriptMessageHandler: NSObject, WKScriptMessageHandler {
 extension YouTubeWebViewHost: WKNavigationDelegate, WKUIDelegate {
     func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction,
                  decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
-        if let host = action.request.url?.host?.lowercased(),
-           host.contains("youtube.com") || host.contains("youtu.be") {
-            decisionHandler(.allow); return
+        guard let url = action.request.url else { decisionHandler(.cancel); return }
+
+        // 1) 서브프레임 네비게이션은 막지 않는다 (플레이어 내부 iframe용)
+        let isMain = action.targetFrame?.isMainFrame ?? true
+        if !isMain {
+            decisionHandler(.allow)
+            return
         }
-        log.error("WKNav cancel (blocked host)")
+
+        // 2) 메인 프레임이라도 내부 스킴은 허용
+        let scheme = (url.scheme ?? "").lowercased()
+        if scheme == "about" || scheme == "blob" || scheme == "data" {
+            decisionHandler(.allow)
+            return
+        }
+
+        let host = (url.host ?? "").lowercased()
+        let path = url.path.lowercased()
+
+        // 3) 임베드 페이지만 허용 (nocookie 또는 youtube.com/embed/*)
+        if host.contains("youtube-nocookie.com") ||
+           (host.contains("youtube.com") && path.hasPrefix("/embed/")) {
+            decisionHandler(.allow)
+            return
+        }
+
+        // (선택) 개인정보 동의 페이지 허용
+        if host.contains("consent.youtube.com") {
+            decisionHandler(.allow)
+            return
+        }
+
+        // 4) watch/shorts/youtu.be 등은 차단
+        if (host.contains("youtube.com") && (path == "/watch" || path.hasPrefix("/shorts/")))
+            || host.contains("youtu.be") {
+            log.error("WKNav cancel (blocked host/page) → \(host)\(path)")
+            decisionHandler(.cancel)
+            return
+        }
+
+        // 5) 기타 메인 프레임 외부 이동도 차단
+        log.error("WKNav cancel (blocked host) → \(host)")
         decisionHandler(.cancel)
     }
 }
