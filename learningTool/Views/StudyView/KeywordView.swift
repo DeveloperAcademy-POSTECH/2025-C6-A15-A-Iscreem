@@ -37,11 +37,11 @@ struct KeywordView: View {
             /// 키워드 태그들 (고정 크기, 5열, 세로 스크롤)
             ScrollView(.vertical) {
                 LazyVGrid(
-                    columns: [GridItem(.adaptive(minimum: 120, maximum: 280), spacing: 16)],
+                    columns: [GridItem(.adaptive(minimum: 120, maximum: 260), spacing: 16)],
                     spacing: 12
                 ) {
                     ForEach(analyzer.displayKeywords, id: \.self) { keyword in
-                        KeywordViewComponent(keyword: keyword, isSelected: false)
+                        KeywordViewComponent(keyword: keyword)
                     }
                 }
                 .padding(.horizontal, 16)
