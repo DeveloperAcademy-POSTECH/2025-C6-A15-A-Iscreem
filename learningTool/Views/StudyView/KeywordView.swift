@@ -29,18 +29,18 @@ struct KeywordView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("이 강의에서 자주 언급되는 핵심 키워드들이 나열됩니다.")
-                .font(.system(size: 14))
+                .font(.bodyText)
                 .foregroundStyle(Color.text2)
                 .padding(.horizontal, 16)
                 .padding(.top, 12)
             
-            /// 키워드 태그들 (자동 줄바꿈)
-            ScrollView {
+            /// 키워드 태그들 (고정 크기, 5열, 세로 스크롤)
+            ScrollView(.vertical) {
                 LazyVGrid(
-                    columns: [GridItem(.adaptive(minimum: 100), spacing: 12)],
+                    columns: Array(repeating: GridItem(.fixed(140), spacing: 18), count: 5),
                     spacing: 12
                 ) {
-                    ForEach(keywordsToShow, id: \.self) { keyword in
+                    ForEach(analyzer.displayKeywords, id: \.self) { keyword in
                         KeywordTag(keyword: keyword)
                     }
                 }
@@ -48,7 +48,7 @@ struct KeywordView: View {
                 .padding(.bottom, 12)
             }
         }
-        .background(Color.background1)
+        .background(Color.background2)
     }
 }
 
@@ -58,10 +58,11 @@ struct KeywordTag: View {
     
     var body: some View {
         Text(keyword)
-            .font(.system(size: 15, weight: isSelected ? .semibold : .regular))
+            .font(.system(size: 13, weight: isSelected ? .semibold : .regular))
             .foregroundStyle(isSelected ? .white : Color.text1)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
+            .frame(width: 140, height: 32, alignment: .center)
+            .lineLimit(1)
+            .truncationMode(.tail)
             .background(
                 isSelected
                     ? LinearGradient(

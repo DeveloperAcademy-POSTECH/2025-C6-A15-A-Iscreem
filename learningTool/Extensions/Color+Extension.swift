@@ -31,6 +31,7 @@ extension Color {
     static let successColor = Color(hex: "4CAF50")
     static let errorColor = Color(hex: "E57373")
     static let borderColor = Color(hex: "D0D4D8")
+    static let HoverColor = Color(hex: "F4A261")
     
     init(hex: String) {
         let hexString = hex.trimmingCharacters(in: .whitespacesAndNewlines)

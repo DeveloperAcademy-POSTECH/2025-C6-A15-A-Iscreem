@@ -64,6 +64,9 @@ final class CaptionAnalyzer: ObservableObject {
 
     /// 챕터별 키워드 (chapter id → [String])
     @Published var chapterKeywords: [UUID: [String]] = [:]
+
+    /// 누적 챕터 키워드(챕터 요약이 생성될 때마다 순차적으로 모은다)
+    @Published var displayKeywords: [String] = []
     
     /// Turn this on to automatically kick off summarization once transcript is ready.
     var autoSummarizeEnabled: Bool = false
@@ -392,30 +395,44 @@ final class CaptionAnalyzer: ObservableObject {
         chapterBullets[id] = bullets
         let chapterText = bullets.joined(separator: " ")
         Task {
+            let updateDisplayKeywords: ([String]) -> Void = { newKeywords in
+                self.chapterKeywords[id] = newKeywords
+                // Gather keywords for all chapters in order, as they're available
+                let allChapterIDs = self.chapters.map { $0.id }
+                var keywords: [String] = []
+                for cid in allChapterIDs {
+                    if let kws = self.chapterKeywords[cid] {
+                        for kw in kws where !keywords.contains(kw) {
+                            keywords.append(kw)
+                        }
+                    }
+                }
+                self.displayKeywords = Array(keywords.prefix(40))
+            }
             if #available(iOS 26.0, *), let summarizer = self.summarizer {
                 do {
                     let keywordsText = try await summarizer.summarizeChunk(
                         text: chapterText,
-                        instruction: "이 내용을 바탕으로 가장 중요한 핵심 키워드 5개를 한국어로 나열. 쉼표로 구분."
+                        instruction: "이 내용을 바탕으로 가장 중요한 핵심 키워드 10개를 한국어로 나열. 쉼표로 구분."
                     )
                     let keywords = keywordsText
                         .split(separator: ",")
                         .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
                         .filter { !$0.isEmpty }
                     await MainActor.run {
-                        self.chapterKeywords[id] = keywords
+                        updateDisplayKeywords(keywords)
                     }
                 } catch {
                     // Fallback to contextual extraction if summarizer fails
                     let keywords = await extractChapterKeywordsContextual(from: chapterText)
                     await MainActor.run {
-                        self.chapterKeywords[id] = keywords
+                        updateDisplayKeywords(keywords)
                     }
                 }
             } else {
                 let keywords = await extractChapterKeywordsContextual(from: chapterText)
                 await MainActor.run {
-                    self.chapterKeywords[id] = keywords
+                    updateDisplayKeywords(keywords)
                 }
             }
         }
