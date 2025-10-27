@@ -411,7 +411,7 @@ struct QuestionView: View {
         print("🔍 [전구버튼] 선택된 키워드: \(studyViewModel.selectedKeyword ?? "없음")")
         print("🔍 [전구버튼] 현재 표시 상태: showingSuggestions=\(showingSuggestions), isLoading=\(isLoadingSuggestions)")
         
-        guard let keyword = studyViewModel.selectedKeyword else {
+        guard studyViewModel.selectedKeyword != nil else {
             print("❌ [전구버튼] 키워드 없음 - 종료")
             return
         }

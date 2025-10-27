@@ -55,13 +55,15 @@ struct HelpView: View {
                                 .font(.system(size: 14))
                                 .foregroundStyle(Color.text2)
                             
-                            (Text("우측 하단의 ")
-                                .foregroundStyle(Color.text2)
-                            + Text(Image(systemName: "plus.circle.fill"))
-                                .foregroundStyle(Color.secondColor)
-                            + Text(" 버튼을 누르면, 노트를 추가할 수 있어요! 노트는 여러분이 수강하시는 Youtube 강의")
-                                .foregroundStyle(Color.text2))
-                                .font(.system(size: 14))
+                            HStack(alignment: .firstTextBaseline, spacing: 0) {
+                                Text("우측 하단의 ")
+                                    .foregroundStyle(Color.text2)
+                                Image(systemName: "plus.circle.fill")
+                                    .foregroundStyle(Color.secondColor)
+                                Text(" 버튼을 누르면, 노트를 추가할 수 있어요! 노트는 여러분이 수강하시는 Youtube 강의")
+                                    .foregroundStyle(Color.text2)
+                            }
+                            .font(.system(size: 14))
                         }
                         
                         Text("링크를 통해 만들 수 있답니다!")
@@ -205,4 +207,3 @@ struct HelpView: View {
         }
     }
 }
-

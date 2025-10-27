@@ -24,7 +24,7 @@ struct MediaView: View {
                     .background(Color.background3)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                     .onAppear { loadIfNeeded(url) }
-                    .onChange(of: videoURL) { newValue in
+                    .onChange(of: videoURL) { _, newValue in
                         if let u = newValue, !u.isEmpty { loadIfNeeded(u) }
                     }
             } else {
@@ -51,10 +51,10 @@ struct MediaView: View {
                 representable = YouTubeWebViewRepresentable(captionAnalyzer: captionAnalyzer)
             }
             if let url = videoURL, !url.isEmpty {
-                            DispatchQueue.main.async {
-                                loadIfNeeded(url)
-                            }
-                        }
+                DispatchQueue.main.async {
+                    loadIfNeeded(url)
+                }
+            }
         }
         .task(id: videoURL) {
             if let u = videoURL, !u.isEmpty {

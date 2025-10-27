@@ -302,11 +302,11 @@ struct SidebarView: View {
                 .buttonStyle(.plain)
             }
             .padding(.bottom, 30)
-            .onChange(of: viewModel.isHelpPresented) { presented in
-                isHelpPresented = presented
+            .onChange(of: viewModel.isHelpPresented) { _, newValue in
+                isHelpPresented = newValue
             }
-            .onChange(of: isHelpPresented) { presented in
-                if presented == false, viewModel.isHelpPresented {
+            .onChange(of: isHelpPresented) { _, newValue in
+                if newValue == false, viewModel.isHelpPresented {
                     viewModel.isHelpPresented = false
                 }
             }

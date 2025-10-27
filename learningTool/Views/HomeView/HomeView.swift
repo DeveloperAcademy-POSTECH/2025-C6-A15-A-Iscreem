@@ -353,10 +353,10 @@ private func matches(_ text: String, query: String) -> Bool {
 /// Also maps compatibility Jamo (ㄱㅏㅂ etc.) to modern Jamo, removes spaces/punctuation.
 private func jamoKey(_ s: String) -> String {
     let SBase: UInt32 = 0xAC00, SCount: UInt32 = 11172
-    let LBase: UInt32 = 0x1100, LCount: UInt32 = 19
+    let LBase: UInt32 = 0x1100/*, LCount: UInt32 = 19*/
     let VBase: UInt32 = 0x1161, VCount: UInt32 = 21
     let TBase: UInt32 = 0x11A7, TCount: UInt32 = 28
-    let NCount: UInt32 = VCount * TCount // 588
+//    let NCount: UInt32 = VCount * TCount // 588
     
     // Compatibility Jamo → Modern Jamo (subset: initials & vowels)
     let compToModern: [UInt32: UInt32] = [
