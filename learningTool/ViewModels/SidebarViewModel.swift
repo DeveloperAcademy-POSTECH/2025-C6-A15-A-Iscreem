@@ -7,29 +7,47 @@
 
 import SwiftUI
 import Combine
+import SwiftData
+
+enum SortOption: String, CaseIterable {
+    case nameAscending = "가나다 순(↑)"
+    case nameDescending = "가나다 순(↓)"
+    case dateAscending = "생성 날짜순 (↑)"
+    case dateDescending = "생성 날짜순 (↓)"
+}
 
 class SidebarViewModel: ObservableObject {
-    @Published var folders: [Folder] = []
-    @Published var selectedItem: String?
+    @Published var selectedItem: PersistentIdentifier?
+    @Published var currentSortOption: SortOption = .dateAscending
     
-    init() {
-        loadFolders()
+    init() {    }
+    
+    func addFolderTapped() {
+        print("Add folder tapped")
+    }
+    
+    func deleteFolderTapped() {
+        print("Delete folder tapped")
+    }
+    
+    func editFolderTapped() {
+        print("Edit folder tapped")
     }
     
     func sortButtonTapped() {
         print("Sort button tapped")
     }
     
-    func allViewTapped() {
-        selectedItem = "all"
+    func selectSortOption(_ option: SortOption) {
+        currentSortOption = option
     }
     
-    func folderTapped(_ folder: Folder) {
-        selectedItem = folder.id.uuidString
+    func allViewTapped() {
+        selectedItem = nil
     }
     
     func recentItemsTapped() {
-        selectedItem = "recent"
+        selectedItem = nil
     }
     
     func helpTapped() {
@@ -42,13 +60,5 @@ class SidebarViewModel: ObservableObject {
     
     func trashTapped() {
         print("Trash tapped")
-    }
-    
-    private func loadFolders() {
-        folders = [
-            Folder(name: "정보처리기사"),
-            Folder(name: "소프트웨어공학및설계"),
-            Folder(name: "운영체제"),
-        ]
     }
 }

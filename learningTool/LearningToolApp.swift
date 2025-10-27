@@ -6,16 +6,18 @@
 //
 
 import SwiftUI
+import SwiftData
 
 @main
 struct LearningToolApp: App {
-    
-    @StateObject private var CaptionAnalyzerViewModel = CaptionAnalyzer()
+    @StateObject private var captionAnalyzer = CaptionAnalyzer()
 
     var body: some Scene {
         WindowGroup {
-            ContentView().environmentObject(CaptionAnalyzerViewModel)
+            ContentView()
+                .environmentObject(captionAnalyzer)
         }
+        .modelContainer(for: [Folder.self, Note.self])
     }
 }
 

@@ -5,6 +5,7 @@
 //  Created by coulson on 10/20/25.
 //
 
+import NaturalLanguage
 import Foundation
 import Combine
 import OSLog
@@ -60,6 +61,12 @@ final class CaptionAnalyzer: ObservableObject {
 
     /// 각 챕터의 4줄 요약 (불릿 없이 한 문장씩)
     @Published var chapterBullets: [UUID: [String]] = [:]
+
+    /// 챕터별 키워드 (chapter id → [String])
+    @Published var chapterKeywords: [UUID: [String]] = [:]
+
+    /// 누적 챕터 키워드(챕터 요약이 생성될 때마다 순차적으로 모은다)
+    @Published var displayKeywords: [String] = []
     
     /// Turn this on to automatically kick off summarization once transcript is ready.
     var autoSummarizeEnabled: Bool = false
@@ -68,8 +75,10 @@ final class CaptionAnalyzer: ObservableObject {
     /// 통합 요약 진행 여부 (UI 스피너용)
     @Published var isMergingFinal: Bool = false
 
-    /// 추출된 키워드
+    /// 추출된 키워드 (최종 요약 기반)
     @Published var extractedKeywords: [String] = []
+    /// 챕터별 누적 키워드
+    @Published var accumulatedKeywords: [String] = []
     
     struct SummaryDebug {
         var runId = UUID()
@@ -354,7 +363,7 @@ final class CaptionAnalyzer: ObservableObject {
                 await MainActor.run {
                     self.finalSummary = merged.trimmingCharacters(in: .whitespacesAndNewlines)
                     self.isMergingFinal = false
-                    // Update extractedKeywords after setting finalSummary
+                    // finalSummary 기반 키워드 추출
                     self.extractedKeywords = self.extractKeywords()
                 }
                 self.log.info("sum[\(runTag)] merge done")
@@ -380,10 +389,181 @@ final class CaptionAnalyzer: ObservableObject {
         }
     }
     
-    /// Setter
+    /// 챕터 불릿을 설정하고, 컨텍스트 기반 키워드 추출 또는 LLM 기반 추출을 트리거합니다.
     @MainActor
     private func setChapterBullets(id: UUID, bullets: [String]) {
         chapterBullets[id] = bullets
+        let chapterText = bullets.joined(separator: " ")
+        Task {
+            let updateDisplayKeywords: ([String]) -> Void = { newKeywords in
+                self.chapterKeywords[id] = newKeywords
+                // Gather keywords for all chapters in order, as they're available
+                let allChapterIDs = self.chapters.map { $0.id }
+                var keywords: [String] = []
+                for cid in allChapterIDs {
+                    if let kws = self.chapterKeywords[cid] {
+                        for kw in kws where !keywords.contains(kw) {
+                            keywords.append(kw)
+                        }
+                    }
+                }
+                self.displayKeywords = Array(keywords.prefix(40))
+            }
+            if #available(iOS 26.0, *), let summarizer = self.summarizer {
+                do {
+                    let keywordsText = try await summarizer.summarizeChunk(
+                        text: chapterText,
+                        instruction: "이 내용을 바탕으로 가장 중요한 핵심 키워드 10개를 한국어로 나열. 세미콜론으로 구분."
+                    )
+                    // 온점(.), 쉼표(,), 세미콜론(;), 줄바꿈(\n), 슬래시(/), 탭 등 다양한 구분자 처리
+                    let separators = CharacterSet(charactersIn: ".,;／/\n\t ")
+                    let keywords = keywordsText
+                        .components(separatedBy: separators)
+                        .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                        .filter { !$0.isEmpty && $0.count > 1 } // 한 글자 제거
+                    await MainActor.run {
+                        updateDisplayKeywords(keywords)
+                    }
+                } catch {
+                    // Fallback to contextual extraction if summarizer fails
+                    let keywords = await extractChapterKeywordsContextual(from: chapterText)
+                    await MainActor.run {
+                        updateDisplayKeywords(keywords)
+                    }
+                }
+            } else {
+                let keywords = await extractChapterKeywordsContextual(from: chapterText)
+                await MainActor.run {
+                    updateDisplayKeywords(keywords)
+                }
+            }
+        }
+    }
+
+    /// 주어진 텍스트에서 NaturalLanguage 프레임워크와 NLEmbedding(가능한 경우)을 활용하여 컨텍스트 기반 키워드를 추출합니다.
+    @MainActor
+    func extractChapterKeywordsContextual(from text: String) async -> [String] {
+        guard !text.isEmpty else { return [] }
+        // 1. 텍스트 전처리 (불용어 제거, 정규화)
+        let cleanedText = preprocess(text)
+        guard !cleanedText.isEmpty else { return [] }
+
+        // 2. NLTagger의 .lexicalClass와 .nameType을 모두 활용하여 명사/고유명사 후보 수집
+        let tagger = NLTagger(tagSchemes: [.lexicalClass, .nameType])
+        tagger.string = cleanedText
+        let options: NLTagger.Options = [.omitPunctuation, .omitWhitespace, .joinNames]
+        var candidateWords: [String: Int] = [:]
+        tagger.enumerateTags(in: cleanedText.startIndex..<cleanedText.endIndex, unit: .word, scheme: .lexicalClass, options: options) { tag, tokenRange in
+            if let tag = tag, tag == .noun {
+                let word = String(cleanedText[tokenRange]).trimmingCharacters(in: .whitespacesAndNewlines)
+                guard word.count > 1 else { return true }
+                candidateWords[word, default: 0] += 1
+            }
+            return true
+        }
+        // 고유명사(인명, 지명, 조직 등)도 추가 수집
+        tagger.enumerateTags(in: cleanedText.startIndex..<cleanedText.endIndex, unit: .word, scheme: .nameType, options: options) { tag, tokenRange in
+            if let tag = tag, tag == .personalName || tag == .placeName || tag == .organizationName {
+                let word = String(cleanedText[tokenRange]).trimmingCharacters(in: .whitespacesAndNewlines)
+                guard word.count > 1 else { return true }
+                candidateWords[word, default: 0] += 2 // Give a little more weight to named entities
+            }
+            return true
+        }
+        guard !candidateWords.isEmpty else { return [] }
+
+        // 3. NLEmbedding이 지원되는 경우 의미적 유사도 활용
+        var wordScores: [(word: String, score: Double)] = []
+        if let embedding = NLEmbedding.wordEmbedding(for: .korean) {
+            // 전체 텍스트의 벡터 계산 (각 단어 벡터의 평균)
+            let allWords = cleanedText.components(separatedBy: .whitespacesAndNewlines)
+            let textVectors = allWords.compactMap { embedding.vector(for: $0) }
+            let textVector: [Double]
+            if !textVectors.isEmpty {
+                let dim = textVectors.first!.count
+                textVector = (0..<dim).map { i in
+                    textVectors.map { $0[i] }.reduce(0, +) / Double(textVectors.count)
+                }
+            } else {
+                textVector = []
+            }
+            // 각 후보 단어에 대해 벡터, 유사도 계산 및 빈도와 결합
+            for (word, freq) in candidateWords {
+                if let vec = embedding.vector(for: word), !textVector.isEmpty {
+                    let sim = cosineSimilarity(vec1: vec, vec2: textVector)
+                    // 유사도(70%)와 정규화된 빈도(30%)를 결합
+                    let freqNorm = min(Double(freq) / 5.0, 1.0) // scale freq
+                    let score = sim * 0.7 + freqNorm * 0.3
+                    wordScores.append((word, score))
+                } else {
+                    // 벡터가 없으면 빈도 기반 점수만 사용 (낮은 점수)
+                    let freqNorm = min(Double(freq) / 5.0, 1.0)
+                    wordScores.append((word, freqNorm * 0.3))
+                }
+            }
+        } else {
+            // 4. 폴백: 빈도 기반 정렬만 사용
+            for (word, freq) in candidateWords {
+                wordScores.append((word, Double(freq)))
+            }
+        }
+        // 5. 점수 내림차순 정렬 후, 동일 점수는 가나다순
+        let sorted = wordScores.sorted { $0.score > $1.score || ($0.score == $1.score && $0.word < $1.word) }
+        // 중복 또는 포함 관계(예: "데이터"가 "데이터베이스"에 포함되면 제거)
+        var filtered: [String] = []
+        for (word, _) in sorted {
+            if !filtered.contains(where: { $0.contains(word) && $0 != word }) {
+                filtered.append(word)
+            }
+        }
+        // 상위 8개 반환
+        return Array(filtered.prefix(8))
+    }
+
+    /// 두 벡터 간 코사인 유사도 계산
+    func cosineSimilarity(vec1: [Double], vec2: [Double]) -> Double {
+        guard vec1.count == vec2.count, !vec1.isEmpty else { return 0 }
+        let dot = zip(vec1, vec2).map(*).reduce(0, +)
+        let norm1 = sqrt(vec1.map { $0 * $0 }.reduce(0, +))
+        let norm2 = sqrt(vec2.map { $0 * $0 }.reduce(0, +))
+        guard norm1 > 0, norm2 > 0 else { return 0 }
+        return dot / (norm1 * norm2)
+    }
+    /// 텍스트에서 불용어를 제거하는 간단한 전처리 함수
+    func preprocess(_ text: String) -> String {
+        // 한국어 불용어 예시 (간단 버전)
+        let stopwords: Set<String> = [
+            "이", "그", "저", "것", "등", "및", "의", "에", "를", "을", "로", "에서", "으로", "와", "과", "도", "는", "은", "가", "한", "하다", "되다", "있다"
+        ]
+        let words = text.components(separatedBy: .whitespacesAndNewlines)
+        let filtered = words.filter { !stopwords.contains($0) }
+        return filtered.joined(separator: " ")
+    }
+    
+    func extractKeywords(topN: Int = 10) -> [String] {
+        let tokens = preprocess(finalSummary)
+            .components(separatedBy: .whitespacesAndNewlines)
+            .map { $0.trimmingCharacters(in: .punctuationCharacters) }
+            .filter { !$0.isEmpty }
+        guard !tokens.isEmpty else { return [] }
+
+        var freq: [String: Int] = [:]
+        for token in tokens {
+            freq[token, default: 0] += 1
+        }
+
+        // 빈도순 정렬
+        let sorted = freq.sorted { $0.value > $1.value }.map { $0.key }
+
+        // ✅ 포함 관계 필터링 (예: '데이터'가 '데이터베이스'에 포함되면 제거)
+        var filtered: [String] = []
+        for word in sorted {
+            if !filtered.contains(where: { $0.contains(word) && $0 != word }) {
+                filtered.append(word)
+            }
+        }
+
+        return Array(filtered.prefix(topN))
     }
     
     // MARK: - youtubei (player API) Prefetch
@@ -451,7 +631,7 @@ final class CaptionAnalyzer: ObservableObject {
                 if let st = t.name?.simpleText { nm = st }
                 else if let rs = t.name?.runs { nm = rs.compactMap { $0.text }.joined() }
                 else { nm = "" }
-                return JTrack(baseUrl: t.baseUrl, lang: t.languageCode ?? "", kind: t.kind, name: nm)
+                return JTrack(baseUrl:  t.baseUrl, lang: t.languageCode ?? "", kind: t.kind, name: nm)
             }
             guard !mapped.isEmpty else {
                 throw NSError(domain: "VTT", code: -31, userInfo: [NSLocalizedDescriptionKey: "youtubei에 자막 트랙 없음"])
