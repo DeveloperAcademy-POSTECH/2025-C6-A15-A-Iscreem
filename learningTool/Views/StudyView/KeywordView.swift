@@ -10,75 +10,64 @@ import SwiftUI
 struct KeywordView: View {
     @ObservedObject var analyzer: CaptionAnalyzer
     
+    // 키워드 한 번에 하나만 클릭
+    @State private var selectedKeyword: String? = nil
+    
+    private var keywordsToShow: [String] {
+        // 우선 챕터별 키워드 사용 (첫 번째 챕터 기준)
+        if let firstChapterId = analyzer.chapters.first?.id,
+           let chapterKeywords = analyzer.chapterKeywords[firstChapterId],
+           !chapterKeywords.isEmpty {
+            return Array(chapterKeywords.prefix(10))
+        }
+        // 챕터 키워드가 없으면 누적 키워드 사용
+        else if !analyzer.accumulatedKeywords.isEmpty {
+            return Array(analyzer.accumulatedKeywords.prefix(10))
+        }
+        // 그래도 없으면 최종 요약 기반 키워드
+        else {
+            return Array(analyzer.extractedKeywords.prefix(10))
+        }
+    }
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("이 강의에서 자주 언급되는 핵심 키워드들이 나열됩니다.")
-                .font(.system(size: 14))
+                .font(.bodyText)
                 .foregroundStyle(Color.text2)
                 .padding(.horizontal, 16)
                 .padding(.top, 12)
             
-            /// 키워드 태그들 (가로 스크롤)
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(analyzer.extractedKeywords, id: \.self) { keyword in
-                        KeywordTag(keyword: keyword)
+            /// 키워드 태그들 (고정 크기, 5열, 세로 스크롤)
+            ScrollView(.vertical) {
+                LazyVGrid(
+                    columns: [GridItem(.adaptive(minimum: 120, maximum: 260), spacing: 16)],
+                    spacing: 12
+                ) {
+                    ForEach(keywordsToShow, id: \.self) { keyword in
+                        KeywordViewComponent(
+                            keyword: keyword,
+                            isSelected: Binding(
+                                get: { selectedKeyword == keyword },
+                                set: { newValue in
+                                    if newValue {
+                                        // 선택: 해당 키워드만 선택 상태로
+                                        selectedKeyword = keyword
+                                    } else {
+                                        // 해제: 현재 선택된 게 이 키워드면 nil로
+                                        if selectedKeyword == keyword {
+                                            selectedKeyword = nil
+                                        }
+                                    }
+                                }
+                            )
+                        )
                     }
                 }
                 .padding(.horizontal, 16)
+                .padding(.bottom, 12)
             }
-            .padding(.bottom, 12)
+            .frame(maxWidth: .infinity)
         }
-        .background(Color.background1)
-        .onAppear {
-            if !analyzer.finalSummary.isEmpty && analyzer.extractedKeywords.isEmpty {
-                analyzer.extractedKeywords = analyzer.extractKeywords()
-            }
-        }
+        .background(Color.background2)
     }
-}
-
-struct KeywordTag: View {
-    let keyword: String
-    var isSelected: Bool = false
-    
-    var body: some View {
-        Text(keyword)
-            .font(.system(size: 15, weight: isSelected ? .semibold : .regular))
-            .foregroundStyle(isSelected ? .white : Color.text1)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
-            .background(
-                isSelected
-                    ? LinearGradient(
-                        colors: [Color.orange, Color.orange.opacity(0.8)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                      )
-                    : LinearGradient(
-                        colors: [Color.background2, Color.background2],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                      )
-            )
-            .cornerRadius(20)
-            .overlay(
-                RoundedRectangle(cornerRadius: 20)
-                    .stroke(isSelected ? Color.orange : Color.borderColor, lineWidth: isSelected ? 2 : 1)
-            )
-            .shadow(
-                color: isSelected ? Color.orange.opacity(0.3) : Color.clear,
-                radius: isSelected ? 8 : 0,
-                x: 0,
-                y: isSelected ? 2 : 0
-            )
-    }
-}
-
-#Preview(traits: .landscapeLeft) {
-    let analyzer = CaptionAnalyzer()
-    analyzer.finalSummary = "트랜스포트 데이터링크 세션 물리 매체 응용 OSI 7계층 데이터신 표현"
-    analyzer.extractedKeywords = analyzer.extractKeywords()
-    return KeywordView(analyzer: analyzer)
-        .frame(height: 180)
 }
