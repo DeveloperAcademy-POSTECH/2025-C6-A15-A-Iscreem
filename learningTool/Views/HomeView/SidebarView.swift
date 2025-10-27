@@ -10,11 +10,13 @@ import SwiftData
 
 struct SidebarView: View {
     // ✅ 폴더 선택을 부모(HomeView)에 알려줄 콜백
-        let onFolderSelected: ((String?) -> Void)?
+    let onFolderSelected: ((String?) -> Void)?
+    @Binding var isHelpPresented: Bool
 
-        init(onFolderSelected: ((String?) -> Void)? = nil) {
-            self.onFolderSelected = onFolderSelected
-        }
+    init(onFolderSelected: ((String?) -> Void)? = nil, isHelpPresented: Binding<Bool> = .constant(false)) {
+        self.onFolderSelected = onFolderSelected
+        self._isHelpPresented = isHelpPresented
+    }
     
     @StateObject private var viewModel = SidebarViewModel()
     @State private var showSortMenu = false
@@ -300,6 +302,14 @@ struct SidebarView: View {
                 .buttonStyle(.plain)
             }
             .padding(.bottom, 30)
+            .onChange(of: viewModel.isHelpPresented) { presented in
+                isHelpPresented = presented
+            }
+            .onChange(of: isHelpPresented) { presented in
+                if presented == false, viewModel.isHelpPresented {
+                    viewModel.isHelpPresented = false
+                }
+            }
         }
         .background(Color.background2)
         // 폴더 이름 변경 시트
@@ -472,7 +482,7 @@ struct SidebarView: View {
     GeometryReader { geometry in
         let sidebarWidth = geometry.size.width * (256.0 / (256.0 + 762.0))
         NavigationSplitView {
-            SidebarView()
+            SidebarView(isHelpPresented: .constant(false))
                 .navigationSplitViewColumnWidth(
                     min: sidebarWidth * 0.9,
                     ideal: sidebarWidth,
