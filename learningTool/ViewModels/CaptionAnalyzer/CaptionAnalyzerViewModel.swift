@@ -64,6 +64,9 @@ final class CaptionAnalyzer: ObservableObject {
 
     /// 챕터별 키워드 (chapter id → [String])
     @Published var chapterKeywords: [UUID: [String]] = [:]
+
+    /// 누적 챕터 키워드(챕터 요약이 생성될 때마다 순차적으로 모은다)
+    @Published var displayKeywords: [String] = []
     
     /// Turn this on to automatically kick off summarization once transcript is ready.
     var autoSummarizeEnabled: Bool = false
@@ -392,30 +395,48 @@ final class CaptionAnalyzer: ObservableObject {
         chapterBullets[id] = bullets
         let chapterText = bullets.joined(separator: " ")
         Task {
+            let updateDisplayKeywords: ([String]) -> Void = { newKeywords in
+                self.chapterKeywords[id] = newKeywords
+                // Gather keywords for all chapters in order, as they're available
+                let allChapterIDs = self.chapters.map { $0.id }
+                var keywords: [String] = []
+                for cid in allChapterIDs {
+                    if let kws = self.chapterKeywords[cid] {
+                        for kw in kws where !keywords.contains(kw) {
+                            keywords.append(kw)
+                        }
+                    }
+                }
+                self.displayKeywords = Array(keywords.prefix(40))
+            }
             if #available(iOS 26.0, *), let summarizer = self.summarizer {
                 do {
                     let keywordsText = try await summarizer.summarizeChunk(
                         text: chapterText,
-                        instruction: "이 내용을 바탕으로 가장 중요한 핵심 키워드 5개를 한국어로 나열. 쉼표로 구분."
+                        instruction: "이 내용을 바탕으로 가장 중요한 핵심 키워드 10개를 한국어로 나열. 세미콜론으로 구분."
                     )
+                    // 온점(.), 쉼표(,), 세미콜론(;), 줄바꿈(\n), 슬래시(/), 탭 등 다양한 구분자 처리
+                    let separators = CharacterSet(charactersIn: ".,;／/\n\t ")
                     let keywords = keywordsText
-                        .split(separator: ",")
+                        .components(separatedBy: separators)
                         .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                        .filter { !$0.isEmpty }
+                        .filter { !$0.isEmpty && $0.count > 1 } // 한 글자 제거
                     await MainActor.run {
-                        self.chapterKeywords[id] = keywords
+                        updateDisplayKeywords(keywords)
                     }
                 } catch {
                     // Fallback to contextual extraction if summarizer fails
                     let keywords = await extractChapterKeywordsContextual(from: chapterText)
                     await MainActor.run {
                         self.chapterKeywords[id] = keywords
+                        updateDisplayKeywords(keywords)
                     }
                 }
             } else {
                 let keywords = await extractChapterKeywordsContextual(from: chapterText)
                 await MainActor.run {
                     self.chapterKeywords[id] = keywords
+                    updateDisplayKeywords(keywords)
                 }
             }
         }
@@ -612,7 +633,7 @@ final class CaptionAnalyzer: ObservableObject {
                 if let st = t.name?.simpleText { nm = st }
                 else if let rs = t.name?.runs { nm = rs.compactMap { $0.text }.joined() }
                 else { nm = "" }
-                return JTrack(baseUrl: t.baseUrl, lang: t.languageCode ?? "", kind: t.kind, name: nm)
+                return JTrack(baseUrl:  t.baseUrl, lang: t.languageCode ?? "", kind: t.kind, name: nm)
             }
             guard !mapped.isEmpty else {
                 throw NSError(domain: "VTT", code: -31, userInfo: [NSLocalizedDescriptionKey: "youtubei에 자막 트랙 없음"])
