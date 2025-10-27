@@ -20,6 +20,8 @@ class SidebarViewModel: ObservableObject {
     @Published var selectedItem: PersistentIdentifier?
     @Published var currentSortOption: SortOption = .dateAscending
     
+    @Published var isHelpPresented: Bool = false
+    
     init() {    }
     
     func addFolderTapped() {
@@ -51,7 +53,7 @@ class SidebarViewModel: ObservableObject {
     }
     
     func helpTapped() {
-        print("Help tapped")
+        isHelpPresented = true
     }
     
     func settingsTapped() {

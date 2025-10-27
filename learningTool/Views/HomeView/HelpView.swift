@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct HelpView: View {
+    var onClose: (() -> Void)? = nil
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -25,7 +26,7 @@ struct HelpView: View {
                 Spacer()
                 
                 Button(action: {
-                    dismiss()
+                    if let onClose { onClose() } else { dismiss() }
                 }) {
                     Image(systemName: "xmark")
                         .font(.system(size: 18))
