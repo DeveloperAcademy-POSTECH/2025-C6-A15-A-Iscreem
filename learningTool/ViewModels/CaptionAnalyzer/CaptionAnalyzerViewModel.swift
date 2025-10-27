@@ -4,7 +4,7 @@
 //
 //  Created by coulson on 10/20/25.
 //
-
+/*
 import NaturalLanguage
 import Foundation
 import Combine
@@ -428,14 +428,20 @@ final class CaptionAnalyzer: ObservableObject {
                     // Fallback to contextual extraction if summarizer fails
                     let keywords = await extractChapterKeywordsContextual(from: chapterText)
                     await MainActor.run {
+<<<<<<< HEAD
                         self.chapterKeywords[id] = keywords
+=======
+>>>>>>> 8295eaec28f44d8ce406a2271cfab8ed6e91b009
                         updateDisplayKeywords(keywords)
                     }
                 }
             } else {
                 let keywords = await extractChapterKeywordsContextual(from: chapterText)
                 await MainActor.run {
+<<<<<<< HEAD
                     self.chapterKeywords[id] = keywords
+=======
+>>>>>>> 8295eaec28f44d8ce406a2271cfab8ed6e91b009
                     updateDisplayKeywords(keywords)
                 }
             }
@@ -894,3 +900,4 @@ print("fetchFromBaseUrl: trying fmt=srv3")
         return p.cues
     }
 }
+*/
