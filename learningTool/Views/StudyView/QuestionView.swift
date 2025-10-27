@@ -188,7 +188,7 @@ struct QuestionView: View {
                             .disabled(isLoadingSuggestions)
                             
                             /// 닫기 버튼
-                            Button(action: { 
+                            Button(action: {
                                 withAnimation(.easeOut(duration: 0.2)) {
                                     showingSuggestions = false
                                 }
@@ -449,8 +449,8 @@ struct QuestionView: View {
         }
         
         // 요약 컨텍스트가 비어있어도 진행 (기본 질문 생성)
-        let contextText = studyViewModel.summaryContext.isEmpty 
-            ? "강의 내용에 대한 학습" 
+        let contextText = studyViewModel.summaryContext.isEmpty
+            ? "강의 내용에 대한 학습"
             : studyViewModel.summaryContext
         
         print("📝 [생성] 컨텍스트 길이: \(contextText.count)자")
@@ -564,26 +564,29 @@ struct ChatBubble: View {
             if message.isUser {
                 Spacer(minLength: 40)
             }
-            
+
             VStack(alignment: message.isUser ? .trailing : .leading, spacing: 4) {
                 Text(message.text)
                     .font(.system(size: 14))
                     .foregroundStyle(message.isUser ? .white : Color.text1)
+                    .multilineTextAlignment(message.isUser ? .trailing : .leading)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
                     .background(
-                        message.isUser
-                            ? Color.primaryColor
-                            : Color.secondColor.opacity(0.15)
+                        ChatBubbleShape(isRightAligned: message.isUser)
+                            .fill(
+                                message.isUser
+                                    ? Color.primaryColor
+                                    : Color.secondColor.opacity(0.15)
+                            )
                     )
-                    .cornerRadius(16)
-                
+
                 Text(timeString(from: message.timestamp))
                     .font(.system(size: 11))
                     .foregroundStyle(Color.text3)
                     .padding(.horizontal, 4)
             }
-            
+
             if !message.isUser {
                 Spacer(minLength: 40)
             }
