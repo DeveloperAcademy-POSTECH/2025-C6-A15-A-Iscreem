@@ -413,13 +413,23 @@ final class CaptionAnalyzer: ObservableObject {
                 do {
                     let keywordsText = try await summarizer.summarizeChunk(
                         text: chapterText,
-                        instruction: "이 내용을 바탕으로 가장 중요한 핵심 키워드 10개를 한국어로 나열. 세미콜론으로 구분."
+                        instruction: """
+                        주어진 내용을 분석하여 문맥상 핵심적인 주제어나 개념 10개를 한국어로만 추출하세요.
+                        - 불필요한 조사, 접속사, 감탄사(예: 그러나, 그리고, 과감하게, 넘어가야 등)는 제외하세요.
+                        - 형용사나 동사보다는 명사 위주의 키워드를 선택하세요.
+                        - 중복되거나 유사한 의미의 단어는 하나로 통합하세요.
+                        - 각 키워드는 짧고 명확하게 표현하고, 세미콜론(;)으로 구분하세요.
+                        """
                     )
                     // 온점(.), 쉼표(,), 세미콜론(;), 줄바꿈(\n), 슬래시(/), 탭 등 다양한 구분자 처리
                     let separators = CharacterSet(charactersIn: ".,;／/\n\t ")
                     let keywords = keywordsText
                         .components(separatedBy: separators)
-                        .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                        .map {
+                            $0
+                                .replacingOccurrences(of: "**", with: "") // ✅ 별표 제거
+                                .trimmingCharacters(in: .whitespacesAndNewlines)
+                        }
                         .filter { !$0.isEmpty && $0.count > 1 } // 한 글자 제거
                     await MainActor.run {
                         updateDisplayKeywords(keywords)

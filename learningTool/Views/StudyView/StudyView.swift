@@ -80,7 +80,7 @@ struct StudyView: View {
                             .background(Color.borderColor)
                         
                         KeywordView(analyzer: captionAnalyzer)
-                            .frame(height: 180)
+                            .frame(maxHeight: 260)
                         
                         Spacer()
                     }
@@ -101,9 +101,7 @@ struct StudyView: View {
                             .frame(maxHeight: .infinity)
                     }
                     .frame(
-                        width: max(
-                            350,
-                            min(450, geometry.size.width * 0.35)
+                        width: max(350, min(450, geometry.size.width * 0.35)
                         )
                     )
                 }

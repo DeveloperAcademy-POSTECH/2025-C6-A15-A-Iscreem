@@ -10,6 +10,9 @@ import SwiftUI
 struct KeywordView: View {
     @ObservedObject var analyzer: CaptionAnalyzer
     
+    // 키워드 한 번에 하나만 클릭
+    @State private var selectedKeyword: String? = nil
+    
     private var keywordsToShow: [String] {
         // 우선 챕터별 키워드 사용 (첫 번째 챕터 기준)
         if let firstChapterId = analyzer.chapters.first?.id,
@@ -37,65 +40,34 @@ struct KeywordView: View {
             /// 키워드 태그들 (고정 크기, 5열, 세로 스크롤)
             ScrollView(.vertical) {
                 LazyVGrid(
-                    columns: Array(repeating: GridItem(.fixed(140), spacing: 18), count: 5),
+                    columns: [GridItem(.adaptive(minimum: 120, maximum: 260), spacing: 16)],
                     spacing: 12
                 ) {
-                    ForEach(analyzer.displayKeywords, id: \.self) { keyword in
-                        KeywordTag(keyword: keyword)
+                    ForEach(keywordsToShow, id: \.self) { keyword in
+                        KeywordViewComponent(
+                            keyword: keyword,
+                            isSelected: Binding(
+                                get: { selectedKeyword == keyword },
+                                set: { newValue in
+                                    if newValue {
+                                        // 선택: 해당 키워드만 선택 상태로
+                                        selectedKeyword = keyword
+                                    } else {
+                                        // 해제: 현재 선택된 게 이 키워드면 nil로
+                                        if selectedKeyword == keyword {
+                                            selectedKeyword = nil
+                                        }
+                                    }
+                                }
+                            )
+                        )
                     }
                 }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 12)
             }
+            .frame(maxWidth: .infinity)
         }
         .background(Color.background2)
     }
-}
-
-struct KeywordTag: View {
-    let keyword: String
-    var isSelected: Bool = false
-    
-    var body: some View {
-        Text(keyword)
-            .font(.system(size: 13, weight: isSelected ? .semibold : .regular))
-            .foregroundStyle(isSelected ? .white : Color.text1)
-            .frame(width: 140, height: 32, alignment: .center)
-            .lineLimit(1)
-            .truncationMode(.tail)
-            .background(
-                isSelected
-                    ? LinearGradient(
-                        colors: [Color.orange, Color.orange.opacity(0.8)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                      )
-                    : LinearGradient(
-                        colors: [Color.background2, Color.background2],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                      )
-            )
-            .cornerRadius(20)
-            .overlay(
-                RoundedRectangle(cornerRadius: 20)
-                    .stroke(isSelected ? Color.orange : Color.borderColor, lineWidth: isSelected ? 2 : 1)
-            )
-            .shadow(
-                color: isSelected ? Color.orange.opacity(0.3) : Color.clear,
-                radius: isSelected ? 8 : 0,
-                x: 0,
-                y: isSelected ? 2 : 0
-            )
-    }
-}
-
-#Preview(traits: .landscapeLeft) {
-    let analyzer = CaptionAnalyzer()
-    // 예시: 여러 챕터에서 누적 키워드 추가
-    analyzer.accumulatedKeywords = [
-        "트랜스포트", "데이터링크", "세션", "물리", "매체", "응용", "OSI", "7계층", "데이터신", "표현", "프로토콜"
-    ]
-    return KeywordView(analyzer: analyzer)
-        .frame(height: 180)
 }
