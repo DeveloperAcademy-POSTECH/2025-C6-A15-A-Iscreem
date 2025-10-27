@@ -12,16 +12,29 @@ struct NoteComponent: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            /// 썸네일 이미지
-            Rectangle()
-                .fill(Color.background2)
-                .aspectRatio(16/9, contentMode: .fit)
-                .overlay(
-                    Image(systemName: "play.rectangle.fill")
-                        .font(.system(size: 40))
-                        .foregroundStyle(Color.text3)
-                )
-                .cornerRadius(8)
+            /// 썸네일 이미지 (YouTube 링크에서 자동 추출)
+            if let url = YouTubeThumbnail.thumbnailURL(from: note.thumbnailURL) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .empty:
+                        placeholderThumbnail.overlay(ProgressView())
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                            .frame(maxWidth: .infinity)
+                            .aspectRatio(16/9, contentMode: .fit)
+                            .clipped()
+                            .cornerRadius(8)
+                    case .failure:
+                        placeholderThumbnail
+                    @unknown default:
+                        placeholderThumbnail
+                    }
+                }
+            } else {
+                placeholderThumbnail
+            }
             
             /// 제목
             Text(note.title)
@@ -38,6 +51,18 @@ struct NoteComponent: View {
         .background(Color.background1)
         .cornerRadius(12)
         .shadow(color: Color.text1.opacity(0.1), radius: 4, x: 0, y: 2)
+    }
+
+    private var placeholderThumbnail: some View {
+        Rectangle()
+            .fill(Color.background2)
+            .aspectRatio(16/9, contentMode: .fit)
+            .overlay(
+                Image(systemName: "play.rectangle.fill")
+                    .font(.system(size: 40))
+                    .foregroundStyle(Color.text3)
+            )
+            .cornerRadius(8)
     }
     
     private var timeAgoString: String {
@@ -59,7 +84,8 @@ struct NoteComponent: View {
     NoteComponent(
         note: Note(
             title: "YouTube 제목",
-            lastRead: Date().addingTimeInterval(-43200)
+            lastRead: Date().addingTimeInterval(-43200),
+            thumbnailURL: "https://youtu.be/dQw4w9WgXcQ"
         )
     )
     .padding()
