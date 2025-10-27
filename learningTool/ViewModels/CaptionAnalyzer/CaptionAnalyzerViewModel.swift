@@ -4,7 +4,7 @@
 //
 //  Created by coulson on 10/20/25.
 //
-/*
+
 import NaturalLanguage
 import Foundation
 import Combine
@@ -55,16 +55,16 @@ final class CaptionAnalyzer: ObservableObject {
     @Published var summaryStatus: SummaryStatus = .idle
     @Published var summaryText: String = ""
     @Published var chapters: [Chapter] = []
-
+    
     /// Full raw text per chapter (keyed by Chapter.id)
     @Published var chapterTexts: [UUID: String] = [:]
-
+    
     /// 각 챕터의 4줄 요약 (불릿 없이 한 문장씩)
     @Published var chapterBullets: [UUID: [String]] = [:]
-
+    
     /// 챕터별 키워드 (chapter id → [String])
     @Published var chapterKeywords: [UUID: [String]] = [:]
-
+    
     /// 누적 챕터 키워드(챕터 요약이 생성될 때마다 순차적으로 모은다)
     @Published var displayKeywords: [String] = []
     
@@ -74,7 +74,7 @@ final class CaptionAnalyzer: ObservableObject {
     @Published var finalSummary: String = ""
     /// 통합 요약 진행 여부 (UI 스피너용)
     @Published var isMergingFinal: Bool = false
-
+    
     /// 추출된 키워드 (최종 요약 기반)
     @Published var extractedKeywords: [String] = []
     /// 챕터별 누적 키워드
@@ -92,21 +92,21 @@ final class CaptionAnalyzer: ObservableObject {
     private var summarizer: Summarizer?
     private var isFetchingCaptions = false
     private var lastPrefetchKey: String?
-
+    
     init() {
 #if canImport(FoundationModels)
-      if #available(iOS 26.0, *) {
-        self.summarizer = try? AppleFMSummarizer()
-      } else {
-        self.summarizer = nil
-      }
+        if #available(iOS 26.0, *) {
+            self.summarizer = try? AppleFMSummarizer()
+        } else {
+            self.summarizer = nil
+        }
         if summarizer != nil {
             log.info("Summarizer available (AppleFM or HTTP)")
         } else {
             log.info("Summarizer unavailable; summaries will be disabled unless HTTP is wired")
         }
 #else
-      self.summarizer = nil
+        self.summarizer = nil
 #endif
     }
     
@@ -175,7 +175,7 @@ final class CaptionAnalyzer: ObservableObject {
         self.log.info("sum[\(runTag)] start; cues=\(cues.count)")
         // 0) 청크 분할 (약 5분 단위)
         let chunks = chunkCues(cues, maxSeconds: 300)
-
+        
         // 1) 챕터/원문을 즉시 구성하여 UI에 먼저 표시
         var built: [Chapter] = []
         var bodies: [UUID: String] = [:]
@@ -195,7 +195,7 @@ final class CaptionAnalyzer: ObservableObject {
             }
             self.chapterTexts = bodies
         }
-
+        
         // 챕터 본문에서 한 줄 제목 비동기 생성 (UI 비막음)
         func startPerChapterTitleSummaries(using summarizer: Summarizer, runTag: Substring) {
             Task.detached(priority: .utility) { [weak self] in
@@ -213,7 +213,7 @@ final class CaptionAnalyzer: ObservableObject {
                         )
                         let cleanedGist = gist.replacingOccurrences(of: "\n", with: " ").trimmingCharacters(in: .whitespacesAndNewlines)
                         await MainActor.run { self.setChapterGist(id: ch.id, gist: cleanedGist) }
-
+                        
                         // 2) Title: 위 gist를 바탕으로 목차형 한 문장 제목 생성
                         let title = try await summarizer.summarizeChunk(
                             text: cleanedGist,
@@ -221,7 +221,7 @@ final class CaptionAnalyzer: ObservableObject {
                         )
                         let cleanedTitle = title.replacingOccurrences(of: "\n", with: " ").trimmingCharacters(in: .whitespacesAndNewlines)
                         await MainActor.run { self.setChapterTitle(id: ch.id, title: cleanedTitle) }
-
+                        
                         // Bullets: 4개의 핵심 포인트 생성 (불릿 기호 없이 한 문장씩)
                         do {
                             let bulletsRaw = try await summarizer.summarizeChunk(
@@ -241,7 +241,7 @@ final class CaptionAnalyzer: ObservableObject {
                             // 실패 시 gist를 문장 단위로 잘라 최대 4개까지 사용 (간단 폴백)
                             let fallback = cleanedGist
                                 .replacingOccurrences(of: "•", with: "")
-//                                .replacingOccurrences(of: "-", with: "")
+                            //                                .replacingOccurrences(of: "-", with: "")
                                 .split(whereSeparator: { ".!?".contains($0) })
                                 .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
                             let top4 = Array(fallback.prefix(4)).filter { !$0.isEmpty }
@@ -256,7 +256,7 @@ final class CaptionAnalyzer: ObservableObject {
                 }
             }
         }
-
+        
         // 2) 실제 요약기 확인 (없으면 실패)
         guard let summarizer = self.summarizer else {
             await MainActor.run {
@@ -264,10 +264,10 @@ final class CaptionAnalyzer: ObservableObject {
             }
             return
         }
-
+        
         startPerChapterTitleSummaries(using: summarizer, runTag: runTag)
-
-
+        
+        
         // 3) 문단 단위(Map) → 통합은 생략하고 누적 표시(줄단위 완성)
         //    - 한 번에 전체 텍스트를 보내지 않아 컨텍스트 초과 방지
         //    - 각 문단은 400~600자 내외로 재조립하여 과도한 길이를 피함
@@ -281,7 +281,7 @@ final class CaptionAnalyzer: ObservableObject {
                     .components(separatedBy: "\n")
                     .map { $0.trimmingCharacters(in: .whitespaces) }
                     .filter { !$0.isEmpty }
-
+                
                 var acc = ""
                 for line in lines {
                     if acc.isEmpty { acc = line }
@@ -296,7 +296,7 @@ final class CaptionAnalyzer: ObservableObject {
             }
             return paragraphs
         }
-
+        
         let paragraphs = makeParagraphs(from: chunks, targetChars: 600)
         self.log.info("sum[\(runTag)] paragraphs=\(paragraphs.count)")
         await MainActor.run {
@@ -305,7 +305,7 @@ final class CaptionAnalyzer: ObservableObject {
         }
         
         var lastFlush = Date.distantPast
-
+        
         var linesOut: [String] = []
         for (i, p) in paragraphs.enumerated() {
             if Task.isCancelled { return }
@@ -320,16 +320,16 @@ final class CaptionAnalyzer: ObservableObject {
                 linesOut.append("• " + one.trimmingCharacters(in: .whitespacesAndNewlines))
                 self.log.info("sum[\(runTag)] step \(i+1) ok")
                 await MainActor.run {
-                        self.summaryDebug.processed = i + 1
-                        self.summaryDebug.lastUpdate = Date()
-                    }
+                    self.summaryDebug.processed = i + 1
+                    self.summaryDebug.lastUpdate = Date()
+                }
             } catch {
                 let ns = error as NSError
                 self.log.error("sum[\(runTag)] step \(i+1) error: \(ns.localizedDescription, privacy: .public)")
                 // 실패 시 해당 문단의 첫 줄로 폴백하여 진행 중단 없이 계속
                 linesOut.append("• " + firstLine(trimmed))
             }
-
+            
             // UI에 간헐적으로 누적 반영 (시간 스로틀: 0.8s)
             let now = Date()
             if now.timeIntervalSince(lastFlush) > 0.8 {
@@ -351,7 +351,7 @@ final class CaptionAnalyzer: ObservableObject {
         // 통합(최종) 요약은 메인 스레드를 막지 않도록 백그라운드에서 수행
         self.mergeFinalAsync(pieces: linesOut, runTag: runTag, summarizer: summarizer)
     }
-
+    
     /// 최종 통합 요약을 백그라운드에서 수행하여 UI 인터랙션을 막지 않도록 함
     private func mergeFinalAsync(pieces: [String], runTag: Substring, summarizer: Summarizer) {
         Task.detached(priority: .utility) { [weak self] in
@@ -381,7 +381,7 @@ final class CaptionAnalyzer: ObservableObject {
             chapters[idx].title = title
         }
     }
-
+    
     @MainActor
     private func setChapterGist(id: UUID, gist: String) {
         if let idx = chapters.firstIndex(where: { $0.id == id }) {
@@ -428,26 +428,22 @@ final class CaptionAnalyzer: ObservableObject {
                     // Fallback to contextual extraction if summarizer fails
                     let keywords = await extractChapterKeywordsContextual(from: chapterText)
                     await MainActor.run {
-<<<<<<< HEAD
+                        
                         self.chapterKeywords[id] = keywords
-=======
->>>>>>> 8295eaec28f44d8ce406a2271cfab8ed6e91b009
-                        updateDisplayKeywords(keywords)
+                        
                     }
                 }
             } else {
                 let keywords = await extractChapterKeywordsContextual(from: chapterText)
                 await MainActor.run {
-<<<<<<< HEAD
+                    
                     self.chapterKeywords[id] = keywords
-=======
->>>>>>> 8295eaec28f44d8ce406a2271cfab8ed6e91b009
-                    updateDisplayKeywords(keywords)
+                    
                 }
             }
         }
     }
-
+    
     /// 주어진 텍스트에서 NaturalLanguage 프레임워크와 NLEmbedding(가능한 경우)을 활용하여 컨텍스트 기반 키워드를 추출합니다.
     @MainActor
     func extractChapterKeywordsContextual(from text: String) async -> [String] {
@@ -455,7 +451,7 @@ final class CaptionAnalyzer: ObservableObject {
         // 1. 텍스트 전처리 (불용어 제거, 정규화)
         let cleanedText = preprocess(text)
         guard !cleanedText.isEmpty else { return [] }
-
+        
         // 2. NLTagger의 .lexicalClass와 .nameType을 모두 활용하여 명사/고유명사 후보 수집
         let tagger = NLTagger(tagSchemes: [.lexicalClass, .nameType])
         tagger.string = cleanedText
@@ -479,7 +475,7 @@ final class CaptionAnalyzer: ObservableObject {
             return true
         }
         guard !candidateWords.isEmpty else { return [] }
-
+        
         // 3. NLEmbedding이 지원되는 경우 의미적 유사도 활용
         var wordScores: [(word: String, score: Double)] = []
         if let embedding = NLEmbedding.wordEmbedding(for: .korean) {
@@ -527,7 +523,7 @@ final class CaptionAnalyzer: ObservableObject {
         // 상위 8개 반환
         return Array(filtered.prefix(8))
     }
-
+    
     /// 두 벡터 간 코사인 유사도 계산
     func cosineSimilarity(vec1: [Double], vec2: [Double]) -> Double {
         guard vec1.count == vec2.count, !vec1.isEmpty else { return 0 }
@@ -554,15 +550,15 @@ final class CaptionAnalyzer: ObservableObject {
             .map { $0.trimmingCharacters(in: .punctuationCharacters) }
             .filter { !$0.isEmpty }
         guard !tokens.isEmpty else { return [] }
-
+        
         var freq: [String: Int] = [:]
         for token in tokens {
             freq[token, default: 0] += 1
         }
-
+        
         // 빈도순 정렬
         let sorted = freq.sorted { $0.value > $1.value }.map { $0.key }
-
+        
         // ✅ 포함 관계 필터링 (예: '데이터'가 '데이터베이스'에 포함되면 제거)
         var filtered: [String] = []
         for word in sorted {
@@ -570,21 +566,21 @@ final class CaptionAnalyzer: ObservableObject {
                 filtered.append(word)
             }
         }
-
+        
         return Array(filtered.prefix(topN))
     }
     
     // MARK: - youtubei (player API) Prefetch
     func prefetchViaYouTubei(videoID: String, apiKey: String, clientName: String, clientVersion: String, sts: Int?) async {
-            let key = "\(videoID)#\(clientName)#\(clientVersion)#\(sts ?? -1)"
-            if lastPrefetchKey == key, (vttStatus == .loading || vttStatus == .ready) { return }
-            if self.isFetchingCaptions { return }              // 중복 요청 가드
-            self.isFetchingCaptions = true
-            self.lastPrefetchKey = key
-            defer { self.isFetchingCaptions = false }
-
-            await MainActor.run { if self.vttStatus == .idle { self.vttStatus = .loading } }
-            log.info("youtubei(begin) videoID=\(videoID, privacy: .public) client=\(clientName, privacy: .public)/\(clientVersion, privacy: .public) sts=\(String(describing: sts), privacy: .public)")
+        let key = "\(videoID)#\(clientName)#\(clientVersion)#\(sts ?? -1)"
+        if lastPrefetchKey == key, (vttStatus == .loading || vttStatus == .ready) { return }
+        if self.isFetchingCaptions { return }              // 중복 요청 가드
+        self.isFetchingCaptions = true
+        self.lastPrefetchKey = key
+        defer { self.isFetchingCaptions = false }
+        
+        await MainActor.run { if self.vttStatus == .idle { self.vttStatus = .loading } }
+        log.info("youtubei(begin) videoID=\(videoID, privacy: .public) client=\(clientName, privacy: .public)/\(clientVersion, privacy: .public) sts=\(String(describing: sts), privacy: .public)")
         do {
             guard let url = URL(string: "https://www.youtube.com/youtubei/v1/player?key=\(apiKey)") else { return }
             var req = URLRequest(url: url)
@@ -782,8 +778,8 @@ final class CaptionAnalyzer: ObservableObject {
             }
         } catch {
             await MainActor.run {
-            self.log.error("tracks(error) \(error.localizedDescription, privacy: .public)")
-self.vttStatus = .failed(error.localizedDescription) }
+                self.log.error("tracks(error) \(error.localizedDescription, privacy: .public)")
+                self.vttStatus = .failed(error.localizedDescription) }
         }
     }
     
@@ -809,13 +805,13 @@ self.vttStatus = .failed(error.localizedDescription) }
             c.queryItems = items
             return c.url
         }
-print("fetchFromBaseUrl: trying fmt=vtt")
+        print("fetchFromBaseUrl: trying fmt=vtt")
         if let u1 = withParam("fmt", "vtt"), let cues = try? await Self._downloadAndParse(url: u1) { return cues }
-
-print("fetchFromBaseUrl: trying fmt=json3")
+        
+        print("fetchFromBaseUrl: trying fmt=json3")
         if let u2 = withParam("fmt", "json3"), let cues = try? await Self._downloadAndParse(url: u2) { return cues }
-
-print("fetchFromBaseUrl: trying fmt=srv3")
+        
+        print("fetchFromBaseUrl: trying fmt=srv3")
         if let u3 = withParam("fmt", "srv3"), let cues = try? await Self._downloadAndParse(url: u3) { return cues }
         throw NSError(domain: "VTT", code: -9, userInfo: [NSLocalizedDescriptionKey: "서명된 자막 URL에서 데이터를 가져오지 못했습니다."])
     }
@@ -823,7 +819,7 @@ print("fetchFromBaseUrl: trying fmt=srv3")
     private static func _downloadAndParse(url: URL) async throws -> [VTTCue] {
         let (data, _) = try await URLSession.shared.data(from: url)
         print("_downloadAndParse: url=\(url.absoluteString)")
-
+        
         if let text = String(data: data, encoding: .utf8) {
             if text.contains("WEBVTT") {
                 print("_downloadAndParse: detected WEBVTT")
@@ -900,4 +896,3 @@ print("fetchFromBaseUrl: trying fmt=srv3")
         return p.cues
     }
 }
-*/
