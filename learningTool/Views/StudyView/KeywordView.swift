@@ -10,6 +10,9 @@ import SwiftUI
 struct KeywordView: View {
     @ObservedObject var analyzer: CaptionAnalyzer
     
+    // 키워드 한 번에 하나만 클릭
+    @State private var selectedKeyword: String? = nil
+    
     private var keywordsToShow: [String] {
         // 우선 챕터별 키워드 사용 (첫 번째 챕터 기준)
         if let firstChapterId = analyzer.chapters.first?.id,
@@ -40,14 +43,29 @@ struct KeywordView: View {
                     columns: [GridItem(.adaptive(minimum: 120, maximum: 260), spacing: 16)],
                     spacing: 12
                 ) {
-                    ForEach(analyzer.displayKeywords, id: \.self) { keyword in
-                        KeywordViewComponent(keyword: keyword)
+                    ForEach(keywordsToShow, id: \.self) { keyword in
+                        KeywordViewComponent(
+                            keyword: keyword,
+                            isSelected: Binding(
+                                get: { selectedKeyword == keyword },
+                                set: { newValue in
+                                    if newValue {
+                                        // 선택: 해당 키워드만 선택 상태로
+                                        selectedKeyword = keyword
+                                    } else {
+                                        // 해제: 현재 선택된 게 이 키워드면 nil로
+                                        if selectedKeyword == keyword {
+                                            selectedKeyword = nil
+                                        }
+                                    }
+                                }
+                            )
+                        )
                     }
                 }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 12)
             }
-            .border(.red)
             .frame(maxWidth: .infinity)
         }
         .background(Color.background2)

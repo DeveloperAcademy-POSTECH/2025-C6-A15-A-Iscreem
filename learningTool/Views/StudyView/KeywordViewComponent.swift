@@ -10,7 +10,7 @@ import SwiftUI
 /// 키워드 태그 컴포넌트 (140 x 32 알약 형태)
 struct KeywordViewComponent: View {
     let keyword: String
-    @State private var isSelected: Bool = false  // 클릭/호버 상태
+    @Binding var isSelected: Bool  // 클릭/호버 상태
     @State private var isHovering: Bool = false  // 호버 상태
     
     var body: some View {
@@ -33,7 +33,7 @@ struct KeywordViewComponent: View {
             }
             // 클릭 이벤트
             .onTapGesture {
-                self.isSelected.toggle()
+                isSelected.toggle()
             }
     }
 }
