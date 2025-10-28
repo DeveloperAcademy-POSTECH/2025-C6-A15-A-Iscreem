@@ -28,4 +28,13 @@ struct YouTubeWebViewRepresentable: UIViewRepresentable {
     func load(_ urlString: String) {
         host.load(urlString: urlString)
     }
+    
+    // Helper: 노트와 함께 로드(요약 캐시 재활용 + 세션 바인딩)
+    @MainActor
+    func load(_ urlString: String, for note: Note) {
+        // ✅ 먼저 로드(내부에서 reset 즉시 실행)
+        host.load(urlString: urlString)
+        // ✅ 그 다음 노트 바인딩(캐시 복원)
+        host.bind(note: note)
+    }
 }

@@ -52,6 +52,12 @@ final class YouTubeWebViewHost: NSObject, ObservableObject {
     // MARK: - Public
     func load(urlString: String) {
         guard let url = URL(string: urlString) else { return }
+        // ✅ reset을 동기 메인에서 즉시 수행 (지연 Task 제거)
+            if Thread.isMainThread {
+                self.captionAnalyzer?.resetForNewVideo()
+            } else {
+                DispatchQueue.main.async { self.captionAnalyzer?.resetForNewVideo() }
+            }
         var req = URLRequest(url: url)
         req.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1", forHTTPHeaderField: "User-Agent")
         log.info("WKNav allow → \(url.host ?? "-")")
@@ -59,6 +65,12 @@ final class YouTubeWebViewHost: NSObject, ObservableObject {
         didProcessCfg = false
         didProcessTracks = false
         webView.load(req)
+    }
+    
+    // 현재 로드/요약 세션을 특정 노트에 연결(요약 캐시 저장/재활용 용도)
+    @MainActor
+    func bind(note: Note) {
+        self.captionAnalyzer?.bind(note: note)
     }
 
     // MARK: - JS Bootstrap
