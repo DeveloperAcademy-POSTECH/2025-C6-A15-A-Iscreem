@@ -19,7 +19,7 @@ final class AppleFMSummarizer: Summarizer {
 
     private func newSession() throws -> LanguageModelSession {
         // 새 세션을 매 호출마다 생성하여 대화 히스토리가 누적되지 않도록 함
-        return try LanguageModelSession(model: model)
+        return LanguageModelSession(model: model)
     }
 
     func summarizeChunk(text: String, instruction: String) async throws -> String {

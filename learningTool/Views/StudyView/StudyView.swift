@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct StudyView: View {
     @StateObject private var viewModel: StudyViewModel
@@ -13,6 +14,7 @@ struct StudyView: View {
     @State private var showingAPISettings = false
     
     @EnvironmentObject private var captionAnalyzer: CaptionAnalyzer
+    @Query private var notes: [Note]
     
     init(note: Note? = nil, onDismiss: (() -> Void)? = nil) {
         _viewModel = StateObject(wrappedValue: StudyViewModel(note: note))
@@ -71,14 +73,14 @@ struct StudyView: View {
                     /// 좌측: 미디어 + 키워드
                     VStack(spacing: 0) {
                         
-                        //MARK: test용 임시 링크
-                        MediaView(videoURL: "https://youtu.be/LBqJwmFMQHI?si=G1aD3hiMw5-ZSdWk")
+                        //MARK: Note의 링크 주소
+                        MediaView(videoURL: resolvedVideoURL)
                         
                         Divider()
                             .background(Color.borderColor)
                         
                         KeywordView(analyzer: captionAnalyzer)
-                            .frame(height: 180)
+                            .frame(maxHeight: 260)
                         
                         Spacer()
                     }
@@ -99,9 +101,7 @@ struct StudyView: View {
                             .frame(maxHeight: .infinity)
                     }
                     .frame(
-                        width: max(
-                            350,
-                            min(450, geometry.size.width * 0.35)
+                        width: max(350, min(450, geometry.size.width * 0.35)
                         )
                     )
                 }
@@ -109,9 +109,25 @@ struct StudyView: View {
         }
         .background(Color.background2)
         .keyboardOverlay()
+        .onAppear { captionAnalyzer.autoSummarizeEnabled = true }
         .sheet(isPresented: $showingAPISettings) {
             APISettingsView()
         }
+    }
+    // 현재 노트의 유튜브 링크를 우선 사용하고,
+    // 없으면 같은 제목의 노트를 SwiftData에서 찾아 링크를 사용합니다.
+    private var resolvedVideoURL: String? {
+        // 1) 현재 전달받은 노트의 링크 우선
+        if let url = viewModel.currentNote?.thumbnailURL, !url.isEmpty {
+            return url
+        }
+        // 2) 동일 제목의 노트를 찾아서 링크 사용 (폴백)
+        if let title = viewModel.currentNote?.title,
+           let matched = notes.first(where: { $0.title == title }),
+           let url = matched.thumbnailURL, !url.isEmpty {
+            return url
+        }
+        return nil
     }
 }
 
@@ -308,5 +324,6 @@ struct InfoRow: View {
             title: "데이터통신 제1장",
             lastRead: Date()
         )
-    )
+        )
+        .environmentObject(CaptionAnalyzer())
 }
