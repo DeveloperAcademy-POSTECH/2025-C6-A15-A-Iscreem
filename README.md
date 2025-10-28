@@ -15,6 +15,10 @@ Attach videos if you are available
 <img width="964" height="714" alt="스크린샷 2025-10-22 오후 6 42 02" src="https://github.com/user-attachments/assets/f1964cf2-90f7-489a-ad17-66748b5a1bb9" />
 
 
+
+https://github.com/user-attachments/assets/3f8f7ee3-317a-417a-b368-a337a972d227
+
+
 ## :pushpin: Features
 
 - Feature 1
