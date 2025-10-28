@@ -10,6 +10,8 @@ import OSLog
 
 struct MediaView: View {
     @EnvironmentObject private var captionAnalyzer: CaptionAnalyzer
+    /// 현재 재생/요약 세션에 바인딩할 노트 (캐시 재활용/저장 목적)
+    let note: Note?
     /// Note에서 내려받는 YouTube 링크 (없으면 플레이스홀더 유지)
     let videoURL: String?
 
@@ -72,12 +74,19 @@ struct MediaView: View {
     private func loadIfNeeded(_ url: String) {
         guard loadedURL != url else { return }
         loadedURL = url
-        representable?.load(url)
+        if let n = note {
+            // 노트 바인딩 + 로드 (캐시 선반영/후저장에 필요)
+            representable?.load(url, for: n)
+        } else {
+            representable?.load(url)
+        }
     }
 }
 
 #Preview(traits: .landscapeLeft) {
-    // 미리보기에서는 샘플 URL을 전달하거나 nil로 플레이스홀더를 볼 수 있습니다.
-    MediaView(videoURL: "https://youtu.be/LBqJwmFMQHI?si=G1aD3hiMw5-ZSdWk")
-        .environmentObject(CaptionAnalyzer())
+    MediaView(
+        note: Note(title: "미리보기 노트", lastRead: Date()),
+        videoURL: "https://youtu.be/LBqJwmFMQHI?si=G1aD3hiMw5-ZSdWk"
+    )
+    .environmentObject(CaptionAnalyzer())
 }
