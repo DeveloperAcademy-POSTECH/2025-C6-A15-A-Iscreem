@@ -9,6 +9,7 @@ import SwiftUI
 
 struct KeywordView: View {
     @ObservedObject var analyzer: CaptionAnalyzer
+    @ObservedObject var studyViewModel: StudyViewModel
     
     // 키워드 한 번에 하나만 클릭
     @State private var selectedKeyword: String? = nil
@@ -52,6 +53,8 @@ struct KeywordView: View {
                                     if newValue {
                                         // 선택: 해당 키워드만 선택 상태로
                                         selectedKeyword = keyword
+                                        // StudyViewModel에 키워드 선택 알림 (질문창에 자동 입력 + 추천 질문 생성)
+                                        studyViewModel.selectKeyword(keyword)
                                     } else {
                                         // 해제: 현재 선택된 게 이 키워드면 nil로
                                         if selectedKeyword == keyword {
