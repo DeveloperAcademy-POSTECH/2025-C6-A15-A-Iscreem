@@ -188,7 +188,7 @@ struct QuestionView: View {
                             .disabled(isLoadingSuggestions)
                             
                             /// 닫기 버튼
-                            Button(action: { 
+                            Button(action: {
                                 withAnimation(.easeOut(duration: 0.2)) {
                                     showingSuggestions = false
                                 }
@@ -392,9 +392,10 @@ struct QuestionView: View {
         .onChange(of: studyViewModel.shouldGenerateSuggestions) { _, shouldGenerate in
             if shouldGenerate {
                 print("🔔 [자동생성] 키워드 선택 감지 - 추천질문 자동 생성 시작")
-                // 키워드가 입력된 후 (텍스트필드가 비어있지 않을 때) 자동 생성
-                if !viewModel.currentMessage.isEmpty && isAPIKeyConfigured {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                // API 키가 설정되어 있고, 키워드가 선택되어 있으면 자동 생성
+                if isAPIKeyConfigured && studyViewModel.selectedKeyword != nil {
+                    // 키워드가 텍스트필드에 삽입되는 시간을 고려하여 약간의 딜레이 후 실행
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
                         performQuestionGeneration()
                     }
                 }
@@ -411,7 +412,7 @@ struct QuestionView: View {
         print("🔍 [전구버튼] 선택된 키워드: \(studyViewModel.selectedKeyword ?? "없음")")
         print("🔍 [전구버튼] 현재 표시 상태: showingSuggestions=\(showingSuggestions), isLoading=\(isLoadingSuggestions)")
         
-        guard let keyword = studyViewModel.selectedKeyword else {
+        guard studyViewModel.selectedKeyword != nil else {
             print("❌ [전구버튼] 키워드 없음 - 종료")
             return
         }
@@ -449,8 +450,8 @@ struct QuestionView: View {
         }
         
         // 요약 컨텍스트가 비어있어도 진행 (기본 질문 생성)
-        let contextText = studyViewModel.summaryContext.isEmpty 
-            ? "강의 내용에 대한 학습" 
+        let contextText = studyViewModel.summaryContext.isEmpty
+            ? "강의 내용에 대한 학습"
             : studyViewModel.summaryContext
         
         print("📝 [생성] 컨텍스트 길이: \(contextText.count)자")
@@ -564,26 +565,29 @@ struct ChatBubble: View {
             if message.isUser {
                 Spacer(minLength: 40)
             }
-            
+
             VStack(alignment: message.isUser ? .trailing : .leading, spacing: 4) {
                 Text(message.text)
                     .font(.system(size: 14))
                     .foregroundStyle(message.isUser ? .white : Color.text1)
+                    .multilineTextAlignment(message.isUser ? .trailing : .leading)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
                     .background(
-                        message.isUser
-                            ? Color.primaryColor
-                            : Color.secondColor.opacity(0.15)
+                        ChatBubbleShape(isRightAligned: message.isUser)
+                            .fill(
+                                message.isUser
+                                    ? Color.primaryColor
+                                    : Color.secondColor.opacity(0.15)
+                            )
                     )
-                    .cornerRadius(16)
-                
+
                 Text(timeString(from: message.timestamp))
                     .font(.system(size: 11))
                     .foregroundStyle(Color.text3)
                     .padding(.horizontal, 4)
             }
-            
+
             if !message.isUser {
                 Spacer(minLength: 40)
             }

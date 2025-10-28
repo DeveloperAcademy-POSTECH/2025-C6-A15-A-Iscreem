@@ -407,18 +407,24 @@ final class CaptionAnalyzer: ObservableObject {
                         }
                     }
                 }
-                self.displayKeywords = Array(keywords.prefix(40))
+                self.displayKeywords = keywords // 개수 제한 제거
             }
             if #available(iOS 26.0, *), let summarizer = self.summarizer {
                 do {
                     let keywordsText = try await summarizer.summarizeChunk(
                         text: chapterText,
                         instruction: """
-                        주어진 내용을 분석하여 문맥상 핵심적인 주제어나 개념 10개를 한국어로만 추출하세요.
+                        - 주어진 요약본에서 **컴퓨터공학 분야의 맥락에서 사용되는 핵심 용어와 개념**을 모두 추출하세요.
+                        - 단, 단순히 '컴퓨터공학 관련 용어'라는 문구 자체를 결과에 포함하지 마세요.
+                        - 각 단어는 **컴퓨터공학, 소프트웨어, 인공지능, 알고리즘, 시스템, 데이터, 네트워크, 프로그래밍 등** 기술적 주제와 관련된 단어를 중심으로 추출하세요.
+                        - 단어가 다른 분야에서도 쓰이더라도, **컴퓨터공학에서의 의미로 사용되는 경우만** 포함하세요.
+                        - 문맥상 중요하거나 자주 언급되는 단어는 **중복되더라도 모두 포함**하세요. (절대 생략하지 마세요)
                         - 불필요한 조사, 접속사, 감탄사(예: 그러나, 그리고, 과감하게, 넘어가야 등)는 제외하세요.
-                        - 형용사나 동사보다는 명사 위주의 키워드를 선택하세요.
-                        - 중복되거나 유사한 의미의 단어는 하나로 통합하세요.
-                        - 각 키워드는 짧고 명확하게 표현하고, 세미콜론(;)으로 구분하세요.
+                        - 형용사나 동사보다는 **명사 중심의 핵심 키워드**를 선택하세요.
+                        - 키워드는 **짧고 명료하게** 표현하세요.
+                        - **출력 형식:** 각 키워드를 구분자로 구분하여 출력하세요.  
+                          허용되는 구분자: 세미콜론( ; ), 쉼표( , ), 온점( . ), 슬래시( / ), 줄바꿈(\n), 탭(\t)
+                        - 결과는 **한국어로만** 작성하세요. (영문 단어는 꼭 필요한 기술 용어일 경우만 유지)
                         """
                     )
                     // 온점(.), 쉼표(,), 세미콜론(;), 줄바꿈(\n), 슬래시(/), 탭 등 다양한 구분자 처리
@@ -438,17 +444,13 @@ final class CaptionAnalyzer: ObservableObject {
                     // Fallback to contextual extraction if summarizer fails
                     let keywords = await extractChapterKeywordsContextual(from: chapterText)
                     await MainActor.run {
-                        
-                        self.chapterKeywords[id] = keywords
-                        
+                        updateDisplayKeywords(keywords)
                     }
                 }
             } else {
                 let keywords = await extractChapterKeywordsContextual(from: chapterText)
                 await MainActor.run {
-                    
-                    self.chapterKeywords[id] = keywords
-                    
+                    updateDisplayKeywords(keywords)
                 }
             }
         }

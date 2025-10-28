@@ -36,7 +36,9 @@ struct HomeView: View {
         self.onNoteSelected = onNoteSelected
         self.onNoteCreated = onNoteCreated
     }
-    
+
+    @State private var isHelpPresented: Bool = false
+
     var body: some View {
         NavigationSplitView {
             SidebarView(onFolderSelected: { name in
@@ -50,7 +52,7 @@ struct HomeView: View {
                     headerSubtitle = "최근 열어본 항목"
                     selectedFolderName = nil
                 }
-            })
+            }, isHelpPresented: $isHelpPresented)
             .navigationSplitViewColumnWidth(min: 280, ideal: 320, max: 400)
             .toolbar(.hidden, for: .navigationBar)
         } detail: {
@@ -149,6 +151,27 @@ struct HomeView: View {
         }
         .navigationSplitViewStyle(.balanced)
         .keyboardOverlay()
+        .overlay {
+            if isHelpPresented {
+                GeometryReader { geometry in
+                    ZStack {
+                        Color.black.opacity(0.35)
+                            .ignoresSafeArea()
+                            .onTapGesture { withAnimation(.easeInOut(duration: 0.2)) { isHelpPresented = false } }
+                        HelpView(onClose: { withAnimation(.easeInOut(duration: 0.2)) { isHelpPresented = false } })
+                            .frame(
+                                width: min(680, geometry.size.width * 0.70),
+                                height: min(620, geometry.size.height * 0.78)
+                            )
+                            .background(Color.background1)
+                            .cornerRadius(20)
+                            .shadow(color: Color.black.opacity(0.25), radius: 18, x: 0, y: 10)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .transition(.opacity.combined(with: .scale))
+                }
+            }
+        }
         // 노트 생성 시트
         .overlay {
             if showCreateNote {
@@ -330,10 +353,10 @@ private func matches(_ text: String, query: String) -> Bool {
 /// Also maps compatibility Jamo (ㄱㅏㅂ etc.) to modern Jamo, removes spaces/punctuation.
 private func jamoKey(_ s: String) -> String {
     let SBase: UInt32 = 0xAC00, SCount: UInt32 = 11172
-    let LBase: UInt32 = 0x1100, LCount: UInt32 = 19
+    let LBase: UInt32 = 0x1100/*, LCount: UInt32 = 19*/
     let VBase: UInt32 = 0x1161, VCount: UInt32 = 21
     let TBase: UInt32 = 0x11A7, TCount: UInt32 = 28
-    let NCount: UInt32 = VCount * TCount // 588
+//    let NCount: UInt32 = VCount * TCount // 588
     
     // Compatibility Jamo → Modern Jamo (subset: initials & vowels)
     let compToModern: [UInt32: UInt32] = [
