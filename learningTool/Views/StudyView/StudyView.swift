@@ -89,7 +89,7 @@ struct StudyView: View {
                     
                     /// 우측: 요약 + 질문
                     VStack(spacing: 0) {
-                        SummaryView(viewModel: viewModel)
+                        SummaryView()
                             .frame(maxHeight: .infinity)
                         
                         Divider()
