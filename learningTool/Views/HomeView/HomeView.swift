@@ -13,6 +13,8 @@ struct HomeView: View {
     @State private var selectedFolderName: String? = nil
     @StateObject private var viewModel = HomeViewModel()
     @State private var showCreateNote = false
+    @State private var youtubeLink = ""
+    @State private var noteTitle = ""
     
     @Environment(\.modelContext) private var modelContext
     @Query(sort: [SortDescriptor(\Note.lastRead, order: .reverse)]) private var notes: [Note]
@@ -175,28 +177,36 @@ struct HomeView: View {
         // 노트 생성 시트
         .overlay {
             if showCreateNote {
-                GeometryReader { geometry in
-                    ZStack {
-                        Color.black.opacity(0.5)
-                            .ignoresSafeArea()
-                            .onTapGesture {
-                                withAnimation(.easeInOut(duration: 0.2)) { showCreateNote = false }
-                            }
-                        
-                        CreateNoteView { note in
-                            onNoteCreated?(note)
+                ZStack {
+                    Color.black.opacity(0.5)
+                        .ignoresSafeArea()
+                        .onTapGesture {
                             withAnimation(.easeInOut(duration: 0.2)) { showCreateNote = false }
                         }
-                        .frame(
-                            width: min(500, geometry.size.width * 0.6),
-                            height: min(380, geometry.size.height * 0.5)
-                        )
-                        .background(Color.background1)
-                        .cornerRadius(20)
-                        .shadow(color: Color.black.opacity(0.3), radius: 20, x: 0, y: 10)
+                    
+                    VStack(alignment: .trailing, spacing: 20) {
+                        CreateNoteView(youtubeLink: $youtubeLink, noteTitle: $noteTitle)
+                        
+                        // 노트 생성 버튼
+                        Button(action: {
+                            createNoteTapped()
+                        }) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "arrow.right")
+                                    .font(.system(size: 14, weight: .semibold))
+                                Text("노트 생성")
+                                    .font(.system(size: 15, weight: .semibold))
+                            }
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 28)
+                            .padding(.vertical, 12)
+                            .background(Color.secondColor)
+                            .cornerRadius(20)
+                        }
+                        .disabled(!isFormValid)
                     }
-                    .transition(.opacity.animation(.easeInOut(duration: 0.2)))
                 }
+                .transition(.opacity.animation(.easeInOut(duration: 0.2)))
             }
         }
         // 이름 변경 시트
@@ -223,6 +233,26 @@ struct HomeView: View {
     
     private var searchQuery: String {
         viewModel.searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+    
+    private var isFormValid: Bool {
+        !youtubeLink.isEmpty && !noteTitle.isEmpty
+    }
+    
+    private func createNoteTapped() {
+        let newNote = Note(
+            title: noteTitle,
+            lastRead: Date(),
+            thumbnailURL: youtubeLink
+        )
+        modelContext.insert(newNote)
+        onNoteCreated?(newNote)
+        
+        // reset
+        youtubeLink = ""
+        noteTitle = ""
+        
+        withAnimation(.easeInOut(duration: 0.2)) { showCreateNote = false }
     }
     
     
