@@ -4,6 +4,18 @@
 
 [App statement]
 
+### Apple Intelligence (On-Device) Requirements
+This app’s AI summarization uses Apple’s on-device foundation model (Apple Intelligence).
+
+- **iPhone:** iPhone 16 lineup, iPhone 15 Pro/Pro Max  
+- **iPad:** iPad mini (A17 Pro), iPad models with **M1 or later**  
+- **Mac:** **M1 or later**  
+- Make sure **Apple Intelligence is enabled** and **Siri + device language** are set to a supported language (e.g., Korean).
+
+> On devices that don’t meet these requirements, the app may fall back to server summarization (if configured) or disable summarization.
+
+Refs: Apple Newsroom availability notes.  [oai_citation:5‡Apple](https://www.apple.com/newsroom/2025/06/apple-elevates-the-iphone-experience-with-ios-26/)
+
 ## :다이어그램:
 
 Attach photos if you are available
