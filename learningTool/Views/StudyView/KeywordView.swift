@@ -15,17 +15,21 @@ struct KeywordView: View {
     @State private var selectedKeyword: String? = nil
     
     private var keywordsToShow: [String] {
-        // 우선 챕터별 키워드 사용 (첫 번째 챕터 기준)
-        if let firstChapterId = analyzer.chapters.first?.id,
-           let chapterKeywords = analyzer.chapterKeywords[firstChapterId],
-           !chapterKeywords.isEmpty {
+        // 🔹 displayKeywords 우선
+        if !analyzer.displayKeywords.isEmpty {
+            return analyzer.displayKeywords
+        }
+        // 챕터별 키워드 fallback
+        else if let firstChapterId = analyzer.chapters.first?.id,
+                let chapterKeywords = analyzer.chapterKeywords[firstChapterId],
+                !chapterKeywords.isEmpty {
             return chapterKeywords
         }
-        // 챕터 키워드가 없으면 누적 키워드 사용
+        // accumulatedKeywords fallback
         else if !analyzer.accumulatedKeywords.isEmpty {
             return analyzer.accumulatedKeywords
         }
-        // 그래도 없으면 최종 요약 기반 키워드
+        // 최종 요약 기반 fallback
         else {
             return analyzer.extractedKeywords
         }
