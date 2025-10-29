@@ -18,9 +18,6 @@ struct StudyView: View {
     @Query private var notes: [Note]
     @StateObject private var questionVM = QuestionViewModel()
     @FocusState private var isQuestionFieldFocused: Bool
-    @State private var isKeyboardVisible: Bool = false
-    @State private var keyboardFrame: CGRect = .zero
-    @State private var bottomSafeArea: CGFloat = 0
     
     init(note: Note? = nil, onDismiss: (() -> Void)? = nil) {
         _viewModel = StateObject(wrappedValue: StudyViewModel(note: note))
@@ -114,7 +111,7 @@ struct StudyView: View {
             }
         }
         .background(Color.background2)
-        .ignoresSafeArea(.keyboard, edges: .bottom)
+        .keyboardOverlay()
         .overlay(alignment: .bottom) {
             // Global input bar anchored to StudyView width
             HStack(spacing: 12) {
@@ -154,37 +151,7 @@ struct StudyView: View {
             .padding(16)
             .frame(maxWidth: .infinity)
             .background(Color.background1)
-            .background(
-                GeometryReader { proxy in
-                    Color.clear.onAppear { bottomSafeArea = proxy.safeAreaInsets.bottom }
-                }
-            )
-            .padding(.bottom, isKeyboardVisible ? max(0, keyboardFrame.height - bottomSafeArea) : 0)
-        }
-        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { note in
-            guard
-                let ui = note.userInfo,
-                let end = (ui[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue)?.cgRectValue
-            else { return }
-            withAnimation(.easeInOut(duration: 0.25)) {
-                isKeyboardVisible = true
-                keyboardFrame = end
-            }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillChangeFrameNotification)) { note in
-            guard
-                let ui = note.userInfo,
-                let end = (ui[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue)?.cgRectValue
-            else { return }
-            withAnimation(.easeInOut(duration: 0.25)) {
-                keyboardFrame = end
-            }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
-            withAnimation(.easeInOut(duration: 0.25)) {
-                isKeyboardVisible = false
-                keyboardFrame = .zero
-            }
+            .keyboardAdaptivePadding()
         }
         .onAppear { captionAnalyzer.autoSummarizeEnabled = true }
         .onChange(of: captionAnalyzer.summaryStatus) { _, newValue in

@@ -230,6 +230,7 @@ struct HomeView: View {
                         .background(Color.background1)
                         .cornerRadius(20)
                         .shadow(color: Color.black.opacity(0.3), radius: 20, x: 0, y: 10)
+                        .keyboardShift(10)
                     }
                     .transition(.opacity.animation(.easeInOut(duration: 0.2)))
                 }
