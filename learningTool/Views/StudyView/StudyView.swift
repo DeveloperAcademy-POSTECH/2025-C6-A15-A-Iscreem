@@ -10,6 +10,7 @@ import SwiftData
 
 struct StudyView: View {
     @StateObject private var viewModel: StudyViewModel
+    @Environment(\.modelContext) private var modelContext
     let onDismiss: (() -> Void)?
     @State private var showingAPISettings = false
     
@@ -79,12 +80,12 @@ struct StudyView: View {
                     VStack(spacing: 0) {
                         
                         //MARK: Note의 링크 주소
-                        MediaView(videoURL: resolvedVideoURL)
+                        MediaView(note: viewModel.currentNote, videoURL: resolvedVideoURL)
                         
                         Divider()
                             .background(Color.borderColor)
                         
-                        KeywordView(analyzer: captionAnalyzer)
+                        KeywordView(analyzer: captionAnalyzer, studyViewModel: viewModel)
                             .frame(maxHeight: 260)
                         
                         Spacer()
@@ -186,6 +187,13 @@ struct StudyView: View {
             }
         }
         .onAppear { captionAnalyzer.autoSummarizeEnabled = true }
+        .onChange(of: captionAnalyzer.summaryStatus) { _, newValue in
+            if case .ready = newValue {
+                // CaptionAnalyzer가 바인딩된 Note에 캐시를 써 둔 뒤,
+                // 컨텍스트를 저장하여 영구화
+                try? modelContext.save()
+            }
+        }
         .sheet(isPresented: $showingAPISettings) {
             APISettingsView()
         }
@@ -193,15 +201,19 @@ struct StudyView: View {
     // 현재 노트의 유튜브 링크를 우선 사용하고,
     // 없으면 같은 제목의 노트를 SwiftData에서 찾아 링크를 사용합니다.
     private var resolvedVideoURL: String? {
-        // 1) 현재 전달받은 노트의 링크 우선
+        // 1) 현재 전달받은 노트의 비디오 링크 우선
+        if let url = viewModel.currentNote?.videoURL, !url.isEmpty {
+            return url
+        }
+        // 1-2) (이전 구조 호환) 썸네일 필드에 저장된 링크가 있다면 사용
         if let url = viewModel.currentNote?.thumbnailURL, !url.isEmpty {
             return url
         }
         // 2) 동일 제목의 노트를 찾아서 링크 사용 (폴백)
         if let title = viewModel.currentNote?.title,
-           let matched = notes.first(where: { $0.title == title }),
-           let url = matched.thumbnailURL, !url.isEmpty {
-            return url
+           let matched = notes.first(where: { $0.title == title }) {
+            if let v = matched.videoURL, !v.isEmpty { return v }
+            if let t = matched.thumbnailURL, !t.isEmpty { return t }
         }
         return nil
     }

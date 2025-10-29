@@ -317,9 +317,10 @@ struct QuestionView: View {
         .onChange(of: studyViewModel.shouldGenerateSuggestions) { _, shouldGenerate in
             if shouldGenerate {
                 print("🔔 [자동생성] 키워드 선택 감지 - 추천질문 자동 생성 시작")
-                // 키워드가 입력된 후 (텍스트필드가 비어있지 않을 때) 자동 생성
-                if !viewModel.currentMessage.isEmpty && isAPIKeyConfigured {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                // API 키가 설정되어 있고, 키워드가 선택되어 있으면 자동 생성
+                if isAPIKeyConfigured && studyViewModel.selectedKeyword != nil {
+                    // 키워드가 텍스트필드에 삽입되는 시간을 고려하여 약간의 딜레이 후 실행
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
                         performQuestionGeneration()
                     }
                 }
