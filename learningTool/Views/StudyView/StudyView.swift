@@ -16,6 +16,8 @@ struct StudyView: View {
     
     @EnvironmentObject private var captionAnalyzer: CaptionAnalyzer
     @Query private var notes: [Note]
+    @StateObject private var questionVM = QuestionViewModel()
+    @FocusState private var isQuestionFieldFocused: Bool
     
     init(note: Note? = nil, onDismiss: (() -> Void)? = nil) {
         _viewModel = StateObject(wrappedValue: StudyViewModel(note: note))
@@ -98,7 +100,7 @@ struct StudyView: View {
                         Divider()
                             .background(Color.borderColor)
                         
-                        QuestionView(studyViewModel: viewModel)
+                        QuestionView(studyViewModel: viewModel, viewModel: questionVM)
                             .frame(maxHeight: .infinity)
                     }
                     .frame(
@@ -110,6 +112,47 @@ struct StudyView: View {
         }
         .background(Color.background2)
         .keyboardOverlay()
+        .overlay(alignment: .bottom) {
+            // Global input bar anchored to StudyView width
+            HStack(spacing: 12) {
+                TextField(
+                    GeminiAPIService.shared.isAPIKeyConfigured() ? "메시지를 입력하세요" : "API 키를 먼저 설정해주세요",
+                    text: $questionVM.currentMessage,
+                    axis: .horizontal
+                )
+                .focused($isQuestionFieldFocused)
+                .font(.system(size: 15))
+                .lineLimit(1)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(Color.background2)
+                .cornerRadius(20)
+                .disabled(questionVM.isLoading || !GeminiAPIService.shared.isAPIKeyConfigured())
+                .onSubmit {
+                    if GeminiAPIService.shared.isAPIKeyConfigured() {
+                        questionVM.sendMessage()
+                    }
+                }
+
+                Button(action: { questionVM.sendMessage() }) {
+                    Image(systemName: "paperplane.fill")
+                        .font(.system(size: 18))
+                        .foregroundStyle(.white)
+                        .frame(width: 40, height: 40)
+                        .background(
+                            (questionVM.isLoading || questionVM.currentMessage.isEmpty || !GeminiAPIService.shared.isAPIKeyConfigured())
+                            ? Color.text3.opacity(0.5)
+                            : Color.secondColor
+                        )
+                        .clipShape(Circle())
+                }
+                .disabled(questionVM.isLoading || questionVM.currentMessage.isEmpty || !GeminiAPIService.shared.isAPIKeyConfigured())
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity)
+            .background(Color.background1)
+            .keyboardAdaptivePadding()
+        }
         .onAppear { captionAnalyzer.autoSummarizeEnabled = true }
         .onChange(of: captionAnalyzer.summaryStatus) { _, newValue in
             if case .ready = newValue {

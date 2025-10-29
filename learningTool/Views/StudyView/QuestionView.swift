@@ -6,12 +6,12 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct QuestionView: View {
     @ObservedObject var studyViewModel: StudyViewModel
-    @StateObject private var viewModel = QuestionViewModel()
+    @ObservedObject var viewModel: QuestionViewModel
     @State private var isAPIKeyConfigured = GeminiAPIService.shared.isAPIKeyConfigured()
-    @FocusState private var isTextFieldFocused: Bool
     @State private var showingSuggestions = false
     @State private var suggestedQuestions: [String] = []
     @State private var isLoadingSuggestions = false
@@ -25,6 +25,15 @@ struct QuestionView: View {
                     .foregroundStyle(Color.text2)
                 
                 Spacer()
+                
+                Button(action: { generateSuggestedQuestions() }) {
+                    Image(systemName: isLoadingSuggestions ? "arrow.triangle.2.circlepath" : "lightbulb.fill")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Color.orange)
+                }
+                .buttonStyle(.plain)
+                .disabled(!isAPIKeyConfigured || isLoadingSuggestions)
+
                 
                 if viewModel.messages.count > 2 {
                     Button(action: { viewModel.clearMessages() }) {
@@ -117,12 +126,10 @@ struct QuestionView: View {
                         withAnimation {
                             proxy.scrollTo(lastMessage.id, anchor: .bottom)
                         }
-                        // 응답 완료 후 텍스트필드에 포커스
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                            isTextFieldFocused = true
-                        }
                     }
                 }
+                // Keyboard dismiss and tap-to-dismiss modifiers
+                .scrollDismissesKeyboard(.interactively)
             }
             
             Divider()
@@ -229,7 +236,6 @@ struct QuestionView: View {
                                             withAnimation {
                                                 viewModel.currentMessage = question
                                                 showingSuggestions = false
-                                                isTextFieldFocused = true
                                             }
                                         }) {
                                             HStack(alignment: .top, spacing: 12) {
@@ -283,79 +289,9 @@ struct QuestionView: View {
                 }
                 .zIndex(1000)
             }
-            
-            /// 입력 영역
-            HStack(spacing: 12) {
-                TextField(
-                    isAPIKeyConfigured ? "메시지를 입력하세요" : "API 키를 먼저 설정해주세요",
-                    text: $viewModel.currentMessage,
-                    axis: .horizontal
-                )
-                .focused($isTextFieldFocused)
-                .font(.system(size: 15))
-                .lineLimit(1)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .background(Color.background2)
-                .cornerRadius(20)
-                .disabled(viewModel.isLoading || !isAPIKeyConfigured)
-                .onSubmit {
-                    if isAPIKeyConfigured {
-                        viewModel.sendMessage()
-                    }
-                }
-                
-                /// 추천 질문 버튼
-                Button(action: {
-                    print("\n💡 ===== 전구 버튼 클릭 =====")
-                    generateSuggestedQuestions()
-                }) {
-                    Image(systemName: isLoadingSuggestions ? "arrow.triangle.2.circlepath" : "lightbulb.fill")
-                        .font(.system(size: 18))
-                        .foregroundStyle(.white)
-                        .frame(width: 40, height: 40)
-                        .background(
-                            // API 미설정 OR (키워드 없고 텍스트도 없음) OR 로딩중이면 비활성
-                            !isAPIKeyConfigured || (studyViewModel.selectedKeyword == nil && viewModel.currentMessage.isEmpty) || isLoadingSuggestions
-                                ? Color.text3.opacity(0.5)
-                                : Color.orange
-                        )
-                        .clipShape(Circle())
-                        .rotationEffect(.degrees(isLoadingSuggestions ? 360 : 0))
-                        .animation(
-                            isLoadingSuggestions
-                                ? .linear(duration: 1).repeatForever(autoreverses: false)
-                                : .default,
-                            value: isLoadingSuggestions
-                        )
-                }
-                .buttonStyle(.plain)
-                .disabled(!isAPIKeyConfigured || (studyViewModel.selectedKeyword == nil && viewModel.currentMessage.isEmpty) || isLoadingSuggestions)
-                
-                Button(action: { viewModel.sendMessage() }) {
-                    Image(systemName: "paperplane.fill")
-                        .font(.system(size: 18))
-                        .foregroundStyle(.white)
-                        .frame(width: 40, height: 40)
-                        .background(
-                            viewModel.isLoading
-                                || viewModel.currentMessage.isEmpty
-                                || !isAPIKeyConfigured
-                                ? Color.text3.opacity(0.5)
-                                : Color.secondColor
-                        )
-                        .clipShape(Circle())
-                }
-                .disabled(
-                    viewModel.isLoading
-                        || viewModel.currentMessage.isEmpty
-                        || !isAPIKeyConfigured
-                )
-            }
-            .padding(16)
-            .background(Color.background1)
         }
         .background(Color.background1)
+        .ignoresSafeArea(.keyboard, edges: .bottom)
         .animation(.easeInOut(duration: 0.25), value: showingSuggestions)
         .onAppear {
             isAPIKeyConfigured = GeminiAPIService.shared.isAPIKeyConfigured()
@@ -365,12 +301,6 @@ struct QuestionView: View {
             let wasConfigured = isAPIKeyConfigured
             isAPIKeyConfigured = GeminiAPIService.shared.isAPIKeyConfigured()
             
-            // API 키가 새로 설정되면 텍스트필드에 포커스
-            if !wasConfigured && isAPIKeyConfigured {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    isTextFieldFocused = true
-                }
-            }
         }
         .onChange(of: studyViewModel.shouldInsertKeyword) { _, shouldInsert in
             if shouldInsert, let keyword = studyViewModel.selectedKeyword {
@@ -379,11 +309,6 @@ struct QuestionView: View {
                     viewModel.currentMessage += " "
                 }
                 viewModel.currentMessage += keyword
-                
-                // 포커스를 텍스트 마지막으로 이동
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    isTextFieldFocused = true
-                }
                 
                 // 삽입 완료 표시
                 studyViewModel.keywordInserted()
@@ -403,6 +328,7 @@ struct QuestionView: View {
                 studyViewModel.suggestionsGenerated()
             }
         }
+        // 입력창 및 키보드 관련 오버레이/관찰자는 StudyView로 이동함
     }
     
     /// AI를 통한 추천 질문 생성 (전구 버튼용 - 토글 기능 포함)
@@ -555,6 +481,8 @@ struct QuestionView: View {
             }
         }
     }
+    
+    
 }
 
 struct ChatBubble: View {
@@ -624,5 +552,5 @@ struct RoundedCorner: Shape {
 }
 
 #Preview(traits: .landscapeLeft) {
-    QuestionView(studyViewModel: StudyViewModel())
+    QuestionView(studyViewModel: StudyViewModel(), viewModel: QuestionViewModel())
 }
