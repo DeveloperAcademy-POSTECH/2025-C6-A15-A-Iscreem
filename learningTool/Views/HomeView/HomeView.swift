@@ -136,6 +136,44 @@ struct HomeView: View {
                     }
                     .padding()
                 }
+                .overlay {
+                    // 노트가 없을 때 기본 텍스트 표시
+                    if shouldShowEmptyState {
+                        VStack(spacing: 4) {
+                            Text("아직은 노트가 없어요!")
+                                .font(.system(size: 16, weight: .regular))
+                                .foregroundStyle(Color.text3)
+                            
+                            Text("하단 추가 버튼을 눌러서 첫 학습을 시작해 보세요!")
+                                .font(.system(size: 16, weight: .regular))
+                                .foregroundStyle(Color.text3)
+                            
+                            Spacer()
+                                .frame(height: 12)
+                            
+                            Text("사용법을 알고 싶으신가요?")
+                                .font(.system(size: 16, weight: .regular))
+                                .foregroundStyle(Color.text3)
+                            
+                            HStack(spacing: 4) {
+                                Text("좌측 하단의")
+                                    .font(.system(size: 16, weight: .regular))
+                                    .foregroundStyle(Color.text3)
+                                
+                                Image(systemName: "questionmark.circle.fill")
+                                    .font(.system(size: 16))
+                                    .foregroundStyle(Color.text3)
+                                
+                                Text("도움말 버튼을 클릭해 보세요!")
+                                    .font(.system(size: 16, weight: .regular))
+                                    .foregroundStyle(Color.text3)
+                            }
+                        }
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .offset(y: -50)
+                    }
+                }
                 .overlay(alignment: .bottomTrailing) {
                     Button {
                         viewModel.addButtonTapped()
@@ -229,6 +267,15 @@ struct HomeView: View {
         viewModel.searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     }
     
+    // 빈 상태 표시 여부
+    private var shouldShowEmptyState: Bool {
+        if isAllView {
+            let items = searchQuery.isEmpty ? allItems : allItemsFiltered
+            return items.isEmpty
+        } else {
+            return filteredNotes.isEmpty
+        }
+    }
     
     private var filteredNotes: [Note] {
         // 1) 폴더 선택 필터
