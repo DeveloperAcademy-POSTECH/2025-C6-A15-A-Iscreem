@@ -127,7 +127,7 @@ final class CaptionAnalyzer: ObservableObject {
         self.vttCues = []
         self.isFetchingCaptions = false
         self.lastPrefetchKey = nil
-
+        
         // 요약 관련 상태 초기화
         self.summaryStatus = .idle
         self.summaryText = ""
@@ -147,14 +147,14 @@ final class CaptionAnalyzer: ObservableObject {
     @MainActor
     func bind(note: Note) {
         self.boundNote = note
-
+        
         // 캐시가 비어있지 않으면 즉시 복원해서 2회차부터는 "바로 표시"
         let hasCache =
-            !(note.cachedSummaryLines.isEmpty) ||
-            (note.cachedFinalSummary?.isEmpty == false) ||
-            !(note.cachedKeywords.isEmpty) ||
-            !(note.cachedChapters.isEmpty)
-
+        !(note.cachedSummaryLines.isEmpty) ||
+        (note.cachedFinalSummary?.isEmpty == false) ||
+        !(note.cachedKeywords.isEmpty) ||
+        !(note.cachedChapters.isEmpty)
+        
         if hasCache {
             // 1) 요약 라인/최종 요약
             self.summaryText = note.cachedSummaryLines.joined(separator: "\n")
@@ -185,21 +185,21 @@ final class CaptionAnalyzer: ObservableObject {
             self.summaryStatus = .idle
         }
     }
-
+    
     /// 노트에 저장된 캐시(챕터/요약/키워드)가 있으면 UI 상태를 즉시 구성하여 재활용
     @MainActor
     func preloadFromNoteIfAvailable(_ note: Note) {
         let cachedChapters = note.cachedChapters
         let hasCache = (!cachedChapters.isEmpty)
-            || !(note.cachedSummaryLines.isEmpty)
-            || (note.cachedFinalSummary != nil)
-            || !(note.cachedKeywords.isEmpty)
-
+        || !(note.cachedSummaryLines.isEmpty)
+        || (note.cachedFinalSummary != nil)
+        || !(note.cachedKeywords.isEmpty)
+        
         guard hasCache else { return }
-
+        
         // 요약/챕터 상태를 '완료' 기준으로 재구성
         self.summaryStatus = .ready
-
+        
         // 챕터(제목) 및 불릿 설정
         var built: [Chapter] = []
         var bulletsMap: [UUID: [String]] = [:]
@@ -212,7 +212,7 @@ final class CaptionAnalyzer: ObservableObject {
         }
         self.chapters = built
         self.chapterBullets = bulletsMap
-
+        
         // 줄단위 요약 및 최종 요약/키워드
         if !note.cachedSummaryLines.isEmpty {
             self.summaryText = note.cachedSummaryLines
@@ -225,7 +225,7 @@ final class CaptionAnalyzer: ObservableObject {
         self.extractedKeywords = note.cachedKeywords
         self.displayKeywords = Array(note.cachedKeywords.prefix(40))
     }
-
+    
     // MARK: - Summarization Orchestration
     
     /// Public entry to manually trigger summarization of the current transcript.
@@ -526,37 +526,36 @@ final class CaptionAnalyzer: ObservableObject {
         let chapterText = bullets.joined(separator: " ")
         Task {
             let updateDisplayKeywords: ([String]) -> Void = { newKeywords in
-                self.chapterKeywords[id] = newKeywords
-                // Gather keywords for all chapters in order, as they're available
-                let allChapterIDs = self.chapters.map { $0.id }
-                var keywords: [String] = []
-                for cid in allChapterIDs {
-                    if let kws = self.chapterKeywords[cid] {
-                        for kw in kws where !keywords.contains(kw) {
-                            keywords.append(kw)
+                Task { @MainActor in
+                    self.chapterKeywords[id] = newKeywords
+                    let allChapterIDs = self.chapters.map { $0.id }
+                    var keywords: [String] = []
+                    for cid in allChapterIDs {
+                        if let kws = self.chapterKeywords[cid] {
+                            for kw in kws where !keywords.contains(kw) {
+                                keywords.append(kw)
+                            }
                         }
                     }
+                    // 챕터 별로 키워드 누적
+                    self.displayKeywords.append(contentsOf: newKeywords.filter { !self.displayKeywords.contains($0) })
                 }
-                self.displayKeywords = keywords // 개수 제한 제거
             }
             if #available(iOS 26.0, *), let summarizer = self.summarizer {
                 do {
-                    let keywordsText = try await summarizer.summarizeChunk(
+                    let rawKeywords = try await summarizer.summarizeChunk(
                         text: chapterText,
-                        instruction: """
-                        - 주어진 요약본에서 **컴퓨터공학 분야의 맥락에서 사용되는 핵심 용어와 개념**을 모두 추출하세요.
-                        - 단, 단순히 '컴퓨터공학 관련 용어'라는 문구 자체를 결과에 포함하지 마세요.
-                        - 각 단어는 **컴퓨터공학, 소프트웨어, 인공지능, 알고리즘, 시스템, 데이터, 네트워크, 프로그래밍 등** 기술적 주제와 관련된 단어를 중심으로 추출하세요.
-                        - 단어가 다른 분야에서도 쓰이더라도, **컴퓨터공학에서의 의미로 사용되는 경우만** 포함하세요.
-                        - 문맥상 중요하거나 자주 언급되는 단어는 **중복되더라도 모두 포함**하세요. (절대 생략하지 마세요)
-                        - 불필요한 조사, 접속사, 감탄사(예: 그러나, 그리고, 과감하게, 넘어가야 등)는 제외하세요.
-                        - 형용사나 동사보다는 **명사 중심의 핵심 키워드**를 선택하세요.
-                        - 키워드는 **짧고 명료하게** 표현하세요.
-                        - **출력 형식:** 각 키워드를 구분자로 구분하여 출력하세요.  
-                          허용되는 구분자: 세미콜론( ; ), 쉼표( , ), 온점( . ), 슬래시( / ), 줄바꿈(\n), 탭(\t)
-                        - 결과는 **한국어로만** 작성하세요. (영문 단어는 꼭 필요한 기술 용어일 경우만 유지)
-                        """
+                        instruction: "이 텍스트에서 맥락 파악하여 중요한 단어를 모두 나열하세요. 구분자는 쉼표(,)로 합니다."
                     )
+
+                    // 2단계로 분리하여 처리: 기술 관련 키워드만 선별
+                    let refinedKeywordsText = try await summarizer.summarizeChunk(
+                        text: rawKeywords,
+                        instruction: "주어진 단어 목록에서 컴퓨터공학, 인공지능, 데이터, 프로그래밍 등 컴퓨터공학 지식 및 기술 관련 핵심 키워드만 추리세요. 단, '특히', '그리고', '무엇을 통해', '이러한', '이런', '그런' 등 불용어나 문장 연결어, 의미 없는 단어는 모두 제거하세요. 형용사나 동사 대신 명사 중심의 기술 용어만 남기세요."
+                    )
+
+                    // refinedKeywordsText를 실제 파싱 대상으로 사용
+                    let keywordsText = refinedKeywordsText
                     // 온점(.), 쉼표(,), 세미콜론(;), 줄바꿈(\n), 슬래시(/), 탭 등 다양한 구분자 처리
                     let separators = CharacterSet(charactersIn: ".,;／/\n\t ")
                     let keywords = keywordsText
@@ -818,7 +817,7 @@ final class CaptionAnalyzer: ObservableObject {
     @MainActor
     private func persistCacheToBoundNoteIfPossible() {
         guard let note = self.boundNote else { return }
-
+        
         // 챕터 → 캐시 모델로 스냅샷
         var snapshot: [CachedChapter] = []
         for ch in self.chapters {
@@ -827,17 +826,17 @@ final class CaptionAnalyzer: ObservableObject {
                                           bullets: Array(bullets.prefix(4))))
         }
         note.cachedChapters = snapshot
-
+        
         note.cachedSummaryLines = self.summaryText
             .replacingOccurrences(of: "\r\n", with: "\n")
             .replacingOccurrences(of: "\r", with: "\n")
             .components(separatedBy: "\n")
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
-
+        
         note.cachedFinalSummary = self.finalSummary.isEmpty ? nil : self.finalSummary
         note.cachedKeywords = self.extractedKeywords
-
+        
         // ⚠️ 실제 디스크 저장은 View 레벨에서 `try? modelContext.save()` 호출로 마무리해주세요.
     }
     
