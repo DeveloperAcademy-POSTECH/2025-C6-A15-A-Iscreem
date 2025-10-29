@@ -12,10 +12,17 @@ struct SidebarView: View {
     // ✅ 폴더 선택을 부모(HomeView)에 알려줄 콜백
     let onFolderSelected: ((String?) -> Void)?
     @Binding var isHelpPresented: Bool
+    /// 부모(HomeView)에서 전체화면 오버레이로 삭제 확인을 띄우기 위한 콜백
+    let requestDeleteConfirmation: ((Set<PersistentIdentifier>) -> Void)?
 
-    init(onFolderSelected: ((String?) -> Void)? = nil, isHelpPresented: Binding<Bool> = .constant(false)) {
+    init(
+        onFolderSelected: ((String?) -> Void)? = nil,
+        isHelpPresented: Binding<Bool> = .constant(false),
+        requestDeleteConfirmation: ((Set<PersistentIdentifier>) -> Void)? = nil
+    ) {
         self.onFolderSelected = onFolderSelected
         self._isHelpPresented = isHelpPresented
+        self.requestDeleteConfirmation = requestDeleteConfirmation
     }
     
     @StateObject private var viewModel = SidebarViewModel()
@@ -69,21 +76,14 @@ struct SidebarView: View {
                     Button {
                         if isDeletingFolders {
                             if !selectedFolderIDs.isEmpty {
-                                // Delete all selected folders
-                                for id in selectedFolderIDs {
-                                    if let target = folders.first(where: { $0.persistentModelID == id }) {
-                                        modelContext.delete(target)
-                                    }
-                                }
-                                try? modelContext.save()
-                                selectedFolderIDs.removeAll()
-                                isDeletingFolders = false
+                                // 선택이 있으면 부모에 삭제 확인 오버레이 요청
+                                requestDeleteConfirmation?(selectedFolderIDs)
                             } else {
-                                // No selection: exit delete mode
+                                // 선택이 없으면 삭제 모드 종료
                                 isDeletingFolders = false
                             }
                         } else {
-                            // Enter delete selection mode
+                            // 삭제 선택 모드로 진입
                             isDeletingFolders = true
                             selectedFolderIDs.removeAll()
                         }
