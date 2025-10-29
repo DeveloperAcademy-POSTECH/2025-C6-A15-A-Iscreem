@@ -38,6 +38,8 @@ struct HomeView: View {
     }
 
     @State private var isHelpPresented: Bool = false
+    @State private var isFolderDeletePresented: Bool = false
+    @State private var folderIDsPendingDelete = Set<PersistentIdentifier>()
 
     var body: some View {
         NavigationSplitView {
@@ -52,7 +54,12 @@ struct HomeView: View {
                     headerSubtitle = "최근 열어본 항목"
                     selectedFolderName = nil
                 }
-            }, isHelpPresented: $isHelpPresented)
+            }, isHelpPresented: $isHelpPresented, requestDeleteConfirmation: { ids in
+                folderIDsPendingDelete = ids
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isFolderDeletePresented = true
+                }
+            })
             .navigationSplitViewColumnWidth(min: 280, ideal: 320, max: 400)
             .toolbar(.hidden, for: .navigationBar)
         } detail: {
@@ -174,6 +181,31 @@ struct HomeView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .transition(.opacity.combined(with: .scale))
                 }
+            }
+        }
+        .overlay {
+            if isFolderDeletePresented {
+                FolderDeleteView(
+                    onDelete: {
+                        // 실제 삭제 수행
+                        for id in folderIDsPendingDelete {
+                            if let target = folders.first(where: { $0.persistentModelID == id }) {
+                                modelContext.delete(target)
+                            }
+                        }
+                        try? modelContext.save()
+                        folderIDsPendingDelete.removeAll()
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            isFolderDeletePresented = false
+                        }
+                    },
+                    onCancel: {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            isFolderDeletePresented = false
+                        }
+                    }
+                )
+                .transition(.opacity.combined(with: .scale))
             }
         }
         // 노트 생성 시트
