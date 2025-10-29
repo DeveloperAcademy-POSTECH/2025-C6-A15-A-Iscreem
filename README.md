@@ -53,6 +53,27 @@ https://github.com/user-attachments/assets/3f8f7ee3-317a-417a-b368-a337a972d227
 ![SwiftData](https://img.shields.io/badge/SwiftData-Persistence-0C7BDC)
 ![WebKit](https://img.shields.io/badge/WebKit-WKWebView-1F8A70)
 
+
+## 👥 Team
+
+| Member | GitHub |
+|---|---|
+| yulimmmm | [yulimmmm](https://github.com/yulimmmm) |
+| hbeen0129 | [hbeen0129](https://github.com/hbeen0129) |
+| namoomin | [namoomin](https://github.com/namoomin) |
+| Zunhokim | [Zunhokim](https://github.com/Zunhokim) |
+| seungjaeyuu | [seungjaeyuu](https://github.com/seungjaeyuu) |
+| kimminung | [kimminung](https://github.com/kimminung) |
+
+## 🔗 Members (Badges)
+
+[![yulimmmm](https://img.shields.io/badge/GitHub-yulimmmm-181717?logo=github&logoColor=white)](https://github.com/yulimmmm)
+[![hbeen0129](https://img.shields.io/badge/GitHub-hbeen0129-181717?logo=github&logoColor=white)](https://github.com/hbeen0129)
+[![namoomin](https://img.shields.io/badge/GitHub-namoomin-181717?logo=github&logoColor=white)](https://github.com/namoomin)
+[![Zunhokim](https://img.shields.io/badge/GitHub-Zunhokim-181717?logo=github&logoColor=white)](https://github.com/Zunhokim)
+[![seungjaeyuu](https://img.shields.io/badge/GitHub-seungjaeyuu-181717?logo=github&logoColor=white)](https://github.com/seungjaeyuu)
+[![kimminung](https://img.shields.io/badge/GitHub-kimminung-181717?logo=github&logoColor=white)](https://github.com/kimminung)
+
 ## :people_hugging: Authors
 
 @yulimmmm, @hbeen0129, @namoomin, @Zunhokim, @seungjaeyuu, @kimminung
