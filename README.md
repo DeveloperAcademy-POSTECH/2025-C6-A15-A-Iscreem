@@ -2,13 +2,18 @@
 [Logo/Cover Image]
 <img width="4096" height="4096" alt="Main" src="https://github.com/user-attachments/assets/ee94215f-bde7-4403-9682-b74f73522d14" />
 
-[App statement]
+## :[App statement]:
+
 아이패드로 유튜브 강의를 들으며 공부하는 대학생의 몰입이 깨지지 않도록 AI가 요약하고 핵심 키워드를 보여주면서 바로 질문할 수 있는 앱
 
-[App statement][Eng]
+## :[App statement][Eng]:
+
 An app designed for university students studying with YouTube lectures on iPad — it helps maintain focus by using AI to summarize content, highlight key concepts, and enable instant questions without breaking immersion.
 
-### Apple Intelligence (On-Device) Requirements
+
+
+
+### :Apple Intelligence (On-Device) Requirements:
 This app’s AI summarization uses Apple’s on-device foundation model (Apple Intelligence).
 
 - **iPhone:** iPhone 16 lineup, iPhone 15 Pro/Pro Max  
@@ -19,6 +24,9 @@ This app’s AI summarization uses Apple’s on-device foundation model (Apple I
 > On devices that don’t meet these requirements, the app may fall back to server summarization (if configured) or disable summarization.
 
 Refs: Apple Newsroom availability notes.  [oai_citation:5‡Apple](https://www.apple.com/newsroom/2025/06/apple-elevates-the-iphone-experience-with-ios-26/)
+
+
+
 
 ## :다이어그램:
 
@@ -38,9 +46,15 @@ https://github.com/user-attachments/assets/3f8f7ee3-317a-417a-b368-a337a972d227
 
 ## :pushpin: Features
 
-- Feature 1
-- Feature 2
-- Feature 3
+- 영상 강의(유튜브 한정) 노트 저장
+- 폴더별 노트 관리
+- 강의 내용 구간별 요약
+- 구간 요약시 맥락에 맞게 도출되는 주요 키워드
+- 제미나이(이용자 api key 설정 후)AI를 통한 채팅 질문
+- 키워드에 호버하여 빠른 채팅 입력
+- 키워드 입력시 적당한 질문을 생성해주는 질문 생성 기능
+
+
 
 
 ## :sparkles: Skills & Tech Stack
@@ -73,19 +87,12 @@ https://github.com/user-attachments/assets/3f8f7ee3-317a-417a-b368-a337a972d227
 
 | Member | GitHub |
 |---|---|
-| yulimmmm | [yulimmmm](https://github.com/yulimmmm) |
-| hbeen0129 | [hbeen0129](https://github.com/hbeen0129) |
-| namoomin | [namoomin](https://github.com/namoomin) |
-| Zunhokim | [Zunhokim](https://github.com/Zunhokim) |
-| seungjaeyuu | [seungjaeyuu](https://github.com/seungjaeyuu) |
-| kimminung | [kimminung](https://github.com/kimminung) |
+| Skyler | [![yulimmmm](https://img.shields.io/badge/GitHub-yulimmmm-181717?logo=github&logoColor=white)](https://github.com/yulimmmm) |
+| Coulson | [![kimminung](https://img.shields.io/badge/GitHub-kimminung-181717?logo=github&logoColor=white)](https://github.com/kimminung) |
+| Romak | [![Zunhokim](https://img.shields.io/badge/GitHub-Zunhokim-181717?logo=github&logoColor=white)](https://github.com/Zunhokim) |
+| Emma | [![hbeen0129](https://img.shields.io/badge/GitHub-hbeen0129-181717?logo=github&logoColor=white)](https://github.com/hbeen0129) |
+| Eifer | [![seungjaeyuu](https://img.shields.io/badge/GitHub-seungjaeyuu-181717?logo=github&logoColor=white)](https://github.com/seungjaeyuu) |
+| Moomin | [![namoomin](https://img.shields.io/badge/GitHub-namoomin-181717?logo=github&logoColor=white)](https://github.com/namoomin) |
 
-## :🔗 Members (Badges):
 
-[![yulimmmm](https://img.shields.io/badge/GitHub-yulimmmm-181717?logo=github&logoColor=white)](https://github.com/yulimmmm)
-[![hbeen0129](https://img.shields.io/badge/GitHub-hbeen0129-181717?logo=github&logoColor=white)](https://github.com/hbeen0129)
-[![namoomin](https://img.shields.io/badge/GitHub-namoomin-181717?logo=github&logoColor=white)](https://github.com/namoomin)
-[![Zunhokim](https://img.shields.io/badge/GitHub-Zunhokim-181717?logo=github&logoColor=white)](https://github.com/Zunhokim)
-[![seungjaeyuu](https://img.shields.io/badge/GitHub-seungjaeyuu-181717?logo=github&logoColor=white)](https://github.com/seungjaeyuu)
-[![kimminung](https://img.shields.io/badge/GitHub-kimminung-181717?logo=github&logoColor=white)](https://github.com/kimminung)
 
