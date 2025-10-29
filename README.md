@@ -1,10 +1,11 @@
 
 # :iPad: [Project/App Name]
 [Logo/Cover Image]
+<img width="4096" height="4096" alt="Main" src="https://github.com/user-attachments/assets/ee94215f-bde7-4403-9682-b74f73522d14" />
 
 [App statement]
 
-## :fireworks: Screenshots
+## :다이어그램:
 
 Attach photos if you are available
 <img width="1582" height="2271" alt="analyzer_flow" src="https://github.com/user-attachments/assets/238ce3af-27cb-4030-8f53-83b29f9fa35b" />
@@ -54,7 +55,7 @@ https://github.com/user-attachments/assets/3f8f7ee3-317a-417a-b368-a337a972d227
 ![WebKit](https://img.shields.io/badge/WebKit-WKWebView-1F8A70)
 
 
-## 👥 Team
+## :👥 Team:
 
 | Member | GitHub |
 |---|---|
@@ -65,7 +66,7 @@ https://github.com/user-attachments/assets/3f8f7ee3-317a-417a-b368-a337a972d227
 | seungjaeyuu | [seungjaeyuu](https://github.com/seungjaeyuu) |
 | kimminung | [kimminung](https://github.com/kimminung) |
 
-## 🔗 Members (Badges)
+## :🔗 Members (Badges):
 
 [![yulimmmm](https://img.shields.io/badge/GitHub-yulimmmm-181717?logo=github&logoColor=white)](https://github.com/yulimmmm)
 [![hbeen0129](https://img.shields.io/badge/GitHub-hbeen0129-181717?logo=github&logoColor=white)](https://github.com/hbeen0129)
@@ -74,6 +75,3 @@ https://github.com/user-attachments/assets/3f8f7ee3-317a-417a-b368-a337a972d227
 [![seungjaeyuu](https://img.shields.io/badge/GitHub-seungjaeyuu-181717?logo=github&logoColor=white)](https://github.com/seungjaeyuu)
 [![kimminung](https://img.shields.io/badge/GitHub-kimminung-181717?logo=github&logoColor=white)](https://github.com/kimminung)
 
-## :people_hugging: Authors
-
-@yulimmmm, @hbeen0129, @namoomin, @Zunhokim, @seungjaeyuu, @kimminung
