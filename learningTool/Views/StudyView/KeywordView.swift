@@ -19,15 +19,15 @@ struct KeywordView: View {
         if let firstChapterId = analyzer.chapters.first?.id,
            let chapterKeywords = analyzer.chapterKeywords[firstChapterId],
            !chapterKeywords.isEmpty {
-            return Array(chapterKeywords.prefix(10))
+            return chapterKeywords
         }
         // 챕터 키워드가 없으면 누적 키워드 사용
         else if !analyzer.accumulatedKeywords.isEmpty {
-            return Array(analyzer.accumulatedKeywords.prefix(10))
+            return analyzer.accumulatedKeywords
         }
         // 그래도 없으면 최종 요약 기반 키워드
         else {
-            return Array(analyzer.extractedKeywords.prefix(10))
+            return analyzer.extractedKeywords
         }
     }
     var body: some View {
