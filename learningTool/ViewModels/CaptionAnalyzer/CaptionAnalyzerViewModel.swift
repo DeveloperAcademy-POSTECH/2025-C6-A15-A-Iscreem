@@ -10,6 +10,7 @@ import Foundation
 import Combine
 import OSLog
 import SwiftUI
+import SwiftData
 #if canImport(FoundationModels)
 import FoundationModels
 #endif
@@ -17,6 +18,8 @@ import FoundationModels
 final class CaptionAnalyzer: ObservableObject {
     
     private let log = Logger(subsystem: "learningTool", category: "CaptionAnalyzer")
+    // 현재 요약/자막 상태를 연결할 노트(약한 참조)
+    private weak var boundNote: Note?
     private func short(_ s: String, max: Int = 120) -> String { s.count > max ? (String(s.prefix(max)) + "…") : s }
     
     enum VTTStatus: Equatable {
@@ -92,6 +95,8 @@ final class CaptionAnalyzer: ObservableObject {
     private var summarizer: Summarizer?
     private var isFetchingCaptions = false
     private var lastPrefetchKey: String?
+    /// 노트(영상)별 세션 식별자 — 노트 전환 시 새 값으로 교체하여 이전 작업의 잔여 업데이트를 차단
+    private var sessionId = UUID()
     
     init() {
 #if canImport(FoundationModels)
@@ -111,6 +116,116 @@ final class CaptionAnalyzer: ObservableObject {
     }
     
     
+    // MARK: - Reset per new video/note
+    /// 새로운 노트(영상)를 열 때마다 상태를 완전히 초기화합니다.
+    @MainActor
+    func resetForNewVideo() {
+        // 세션 토큰 교체 → 진행 중이던 비동기 작업들이 이후 UI 업데이트를 시도해도 무시됨
+        self.sessionId = UUID()
+        // 자막/VTT 상태 초기화
+        self.vttStatus = .idle
+        self.vttCues = []
+        self.isFetchingCaptions = false
+        self.lastPrefetchKey = nil
+
+        // 요약 관련 상태 초기화
+        self.summaryStatus = .idle
+        self.summaryText = ""
+        self.chapters = []
+        self.chapterTexts = [:]
+        self.chapterBullets = [:]
+        self.chapterKeywords = [:]
+        self.displayKeywords = []
+        self.finalSummary = ""
+        self.isMergingFinal = false
+        self.extractedKeywords = []
+        self.accumulatedKeywords = []
+        self.summaryDebug = SummaryDebug()
+    }
+    
+    // MARK: - Bind & Preload (SwiftData Note)
+    @MainActor
+    func bind(note: Note) {
+        self.boundNote = note
+
+        // 캐시가 비어있지 않으면 즉시 복원해서 2회차부터는 "바로 표시"
+        let hasCache =
+            !(note.cachedSummaryLines.isEmpty) ||
+            (note.cachedFinalSummary?.isEmpty == false) ||
+            !(note.cachedKeywords.isEmpty) ||
+            !(note.cachedChapters.isEmpty)
+
+        if hasCache {
+            // 1) 요약 라인/최종 요약
+            self.summaryText = note.cachedSummaryLines.joined(separator: "\n")
+            self.finalSummary = note.cachedFinalSummary ?? ""
+            // 2) 키워드
+            self.extractedKeywords = note.cachedKeywords
+            self.displayKeywords = Array(note.cachedKeywords.prefix(40))
+            // 3) 챕터 + 불릿
+            var rebuilt: [Chapter] = []
+            var bulletsMap: [UUID:[String]] = [:]
+            for ch in note.cachedChapters {
+                let c = Chapter(start: 0, end: 0, title: ch.title, gist: ch.bullets.joined(separator: " "))
+                rebuilt.append(c)
+                bulletsMap[c.id] = ch.bullets
+            }
+            self.chapters = rebuilt
+            self.chapterBullets = bulletsMap
+            // 4) 상태
+            self.summaryStatus = .ready
+        } else {
+            // 캐시가 없으면 "빈 상태"로 유지 → 자막 준비 후 자동 요약 진행
+            self.summaryText = ""
+            self.finalSummary = ""
+            self.extractedKeywords = []
+            self.displayKeywords = []
+            self.chapters = []
+            self.chapterBullets = [:]
+            self.summaryStatus = .idle
+        }
+    }
+
+    /// 노트에 저장된 캐시(챕터/요약/키워드)가 있으면 UI 상태를 즉시 구성하여 재활용
+    @MainActor
+    func preloadFromNoteIfAvailable(_ note: Note) {
+        let cachedChapters = note.cachedChapters
+        let hasCache = (!cachedChapters.isEmpty)
+            || !(note.cachedSummaryLines.isEmpty)
+            || (note.cachedFinalSummary != nil)
+            || !(note.cachedKeywords.isEmpty)
+
+        guard hasCache else { return }
+
+        // 요약/챕터 상태를 '완료' 기준으로 재구성
+        self.summaryStatus = .ready
+
+        // 챕터(제목) 및 불릿 설정
+        var built: [Chapter] = []
+        var bulletsMap: [UUID: [String]] = [:]
+        for ch in cachedChapters {
+            let c = Chapter(start: 0, end: 0,
+                            title: ch.title.isEmpty ? "제목" : ch.title,
+                            gist: (ch.bullets.first ?? ""))
+            built.append(c)
+            bulletsMap[c.id] = Array(ch.bullets.prefix(4))
+        }
+        self.chapters = built
+        self.chapterBullets = bulletsMap
+
+        // 줄단위 요약 및 최종 요약/키워드
+        if !note.cachedSummaryLines.isEmpty {
+            self.summaryText = note.cachedSummaryLines
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .joined(separator: "\n")
+        }
+        if let fs = note.cachedFinalSummary {
+            self.finalSummary = fs
+        }
+        self.extractedKeywords = note.cachedKeywords
+        self.displayKeywords = Array(note.cachedKeywords.prefix(40))
+    }
+
     // MARK: - Summarization Orchestration
     
     /// Public entry to manually trigger summarization of the current transcript.
@@ -162,20 +277,25 @@ final class CaptionAnalyzer: ObservableObject {
     }
     
     private func summarizeFromCues(_ cues: [VTTCue]) async {
+        let sid = self.sessionId
         let runId = UUID()
         await MainActor.run {
+            // 다른 노트로 이미 전환되었다면 중단
+            guard sid == self.sessionId else { return }
             self.summaryStatus = .summarizing
             self.summaryText = ""
             self.chapters = []
             self.chapterTexts = [:]
             self.summaryDebug = SummaryDebug(runId: runId, processed: 0, total: 0, lastUpdate: Date())
         }
+        // 전환 감지 시 조기 종료
+        if sid != self.sessionId { return }
         let t0 = Date()
         let runTag = runId.uuidString.prefix(8)
         self.log.info("sum[\(runTag)] start; cues=\(cues.count)")
         // 0) 청크 분할 (약 5분 단위)
         let chunks = chunkCues(cues, maxSeconds: 300)
-        
+        if sid != self.sessionId { return }
         // 1) 챕터/원문을 즉시 구성하여 UI에 먼저 표시
         var built: [Chapter] = []
         var bodies: [UUID: String] = [:]
@@ -195,11 +315,12 @@ final class CaptionAnalyzer: ObservableObject {
             }
             self.chapterTexts = bodies
         }
-        
+        if sid != self.sessionId { return }
         // 챕터 본문에서 한 줄 제목 비동기 생성 (UI 비막음)
         func startPerChapterTitleSummaries(using summarizer: Summarizer, runTag: Substring) {
             Task.detached(priority: .utility) { [weak self] in
                 guard let self else { return }
+                let sid = self.sessionId
                 for (idx, ch) in built.enumerated() {
                     if Task.isCancelled { return }
                     let body = chunks[idx].text
@@ -212,16 +333,20 @@ final class CaptionAnalyzer: ObservableObject {
                             instruction: "다음 챕터의 전체 내용을 한국어로 2~3문장으로 요약. 영상의 흐름을 고려해 핵심 포인트를 연결해서 설명. 불릿/머리말/따옴표 금지."
                         )
                         let cleanedGist = gist.replacingOccurrences(of: "\n", with: " ").trimmingCharacters(in: .whitespacesAndNewlines)
-                        await MainActor.run { self.setChapterGist(id: ch.id, gist: cleanedGist) }
-                        
+                        await MainActor.run {
+                            guard sid == self.sessionId else { return }
+                            self.setChapterGist(id: ch.id, gist: cleanedGist)
+                        }
                         // 2) Title: 위 gist를 바탕으로 목차형 한 문장 제목 생성
                         let title = try await summarizer.summarizeChunk(
                             text: cleanedGist,
                             instruction: "위 요약을 바탕으로 이 영상의 목차 항목에 어울리는 한국어 제목 1문장 작성. 20~28자 내외, 핵심 키워드 포함, 군더더기/따옴표/마침표 금지."
                         )
                         let cleanedTitle = title.replacingOccurrences(of: "\n", with: " ").trimmingCharacters(in: .whitespacesAndNewlines)
-                        await MainActor.run { self.setChapterTitle(id: ch.id, title: cleanedTitle) }
-                        
+                        await MainActor.run {
+                            guard sid == self.sessionId else { return }
+                            self.setChapterTitle(id: ch.id, title: cleanedTitle)
+                        }
                         // Bullets: 4개의 핵심 포인트 생성 (불릿 기호 없이 한 문장씩)
                         do {
                             let bulletsRaw = try await summarizer.summarizeChunk(
@@ -236,7 +361,10 @@ final class CaptionAnalyzer: ObservableObject {
                                 .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
                                 .filter { !$0.isEmpty }
                             let top4 = Array(lines.prefix(4))
-                            await MainActor.run { self.setChapterBullets(id: ch.id, bullets: top4) }
+                            await MainActor.run {
+                                guard sid == self.sessionId else { return }
+                                self.setChapterBullets(id: ch.id, bullets: top4)
+                            }
                         } catch {
                             // 실패 시 gist를 문장 단위로 잘라 최대 4개까지 사용 (간단 폴백)
                             let fallback = cleanedGist
@@ -245,9 +373,11 @@ final class CaptionAnalyzer: ObservableObject {
                                 .split(whereSeparator: { ".!?".contains($0) })
                                 .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
                             let top4 = Array(fallback.prefix(4)).filter { !$0.isEmpty }
-                            await MainActor.run { self.setChapterBullets(id: ch.id, bullets: top4) }
+                            await MainActor.run {
+                                guard sid == self.sessionId else { return }
+                                self.setChapterBullets(id: ch.id, bullets: top4)
+                            }
                         }
-                        
                         self.log.info("sum[\(runTag)] chapter gist+title ok for \(idx+1)/\(built.count)")
                     } catch {
                         let ns = error as NSError
@@ -256,7 +386,6 @@ final class CaptionAnalyzer: ObservableObject {
                 }
             }
         }
-        
         // 2) 실제 요약기 확인 (없으면 실패)
         guard let summarizer = self.summarizer else {
             await MainActor.run {
@@ -264,10 +393,8 @@ final class CaptionAnalyzer: ObservableObject {
             }
             return
         }
-        
         startPerChapterTitleSummaries(using: summarizer, runTag: runTag)
-        
-        
+        if sid != self.sessionId { return }
         // 3) 문단 단위(Map) → 통합은 생략하고 누적 표시(줄단위 완성)
         //    - 한 번에 전체 텍스트를 보내지 않아 컨텍스트 초과 방지
         //    - 각 문단은 400~600자 내외로 재조립하여 과도한 길이를 피함
@@ -281,7 +408,6 @@ final class CaptionAnalyzer: ObservableObject {
                     .components(separatedBy: "\n")
                     .map { $0.trimmingCharacters(in: .whitespaces) }
                     .filter { !$0.isEmpty }
-                
                 var acc = ""
                 for line in lines {
                     if acc.isEmpty { acc = line }
@@ -296,16 +422,13 @@ final class CaptionAnalyzer: ObservableObject {
             }
             return paragraphs
         }
-        
         let paragraphs = makeParagraphs(from: chunks, targetChars: 600)
         self.log.info("sum[\(runTag)] paragraphs=\(paragraphs.count)")
         await MainActor.run {
             self.summaryDebug.total = paragraphs.count
             self.summaryDebug.lastUpdate = Date()
         }
-        
         var lastFlush = Date.distantPast
-        
         var linesOut: [String] = []
         for (i, p) in paragraphs.enumerated() {
             if Task.isCancelled { return }
@@ -329,7 +452,6 @@ final class CaptionAnalyzer: ObservableObject {
                 // 실패 시 해당 문단의 첫 줄로 폴백하여 진행 중단 없이 계속
                 linesOut.append("• " + firstLine(trimmed))
             }
-            
             // UI에 간헐적으로 누적 반영 (시간 스로틀: 0.8s)
             let now = Date()
             if now.timeIntervalSince(lastFlush) > 0.8 {
@@ -349,28 +471,36 @@ final class CaptionAnalyzer: ObservableObject {
             self.summaryDebug.lastUpdate = Date()
         }
         // 통합(최종) 요약은 메인 스레드를 막지 않도록 백그라운드에서 수행
-        self.mergeFinalAsync(pieces: linesOut, runTag: runTag, summarizer: summarizer)
+        self.mergeFinalAsync(pieces: linesOut, runTag: runTag, summarizer: summarizer, sessionId: sid)
     }
     
     /// 최종 통합 요약을 백그라운드에서 수행하여 UI 인터랙션을 막지 않도록 함
-    private func mergeFinalAsync(pieces: [String], runTag: Substring, summarizer: Summarizer) {
+    private func mergeFinalAsync(pieces: [String], runTag: Substring, summarizer: Summarizer, sessionId sid: UUID) {
         Task.detached(priority: .utility) { [weak self] in
             guard let self else { return }
+            let sid = sid
             self.log.info("sum[\(runTag)] merge begin; pieces=\(pieces.count)")
-            await MainActor.run { self.isMergingFinal = true }
+            await MainActor.run {
+                guard sid == self.sessionId else { return }
+                self.isMergingFinal = true
+            }
             do {
                 let merged = try await summarizer.mergeSummaries(pieces)
                 await MainActor.run {
+                    guard sid == self.sessionId else { return }
                     self.finalSummary = merged.trimmingCharacters(in: .whitespacesAndNewlines)
                     self.isMergingFinal = false
                     // finalSummary 기반 키워드 추출
                     self.extractedKeywords = self.extractKeywords()
-                }
+                    self.persistCacheToBoundNoteIfPossible()    }
                 self.log.info("sum[\(runTag)] merge done")
             } catch {
                 let ns = error as NSError
                 self.log.error("sum[\(runTag)] merge error: \(ns.localizedDescription, privacy: .public)")
-                await MainActor.run { self.isMergingFinal = false }
+                await MainActor.run {
+                    guard sid == self.sessionId else { return }
+                    self.isMergingFinal = false
+                }
             }
         }
     }
@@ -584,6 +714,7 @@ final class CaptionAnalyzer: ObservableObject {
     
     // MARK: - youtubei (player API) Prefetch
     func prefetchViaYouTubei(videoID: String, apiKey: String, clientName: String, clientVersion: String, sts: Int?) async {
+        let sid = self.sessionId
         let key = "\(videoID)#\(clientName)#\(clientVersion)#\(sts ?? -1)"
         if lastPrefetchKey == key, (vttStatus == .loading || vttStatus == .ready) { return }
         if self.isFetchingCaptions { return }              // 중복 요청 가드
@@ -666,6 +797,7 @@ final class CaptionAnalyzer: ObservableObject {
             
             let cues = try await Self.fetchFromBaseUrl(chosen.baseUrl)
             await MainActor.run {
+                guard sid == self.sessionId else { return }
                 self.log.info("youtubei(success) cues=\(cues.count)")
                 self.vttCues = cues
                 self.vttStatus = cues.isEmpty ? .failed("자막이 비어 있습니다.") : .ready
@@ -682,6 +814,32 @@ final class CaptionAnalyzer: ObservableObject {
     }
     
     // MARK: - Helpers
+    
+    @MainActor
+    private func persistCacheToBoundNoteIfPossible() {
+        guard let note = self.boundNote else { return }
+
+        // 챕터 → 캐시 모델로 스냅샷
+        var snapshot: [CachedChapter] = []
+        for ch in self.chapters {
+            let bullets = self.chapterBullets[ch.id] ?? []
+            snapshot.append(CachedChapter(title: ch.title,
+                                          bullets: Array(bullets.prefix(4))))
+        }
+        note.cachedChapters = snapshot
+
+        note.cachedSummaryLines = self.summaryText
+            .replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\r", with: "\n")
+            .components(separatedBy: "\n")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+
+        note.cachedFinalSummary = self.finalSummary.isEmpty ? nil : self.finalSummary
+        note.cachedKeywords = self.extractedKeywords
+
+        // ⚠️ 실제 디스크 저장은 View 레벨에서 `try? modelContext.save()` 호출로 마무리해주세요.
+    }
     
     private static func parseWebVTT(_ vtt: String) -> [VTTCue] {
         var lines = vtt.replacingOccurrences(of: "\r\n", with: "\n").replacingOccurrences(of: "\r", with: "\n").components(separatedBy: "\n")
@@ -749,6 +907,7 @@ final class CaptionAnalyzer: ObservableObject {
     
     // MARK: - Prefetch via JS-provided captionTracks (signed baseUrl)
     func prefetchFromTracks(_ jsTracks: [[String: Any]]) async {
+        let sid = self.sessionId
         log.info("tracks(begin) rawCount=\(jsTracks.count)")
         // 이미 성공했다면 재시도 안 함
         if case .ready = vttStatus, !vttCues.isEmpty { return }
@@ -783,6 +942,7 @@ final class CaptionAnalyzer: ObservableObject {
         do {
             let cues = try await Self.fetchFromBaseUrl(chosen.baseUrl)
             await MainActor.run {
+                guard sid == self.sessionId else { return }
                 self.log.info("tracks(success) cues=\(cues.count)")
                 self.vttCues = cues
                 self.vttStatus = cues.isEmpty ? .failed("자막이 비어 있습니다.") : .ready

@@ -116,7 +116,11 @@ struct HomeView: View {
                         } else {
                             ForEach(filteredNotes) { note in
                                 NoteComponent(note: note)
-                                    .onTapGesture { onNoteSelected?(note) }
+                                    .onTapGesture {
+                                        // 노트 진입 시 StudyView로 이동 → StudyView/MediaView에서 load(url) 호출 직전에 resetForNewVideo()가 실행되어
+                                        // 이전 노트의 요약/자막 상태가 남지 않도록 함.
+                                        onNoteSelected?(note)
+                                    }
                                     .contextMenu {
                                         Button("이름 변경") {
                                             noteToRename = note
@@ -317,7 +321,11 @@ struct HomeView: View {
             }
         case .note(let note):
             NoteComponent(note: note)
-                .onTapGesture { onNoteSelected?(note) }
+                .onTapGesture {
+                    // 노트 진입 시 StudyView로 이동 → StudyView/MediaView에서 load(url) 호출 직전에 resetForNewVideo()가 실행되어
+                    // 이전 노트의 요약/자막 상태가 남지 않도록 함.
+                    onNoteSelected?(note)
+                }
                 .contextMenu {
                     Button("이름 변경") {
                         noteToRename = note
