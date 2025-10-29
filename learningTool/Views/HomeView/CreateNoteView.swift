@@ -60,7 +60,6 @@ struct CreateNoteView: View {
             .disabled(!isFormValid)
             .padding(.bottom, 50)
         }
-        .keyboardOverlay()
     }
 
     private var isFormValid: Bool {
