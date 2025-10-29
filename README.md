@@ -1,4 +1,4 @@
-[README.md](https://github.com/user-attachments/files/23179034/README.md)
+
 # :iPad: [Project/App Name]
 [Logo/Cover Image]
 
@@ -7,6 +7,8 @@
 ## :fireworks: Screenshots
 
 Attach photos if you are available
+<img width="1582" height="2271" alt="analyzer_flow" src="https://github.com/user-attachments/assets/238ce3af-27cb-4030-8f53-83b29f9fa35b" />
+<img width="2016" height="1422" alt="async_sequence" src="https://github.com/user-attachments/assets/99cd58ab-af15-43d5-b17a-64f5c8b1f6a7" />
 
 ## :framed_picture: Demo (optional)
 
@@ -33,6 +35,23 @@ https://github.com/user-attachments/assets/3f8f7ee3-317a-417a-b368-a337a972d227
 위와 같이 배지를 사용하여 더 풍성한 Readme를 만들 수 있습니다.
 [참조](https://shields.io/)
 
+
+## :사용 기술:
+
+	•	언어/런타임: Swift 5.x, Swift Concurrency(async/await, Task, @MainActor)
+	•	UI: SwiftUI (NavigationSplitView, UIViewRepresentable로 WKWebView 브리지)
+	•	데이터: SwiftData (@Model, ModelContext, 영속화/캐시)
+	•	웹: WebKit (WKWebView, WKUserScript, WKScriptMessageHandler로 JS ↔︎ 네이티브 브릿지)
+	•	요약/지능(옵션): Foundation Models 기반 요약(SystemLanguageModel 사용 가능 환경에서), 증분 요약 + 최종 병합
+	•	기반 프레임워크: Foundation(네트워킹 등), OSLog(로깅)
+	•	패키징: Swift Package Manager
+
+![Platform](https://img.shields.io/badge/Platform-iOS%20%7C%20iPadOS-000000?logo=apple&logoColor=white)
+![Target](https://img.shields.io/badge/Target-iOS%2018%2B-000000)
+![Swift](https://img.shields.io/badge/Swift-5.x-F05138?logo=swift&logoColor=white)
+![SwiftUI](https://img.shields.io/badge/SwiftUI-UI-0C7BDC)
+![SwiftData](https://img.shields.io/badge/SwiftData-Persistence-0C7BDC)
+![WebKit](https://img.shields.io/badge/WebKit-WKWebView-1F8A70)
 
 ## :people_hugging: Authors
 
