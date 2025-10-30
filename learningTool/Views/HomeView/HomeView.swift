@@ -13,6 +13,8 @@ struct HomeView: View {
     @State private var selectedFolderName: String? = nil
     @StateObject private var viewModel = HomeViewModel()
     @State private var showCreateNote = false
+    @State private var youtubeLink = ""
+    @State private var noteTitle = ""
     
     @Environment(\.modelContext) private var modelContext
     @Query(sort: [SortDescriptor(\Note.lastRead, order: .reverse)]) private var notes: [Note]
@@ -24,6 +26,9 @@ struct HomeView: View {
     
     @State private var noteToRename: Note?
     @State private var renameText: String = ""
+    
+    @State private var isKeyboardVisible: Bool = false
+    @State private var keyboardHeight: CGFloat = 0
     
     enum NoteSortOption: String, CaseIterable {
         case dateDescending = "최신순"
@@ -284,6 +289,22 @@ struct HomeView: View {
                 }
             }
         }
+        .overlay(alignment: .bottomTrailing) {
+            Button {
+                viewModel.addButtonTapped()
+                withAnimation(.easeInOut(duration: 0.2)) { showCreateNote = true }
+            } label: {
+                Image(systemName: "plus")
+                    .font(.system(size: 22))
+                    .foregroundStyle(.white)
+                    .frame(width: 60, height: 60)
+                    .background(Color.secondColor)
+                    .clipShape(Circle())
+                    .shadow(color: Color.secondColor.opacity(0.4), radius: 8, x: 0, y: 4)
+            }
+            .padding(32)
+            .ignoresSafeArea(.keyboard, edges: .bottom)
+        }
         .navigationSplitViewStyle(.balanced)
         .keyboardOverlay()
         .overlay {
@@ -371,28 +392,54 @@ struct HomeView: View {
         // 노트 생성 시트
         .overlay {
             if showCreateNote {
-                GeometryReader { geometry in
-                    ZStack {
-                        Color.black.opacity(0.5)
-                            .ignoresSafeArea()
-                            .onTapGesture {
-                                withAnimation(.easeInOut(duration: 0.2)) { showCreateNote = false }
-                            }
-                        
-                        CreateNoteView { note in
-                            onNoteCreated?(note)
+                ZStack {
+                    Color.black.opacity(0.5)
+                        .ignoresSafeArea()
+                        .onTapGesture {
                             withAnimation(.easeInOut(duration: 0.2)) { showCreateNote = false }
                         }
-                        .frame(
-                            width: min(500, geometry.size.width * 0.6),
-                            height: min(380, geometry.size.height * 0.5)
-                        )
-                        .background(Color.background1)
-                        .cornerRadius(20)
-                        .shadow(color: Color.black.opacity(0.3), radius: 20, x: 0, y: 10)
-                        .keyboardShift(10)
+
+                    VStack(alignment: .trailing, spacing: 20) {
+                        CreateNoteView(youtubeLink: $youtubeLink, noteTitle: $noteTitle)
+
+                        // 노트 생성 버튼
+                        Button(action: {
+                             createNoteTapped()
+                        }) {
+                           HStack(spacing: 6) {
+                               Image(systemName: "arrow.right")
+                                   .font(.system(size: 14, weight: .semibold))
+                               Text("노트 생성")
+                                   .font(.system(size: 15, weight: .semibold))
+                           }
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 28)
+                            .padding(.vertical, 12)
+                            .background(Color.secondColor)
+                            .cornerRadius(20)
+                        }
+                       .disabled(!isFormValid)
                     }
+                    // ⬇️ 기본은 화면 중앙에, 키보드가 올라오면 자동으로 위로 밀려 올라가도록 처리
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: isKeyboardVisible ? .bottom : .center)
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, isKeyboardVisible ? (keyboardHeight + 24) : 0)
                     .transition(.opacity.animation(.easeInOut(duration: 0.2)))
+                    // react to keyboard show/hide
+                    .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { note in
+                        if let rect = note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
+                            withAnimation(.easeInOut(duration: 0.25)) {
+                                keyboardHeight = rect.height
+                                isKeyboardVisible = true
+                            }
+                        }
+                    }
+                    .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+                        withAnimation(.easeInOut(duration: 0.25)) {
+                            isKeyboardVisible = false
+                            keyboardHeight = 0
+                        }
+                    }
                 }
             }
         }
@@ -436,6 +483,26 @@ struct HomeView: View {
             return filteredNotes.isEmpty
         }
     }
+    
+    private var isFormValid: Bool {
+            !youtubeLink.isEmpty && !noteTitle.isEmpty
+        }
+
+        private func createNoteTapped() {
+            let newNote = Note(
+                title: noteTitle,
+                lastRead: Date(),
+                thumbnailURL: youtubeLink
+            )
+            modelContext.insert(newNote)
+            onNoteCreated?(newNote)
+
+            // reset
+            youtubeLink = ""
+            noteTitle = ""
+
+            withAnimation(.easeInOut(duration: 0.2)) { showCreateNote = false }
+        }
     
     private var filteredNotes: [Note] {
         // 1) 폴더 선택 필터
