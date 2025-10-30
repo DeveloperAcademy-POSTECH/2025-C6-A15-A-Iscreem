@@ -318,8 +318,18 @@ struct HomeView: View {
                         ResetConfirmAlertView(
                             isPresented: $showResetConfirm,
                             onConfirm: {
-                                // TODO: 실제 초기화 로직 연동 예정 — 현재는 닫기만 수행
-                                withAnimation(.easeInOut(duration: 0.2)) { showResetConfirm = false }
+                                // Delete all notes stored in SwiftData
+                                for note in notes {
+                                    modelContext.delete(note)
+                                }
+                                do {
+                                    try modelContext.save()
+                                } catch {
+                                    print("⚠️ Failed to delete all notes: \(error)")
+                                }
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    showResetConfirm = false
+                                }
                             }
                         )
                         .frame(
