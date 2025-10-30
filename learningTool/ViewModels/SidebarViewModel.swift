@@ -57,7 +57,7 @@ class SidebarViewModel: ObservableObject {
     }
     
     func settingsTapped() {
-        print("Settings tapped")
+        NotificationCenter.default.post(name: .showSettings, object: nil)
     }
     
     func trashTapped() {
