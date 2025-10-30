@@ -48,12 +48,14 @@ struct HomeView: View {
     }
 
     @State private var isHelpPresented: Bool = false
+    @State private var isShowingSettings: Bool = false
     @State private var isFolderDeletePresented: Bool = false
     @State private var folderIDsPendingDelete = Set<PersistentIdentifier>()
 
     var body: some View {
         NavigationSplitView {
             SidebarView(onFolderSelected: { name in
+                isShowingSettings = false
                 if name == "__ALL__" {
                     headerSubtitle = "전체 보기"
                     selectedFolderName = "__ALL__"
@@ -73,105 +75,106 @@ struct HomeView: View {
             .navigationSplitViewColumnWidth(min: 280, ideal: 320, max: 400)
             .toolbar(.hidden, for: .navigationBar)
         } detail: {
-            VStack(spacing: 0) {
-                // 헤더
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("{$app_name}")
-                            .font(.system(size: 28, weight: .semibold))
-                            .foregroundStyle(Color.text1)
-                        
-                        Text(headerSubtitle)
-                            .font(.system(size: 22, weight: .medium))
-                            .foregroundStyle(Color.text2)
-                    }
-                    
-                    Spacer()
-                    
-                    // 검색 + 뷰모드 버튼들
-                    HStack(spacing: 12) {
-                        HStack {
-                            Image(systemName: "magnifyingglass")
-                                .foregroundStyle(Color.text3)
-                            TextField("노트 검색", text: $viewModel.searchText, axis: .horizontal)
-                                .font(.system(size: 16))
-                                .lineLimit(1)
-                        }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .frame(minWidth: 220, maxWidth: 320)
-                        .background(Color.background2)
-                        .cornerRadius(8)
-
-
-                        Button {
-                            showNoteSortMenu.toggle()
-                        } label: {
-                            Image(systemName: "line.3.horizontal")
-                                .font(.system(size: 16, weight: .semibold))
+            ZStack {
+                VStack(spacing: 0) {
+                    // 헤더
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("{$app_name}")
+                                .font(.system(size: 28, weight: .semibold))
+                                .foregroundStyle(Color.text1)
+                            
+                            Text(headerSubtitle)
+                                .font(.system(size: 22, weight: .medium))
                                 .foregroundStyle(Color.text2)
-                                .frame(width: 36, height: 36)
-                                .background(Color.background2)
-                                .clipShape(Circle())
-                                .overlay(Circle().stroke(Color.borderColor, lineWidth: 1))
                         }
-                        .buttonStyle(.plain)
-                        .popover(isPresented: $showNoteSortMenu, arrowEdge: .top) {
-                            VStack(spacing: 0) {
-                                ForEach(NoteSortOption.allCases, id: \.self) { option in
-                                    Button {
-                                        noteSort = option
-                                        showNoteSortMenu = false
-                                    } label: {
-                                        HStack(spacing: 10) {
-                                            if noteSort == option {
-                                                Image(systemName: "checkmark")
-                                                    .font(.system(size: 12, weight: .bold))
-                                            } else {
-                                                Color.clear.frame(width: 12, height: 12)
+                        
+                        Spacer()
+                        
+                        // 검색 + 뷰모드 버튼들
+                        HStack(spacing: 12) {
+                            HStack {
+                                Image(systemName: "magnifyingglass")
+                                    .foregroundStyle(Color.text3)
+                                TextField("노트 검색", text: $viewModel.searchText, axis: .horizontal)
+                                    .font(.system(size: 16))
+                                    .lineLimit(1)
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .frame(minWidth: 220, maxWidth: 320)
+                            .background(Color.background2)
+                            .cornerRadius(8)
+                            
+                            
+                            Button {
+                                showNoteSortMenu.toggle()
+                            } label: {
+                                Image(systemName: "line.3.horizontal")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundStyle(Color.text2)
+                                    .frame(width: 36, height: 36)
+                                    .background(Color.background2)
+                                    .clipShape(Circle())
+                                    .overlay(Circle().stroke(Color.borderColor, lineWidth: 1))
+                            }
+                            .buttonStyle(.plain)
+                            .popover(isPresented: $showNoteSortMenu, arrowEdge: .top) {
+                                VStack(spacing: 0) {
+                                    ForEach(NoteSortOption.allCases, id: \.self) { option in
+                                        Button {
+                                            noteSort = option
+                                            showNoteSortMenu = false
+                                        } label: {
+                                            HStack(spacing: 10) {
+                                                if noteSort == option {
+                                                    Image(systemName: "checkmark")
+                                                        .font(.system(size: 12, weight: .bold))
+                                                } else {
+                                                    Color.clear.frame(width: 12, height: 12)
+                                                }
+                                                Text(option.rawValue)
+                                                    .font(.system(size: 14))
+                                                Spacer()
                                             }
-                                            Text(option.rawValue)
-                                                .font(.system(size: 14))
-                                            Spacer()
+                                            .padding(.horizontal, 14)
+                                            .padding(.vertical, 10)
+                                            .contentShape(Rectangle())
                                         }
-                                        .padding(.horizontal, 14)
-                                        .padding(.vertical, 10)
-                                        .contentShape(Rectangle())
-                                    }
-                                    .buttonStyle(.plain)
-
-                                    if option != NoteSortOption.allCases.last {
-                                        Divider().background(Color.borderColor)
+                                        .buttonStyle(.plain)
+                                        
+                                        if option != NoteSortOption.allCases.last {
+                                            Divider().background(Color.borderColor)
+                                        }
                                     }
                                 }
+                                .frame(width: 180)
+                                .background(Color.background1)
+                                .cornerRadius(14)
+                                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.borderColor, lineWidth: 1))
                             }
-                            .frame(width: 180)
-                            .background(Color.background1)
-                            .cornerRadius(14)
-                            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.borderColor, lineWidth: 1))
-                        }
-                        
-                        
-                        // ▼ 토글 버튼 (오른쪽)
-                        ViewModeToggle(selection: $viewModel.selectedViewMode) { mode in
-                            viewModel.viewModeButtonTapped(mode)
-                        }
-                        .frame(width: 116, height: 36)
-                    }
-                }
-                .padding()
-                
-                
-                Divider().background(Color.borderColor)
-                
-                
-                // 노트 그리드
-                ScrollView {
-                    if viewModel.selectedViewMode == .list {// ✅ 리스트 모드 (테이블 형태)
-                        VStack(spacing: 0) {
-                            listHeaderRow() // 헤더
-                            Divider().background(Color.borderColor)
                             
+                            
+                            // ▼ 토글 버튼 (오른쪽)
+                            ViewModeToggle(selection: $viewModel.selectedViewMode) { mode in
+                                viewModel.viewModeButtonTapped(mode)
+                            }
+                            .frame(width: 116, height: 36)
+                        }
+                    }
+                    .padding()
+                    
+                    
+                    Divider().background(Color.borderColor)
+                    
+                    
+                    // 노트 그리드
+                    ScrollView {
+                        if viewModel.selectedViewMode == .list {// ✅ 리스트 모드 (테이블 형태)
+                            VStack(spacing: 0) {
+                                listHeaderRow() // 헤더
+                                Divider().background(Color.borderColor)
+                                
                                 LazyVStack(spacing: 8) {
                                     if isAllView {
                                         let items = searchQuery.isEmpty ? allItems : allItemsFiltered
@@ -190,87 +193,93 @@ struct HomeView: View {
                                 .padding(.top, 8)
                                 .padding(.bottom, 4)
                             }
-                        
-                    } else {
-                        // ✅ 기존 그리드 모드 (네 코드 그대로)
-                        LazyVGrid(columns: columns, spacing: 16) {
-                            if isAllView {
-                                let items = searchQuery.isEmpty ? allItems : allItemsFiltered
-                                ForEach(items.indices, id: \.self) { idx in
-                                    homeItemView(items[idx])     // 기존 타일 UI
-                                }
-                            } else {
-                                ForEach(filteredNotes) { note in
-                                    NoteComponent(note: note)
-                                        .onTapGesture { onNoteSelected?(note) }
-                                        .contextMenu {
-                                            Button("이름 변경") {
-                                                noteToRename = note
-                                                renameText = note.title
+                            
+                        } else {
+                            // ✅ 기존 그리드 모드 (네 코드 그대로)
+                            LazyVGrid(columns: columns, spacing: 16) {
+                                if isAllView {
+                                    let items = searchQuery.isEmpty ? allItems : allItemsFiltered
+                                    ForEach(items.indices, id: \.self) { idx in
+                                        homeItemView(items[idx])     // 기존 타일 UI
+                                    }
+                                } else {
+                                    ForEach(filteredNotes) { note in
+                                        NoteComponent(note: note)
+                                            .onTapGesture { onNoteSelected?(note) }
+                                            .contextMenu {
+                                                Button("이름 변경") {
+                                                    noteToRename = note
+                                                    renameText = note.title
+                                                }
+                                                Button("삭제", role: .destructive) {
+                                                    modelContext.delete(note)
+                                                    try? modelContext.save()
+                                                }
                                             }
-                                            Button("삭제", role: .destructive) {
-                                                modelContext.delete(note)
-                                                try? modelContext.save()
-                                            }
-                                        }
+                                    }
                                 }
                             }
+                            .padding()
                         }
-                        .padding()
                     }
-                }
-                .overlay {
-                    // 노트가 없을 때 기본 텍스트 표시
-                    if shouldShowEmptyState {
-                        VStack(spacing: 4) {
-                            Text("아직은 노트가 없어요!")
-                                .font(.system(size: 16, weight: .regular))
-                                .foregroundStyle(Color.text3)
-                            
-                            Text("하단 추가 버튼을 눌러서 첫 학습을 시작해 보세요!")
-                                .font(.system(size: 16, weight: .regular))
-                                .foregroundStyle(Color.text3)
-                            
-                            Spacer()
-                                .frame(height: 12)
-                            
-                            Text("사용법을 알고 싶으신가요?")
-                                .font(.system(size: 16, weight: .regular))
-                                .foregroundStyle(Color.text3)
-                            
-                            HStack(spacing: 4) {
-                                Text("좌측 하단의")
+                    .overlay {
+                        // 노트가 없을 때 기본 텍스트 표시
+                        if shouldShowEmptyState {
+                            VStack(spacing: 4) {
+                                Text("아직은 노트가 없어요!")
                                     .font(.system(size: 16, weight: .regular))
                                     .foregroundStyle(Color.text3)
                                 
-                                Image(systemName: "questionmark.circle.fill")
-                                    .font(.system(size: 16))
-                                    .foregroundStyle(Color.text3)
-                                
-                                Text("도움말 버튼을 클릭해 보세요!")
+                                Text("하단 추가 버튼을 눌러서 첫 학습을 시작해 보세요!")
                                     .font(.system(size: 16, weight: .regular))
                                     .foregroundStyle(Color.text3)
+                                
+                                Spacer()
+                                    .frame(height: 12)
+                                
+                                Text("사용법을 알고 싶으신가요?")
+                                    .font(.system(size: 16, weight: .regular))
+                                    .foregroundStyle(Color.text3)
+                                
+                                HStack(spacing: 4) {
+                                    Text("좌측 하단의")
+                                        .font(.system(size: 16, weight: .regular))
+                                        .foregroundStyle(Color.text3)
+                                    
+                                    Image(systemName: "questionmark.circle.fill")
+                                        .font(.system(size: 16))
+                                        .foregroundStyle(Color.text3)
+                                    
+                                    Text("도움말 버튼을 클릭해 보세요!")
+                                        .font(.system(size: 16, weight: .regular))
+                                        .foregroundStyle(Color.text3)
+                                }
                             }
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .offset(y: -50)
                         }
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .offset(y: -50)
+                    }
+                    .overlay(alignment: .bottomTrailing) {
+                        Button {
+                            viewModel.addButtonTapped()
+                            withAnimation(.easeInOut(duration: 0.2)) { showCreateNote = true }
+                        } label: {
+                            Image(systemName: "plus")
+                                .font(.system(size: 22))
+                                .foregroundStyle(.white)
+                                .frame(width: 60, height: 60)
+                                .background(Color.secondColor)
+                                .clipShape(Circle())
+                                .shadow(color: Color.secondColor.opacity(0.4), radius: 8, x: 0, y: 4)
+                        }
+                        .padding(32)
                     }
                 }
-                .overlay(alignment: .bottomTrailing) {
-                    Button {
-                        viewModel.addButtonTapped()
-                        withAnimation(.easeInOut(duration: 0.2)) { showCreateNote = true }
-                    } label: {
-                        Image(systemName: "plus")
-                            .font(.system(size: 22))
-                            .foregroundStyle(.white)
-                            .frame(width: 60, height: 60)
-                            .background(Color.secondColor)
-                            .clipShape(Circle())
-                            .shadow(color: Color.secondColor.opacity(0.4), radius: 8, x: 0, y: 4)
-                    }
-                    .padding(32)
+                if isShowingSettings {
+                    SettingsDetailView()
+                        .transition(.opacity)
+                        .background(Color(.systemBackground))
                 }
             }
         }
@@ -369,6 +378,11 @@ struct HomeView: View {
             }
             .padding()
             .frame(minWidth: 320)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .showSettings)) { _ in
+            withAnimation(.easeInOut(duration: 0.2)) {
+                isShowingSettings = true
+            }
         }
     }
     
@@ -700,10 +714,6 @@ struct HomeView: View {
     }
 }
 
-#Preview(traits: .landscapeLeft) {
-    HomeView()
-}
-
 // MARK: - Korean-aware fuzzy search (Hangul Jamo subsequence)
 private func matches(_ text: String, query: String) -> Bool {
     let t = text.lowercased()
@@ -864,4 +874,8 @@ private func relativeDate(_ date: Date) -> String {
     let f = RelativeDateTimeFormatter()
     f.unitsStyle = .full
     return f.localizedString(for: date, relativeTo: Date())
+}
+
+extension Notification.Name {
+    static let showSettings = Notification.Name("ShowSettings")
 }
