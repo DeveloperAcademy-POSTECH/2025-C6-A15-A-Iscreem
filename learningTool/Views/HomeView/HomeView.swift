@@ -25,16 +25,6 @@ struct HomeView: View {
     @State private var noteToRename: Note?
     @State private var renameText: String = ""
     
-    enum NoteSortOption: String, CaseIterable {
-        case dateDescending = "최신순"
-        case dateAscending = "오래된순"
-        case nameAscending = "제목 A→Z"
-        case nameDescending = "제목 Z→A"
-    }
-
-    @State private var noteSort: NoteSortOption = .dateDescending
-    @State private var showNoteSortMenu = false
-    
     // 적응형 그리드
     private let columns = [GridItem(.adaptive(minimum: 200, maximum: 250), spacing: 16)]
     
@@ -91,72 +81,26 @@ struct HomeView: View {
                     // 검색 + 뷰모드 버튼들
                     HStack(spacing: 12) {
                         HStack {
-                            Image(systemName: "magnifyingglass")
-                                .foregroundStyle(Color.text3)
+                            Image(systemName: "magnifyingglass").foregroundStyle(Color.text3)
                             TextField("노트 검색", text: $viewModel.searchText, axis: .horizontal)
                                 .font(.system(size: 16))
                                 .lineLimit(1)
                         }
                         .padding(.horizontal, 12)
                         .padding(.vertical, 8)
-                        .frame(minWidth: 220, maxWidth: 320)
+                        .frame(minWidth: 200, maxWidth: 300)
                         .background(Color.background2)
                         .cornerRadius(8)
-
-
-                        Button {
-                            showNoteSortMenu.toggle()
-                        } label: {
-                            Image(systemName: "line.3.horizontal")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundStyle(Color.text2)
-                                .frame(width: 36, height: 36)
-                                .background(Color.background2)
-                                .clipShape(Circle())
-                                .overlay(Circle().stroke(Color.borderColor, lineWidth: 1))
-                        }
-                        .buttonStyle(.plain)
-                        .popover(isPresented: $showNoteSortMenu, arrowEdge: .top) {
-                            VStack(spacing: 0) {
-                                ForEach(NoteSortOption.allCases, id: \.self) { option in
-                                    Button {
-                                        noteSort = option
-                                        showNoteSortMenu = false
-                                    } label: {
-                                        HStack(spacing: 10) {
-                                            if noteSort == option {
-                                                Image(systemName: "checkmark")
-                                                    .font(.system(size: 12, weight: .bold))
-                                            } else {
-                                                Color.clear.frame(width: 12, height: 12)
-                                            }
-                                            Text(option.rawValue)
-                                                .font(.system(size: 14))
-                                            Spacer()
-                                        }
-                                        .padding(.horizontal, 14)
-                                        .padding(.vertical, 10)
-                                        .contentShape(Rectangle())
-                                    }
-                                    .buttonStyle(.plain)
-
-                                    if option != NoteSortOption.allCases.last {
-                                        Divider().background(Color.borderColor)
-                                    }
-                                }
-                            }
-                            .frame(width: 180)
-                            .background(Color.background1)
-                            .cornerRadius(14)
-                            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.borderColor, lineWidth: 1))
-                        }
                         
-                        
-                        // ▼ 토글 버튼 (오른쪽)
-                        ViewModeToggle(selection: $viewModel.selectedViewMode) { mode in
-                            viewModel.viewModeButtonTapped(mode)
+                        Button(action: { viewModel.viewModeButtonTapped(.compact) }) {
+                            Image(systemName: "line.3.horizontal").foregroundStyle(Color.text3)
                         }
-                        .frame(width: 116, height: 36)
+                        Button(action: { viewModel.viewModeButtonTapped(.grid) }) {
+                            Image(systemName: "square.grid.2x2").foregroundStyle(Color.text3)
+                        }
+                        Button(action: { viewModel.viewModeButtonTapped(.list) }) {
+                            Image(systemName: "list.bullet").foregroundStyle(Color.text3)
+                        }
                     }
                 }
                 .padding()
@@ -167,57 +111,37 @@ struct HomeView: View {
                 
                 // 노트 그리드
                 ScrollView {
-                    if viewModel.selectedViewMode == .list {// ✅ 리스트 모드 (테이블 형태)
-                        VStack(spacing: 0) {
-                            listHeaderRow() // 헤더
-                            Divider().background(Color.borderColor)
+                    LazyVGrid(columns: columns, spacing: 16) {
+                        if isAllView {
+                            let items = searchQuery.isEmpty ? allItems : allItemsFiltered
                             
-                                LazyVStack(spacing: 8) {
-                                    if isAllView {
-                                        let items = searchQuery.isEmpty ? allItems : allItemsFiltered
-                                        ForEach(items.indices, id: \.self) { idx in
-                                            homeItemRow(items[idx]) // 폴더/노트 한 줄씩
-                                            Divider().background(Color.borderColor.opacity(0.6))
+                            ForEach(items.indices, id: \.self) { idx in
+                                let item = items[idx]
+                                homeItemView(item)
+                                
+                            }
+                        } else {
+                            ForEach(filteredNotes) { note in
+                                NoteComponent(note: note)
+                                    .onTapGesture {
+                                        // 노트 진입 시 StudyView로 이동 → StudyView/MediaView에서 load(url) 호출 직전에 resetForNewVideo()가 실행되어
+                                        // 이전 노트의 요약/자막 상태가 남지 않도록 함.
+                                        onNoteSelected?(note)
+                                    }
+                                    .contextMenu {
+                                        Button("이름 변경") {
+                                            noteToRename = note
+                                            renameText = note.title
                                         }
-                                    } else {
-                                        ForEach(filteredNotes) { note in
-                                            noteRow(note) // 노트 한 줄
-                                            Divider().background(Color.borderColor.opacity(0.6))
+                                        Button("삭제", role: .destructive) {
+                                            modelContext.delete(note)
+                                            try? modelContext.save()
                                         }
                                     }
-                                }
-                                .padding(.horizontal, 16)
-                                .padding(.top, 8)
-                                .padding(.bottom, 4)
-                            }
-                        
-                    } else {
-                        // ✅ 기존 그리드 모드 (네 코드 그대로)
-                        LazyVGrid(columns: columns, spacing: 16) {
-                            if isAllView {
-                                let items = searchQuery.isEmpty ? allItems : allItemsFiltered
-                                ForEach(items.indices, id: \.self) { idx in
-                                    homeItemView(items[idx])     // 기존 타일 UI
-                                }
-                            } else {
-                                ForEach(filteredNotes) { note in
-                                    NoteComponent(note: note)
-                                        .onTapGesture { onNoteSelected?(note) }
-                                        .contextMenu {
-                                            Button("이름 변경") {
-                                                noteToRename = note
-                                                renameText = note.title
-                                            }
-                                            Button("삭제", role: .destructive) {
-                                                modelContext.delete(note)
-                                                try? modelContext.save()
-                                            }
-                                        }
-                                }
                             }
                         }
-                        .padding()
                     }
+                    .padding()
                 }
                 .overlay {
                     // 노트가 없을 때 기본 텍스트 표시
@@ -396,9 +320,8 @@ struct HomeView: View {
         }
         // 2) 검색어 필터 (노트 제목만)
         let q = searchQuery
-        let filtered = q.isEmpty ? base : base.filter { matches($0.title, query: q) }
-        // 3) 정렬 적용
-        return sortNotes(filtered, by: noteSort)
+        guard !q.isEmpty else { return base }
+        return base.filter { matches($0.title, query: q) }
     }
     
     
@@ -493,209 +416,6 @@ struct HomeView: View {
                         try? modelContext.save()
                     }
                 }
-        }
-    }
-
-    // MARK: - List Thumbnail Helpers
-    @ViewBuilder
-    private func thumbnailView(for note: Note) -> some View {
-        if let url = thumbnailURL(for: note) {
-            AsyncImage(url: url) { phase in
-                switch phase {
-                case .success(let image):
-                    image
-                        .resizable()
-                        .scaledToFill()
-                case .empty, .failure(_):
-                    placeholderThumbnail
-                @unknown default:
-                    placeholderThumbnail
-                }
-            }
-            .clipped()
-            .cornerRadius(8)
-            .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(Color.borderColor, lineWidth: 1)
-            )
-        } else {
-            placeholderThumbnail
-        }
-    }
-    
-    @ViewBuilder
-    private func listHeaderRow() -> some View {
-        HStack {
-            Text("제목")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Color.text3)
-                .frame(minWidth: 260, maxWidth: .infinity, alignment: .leading)
-
-            Text("강의 길이")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Color.text3)
-                .frame(width: 72, alignment: .trailing)
-
-            Text("수강률")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Color.text3)
-                .frame(width: 72, alignment: .trailing)
-
-            Text("최근 학습 일시")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Color.text3)
-                .frame(width: 110, alignment: .trailing)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
-        .background(Color.background1)
-    }
-
-    private var placeholderThumbnail: some View {
-        ZStack {
-            Rectangle()
-                .fill(Color.background2)
-                .cornerRadius(8)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(Color.borderColor, lineWidth: 1)
-                )
-            Image(systemName: "play.rectangle.fill")
-                .foregroundStyle(Color.text3)
-        }
-    }
-
-    /// Try to resolve a thumbnail URL for a note:
-    /// 1) If the model has `thumbnailURL`/`thumbnailUrl` (String), use it directly.
-    /// 2) Else, try to find a YouTube-like link property (`youtubeURL`, `videoURL`, `url`, `link`, ...),
-    ///    then generate `https://img.youtube.com/vi/<id>/hqdefault.jpg` using `YouTubeThumbnail.thumbnailURL(from:)`.
-    private func thumbnailURL(for note: Note) -> URL? {
-        let mirror = Mirror(reflecting: note)
-        var thumbString: String?
-        var linkString: String?
-        var youtubeId: String?
-
-        for child in mirror.children {
-            guard let label = child.label else { continue }
-
-            // 직접 썸네일 URL을 저장하는 경우
-            if thumbString == nil,
-               (label == "thumbnailURL" || label == "thumbnailUrl"),
-               let s = child.value as? String, !s.isEmpty {
-                thumbString = s
-            }
-
-            // 임의의 문자열 필드에 유튜브 링크가 들어있는 경우 (heurstics)
-            if linkString == nil,
-               let s = child.value as? String,
-               s.lowercased().contains("youtu") {
-                linkString = s
-            }
-
-            // 영상 id만 저장하는 경우
-            if youtubeId == nil,
-               ["youtubeID","youtubeId","videoID","videoId"].contains(label),
-               let s = child.value as? String, !s.isEmpty {
-                youtubeId = s
-            }
-        }
-
-        if let t = thumbString, let u = URL(string: t) { return u }
-        if let id = youtubeId, let u = URL(string: "https://img.youtube.com/vi/\(id)/hqdefault.jpg") { return u }
-        if let l = linkString, let u = YouTubeThumbnail.thumbnailURL(from: l) { return u }
-        return nil
-    }
-
-    @ViewBuilder
-    private func noteRow(_ note: Note) -> some View {
-        HStack(spacing: 12) {
-            // 1) 제목/썸네일 (좌측 가변)
-            HStack(spacing: 12) {
-                thumbnailView(for: note)
-                    .frame(width: 56, height: 56)
-                    .cornerRadius(8)
-
-                Text(note.title)
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(Color.text1)
-                    .lineLimit(1)
-            }
-            .frame(minWidth: 260, maxWidth: .infinity, alignment: .leading)
-
-            // 2) 강의 길이
-            Text(durationText(for: note))
-                .font(.system(size: 14))
-                .foregroundStyle(Color.text2)
-                .frame(width: 72, alignment: .trailing)
-
-            // 3) 수강률
-            Text(progressText(for: note))
-                .font(.system(size: 14))
-                .foregroundStyle(Color.text2)
-                .frame(width: 72, alignment: .trailing)
-
-            // 4) 최근 학습 일시
-            Text(lastReadText(for: note))
-                .font(.system(size: 14))
-                .foregroundStyle(Color.text2)
-                .frame(width: 110, alignment: .trailing)
-        }
-        .padding(.vertical, 10)
-        .contentShape(Rectangle())
-        .onTapGesture { onNoteSelected?(note) }
-        .contextMenu {
-            Button("이름 변경") {
-                noteToRename = note
-                renameText = note.title
-            }
-            Button("삭제", role: .destructive) {
-                modelContext.delete(note)
-                try? modelContext.save()
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func homeItemRow(_ item: HomeItem) -> some View {
-        switch item {
-        case .folder(let folder):
-            Button {
-                selectedFolderName = folder.name
-                headerSubtitle = folder.name
-            } label: {
-                HStack(spacing: 12) {
-                    // 제목 영역
-                    HStack(spacing: 12) {
-                        Image(systemName: "folder.fill")
-                            .font(.system(size: 20, weight: .semibold))
-                            .foregroundStyle(Color.text2)
-                            .frame(width: 56, height: 56)
-                            .background(Color.background2)
-                            .cornerRadius(8)
-                            .overlay(RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color.borderColor, lineWidth: 1))
-
-                        Text(folder.name)
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundStyle(Color.text1)
-                            .lineLimit(1)
-                    }
-                    .frame(minWidth: 260, maxWidth: .infinity, alignment: .leading)
-
-                    // 우측 컬럼 (폴더는 표시값 없음)
-                    Text("—").frame(width: 72, alignment: .trailing).foregroundStyle(Color.text3)
-                    Text("—").frame(width: 72, alignment: .trailing).foregroundStyle(Color.text3)
-                    Text(relativeDate(folder.createdAt))
-                        .font(.system(size: 14))
-                        .foregroundStyle(Color.text2)
-                        .frame(width: 110, alignment: .trailing)
-                }
-                .padding(.vertical, 10)
-            }
-            .buttonStyle(.plain)
-
-        case .note(let n):
-            noteRow(n)
         }
     }
 }
@@ -815,53 +535,4 @@ private func isSubsequence(_ small: String, in big: String) -> Bool {
     return false
 }
 
-private func sortNotes(_ input: [Note], by option: HomeView.NoteSortOption) -> [Note] {
-    switch option {
-    case .dateDescending:
-        return input.sorted { $0.createdAt > $1.createdAt }
-    case .dateAscending:
-        return input.sorted { $0.createdAt < $1.createdAt }
-    case .nameAscending:
-        return input.sorted { $0.title.localizedCompare($1.title) == .orderedAscending }
-    case .nameDescending:
-        return input.sorted { $0.title.localizedCompare($1.title) == .orderedDescending }
-    }
-}
 
-private func durationText(for note: Note) -> String {
-    let m = Mirror(reflecting: note)
-
-    if let secs = m.children.first(where: { $0.label == "duration" || $0.label == "length" })?.value as? TimeInterval {
-        let mm = Int(secs) / 60
-        let ss = Int(secs) % 60
-        return String(format: "%d:%02d", mm, ss)
-    }
-    if let s = m.children.first(where: { $0.label == "durationText" || $0.label == "lengthText" })?.value as? String, !s.isEmpty {
-        return s
-    }
-    return "—"
-}
-
-private func progressText(for note: Note) -> String {
-    let m = Mirror(reflecting: note)
-
-    if let p = m.children.first(where: { $0.label == "progress" || $0.label == "percentage" })?.value as? Double {
-        // 0.0~1.0 또는 0~100 모두 허용
-        let v = p <= 1.0 ? (p * 100.0) : p
-        return String(format: "%.0f%%", v)
-    }
-    if let pInt = m.children.first(where: { $0.label == "progressPercent" })?.value as? Int {
-        return "\(pInt)%"
-    }
-    return "—"
-}
-
-private func lastReadText(for note: Note) -> String {
-    relativeDate(note.lastRead)
-}
-
-private func relativeDate(_ date: Date) -> String {
-    let f = RelativeDateTimeFormatter()
-    f.unitsStyle = .full
-    return f.localizedString(for: date, relativeTo: Date())
-}
