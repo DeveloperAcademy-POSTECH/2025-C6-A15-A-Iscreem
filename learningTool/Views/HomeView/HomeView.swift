@@ -51,6 +51,7 @@ struct HomeView: View {
     @State private var isShowingSettings: Bool = false
     @State private var isFolderDeletePresented: Bool = false
     @State private var folderIDsPendingDelete = Set<PersistentIdentifier>()
+    @State private var showResetConfirm: Bool = false
 
     var body: some View {
         NavigationSplitView {
@@ -277,7 +278,7 @@ struct HomeView: View {
                     }
                 }
                 if isShowingSettings {
-                    SettingsDetailView()
+                    SettingsDetailView(showResetConfirm: $showResetConfirm)
                         .transition(.opacity)
                         .background(Color(.systemBackground))
                 }
@@ -300,6 +301,42 @@ struct HomeView: View {
                             .background(Color.background1)
                             .cornerRadius(20)
                             .shadow(color: Color.black.opacity(0.25), radius: 18, x: 0, y: 10)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .transition(.opacity.combined(with: .scale))
+                }
+            }
+        }
+        .overlay {
+            if showResetConfirm {
+                GeometryReader { geo in
+                    ZStack {
+                        Color.black.opacity(0.35)
+                            .ignoresSafeArea()
+                            .onTapGesture { withAnimation(.easeInOut(duration: 0.2)) { showResetConfirm = false } }
+
+                        ResetConfirmAlertView(
+                            isPresented: $showResetConfirm,
+                            onConfirm: {
+                                // Delete all notes stored in SwiftData
+                                for note in notes {
+                                    modelContext.delete(note)
+                                }
+                                do {
+                                    try modelContext.save()
+                                } catch {
+                                    print("⚠️ Failed to delete all notes: \(error)")
+                                }
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    showResetConfirm = false
+                                }
+                            }
+                        )
+                        .frame(
+                            width: min(420, geo.size.width * 0.70),
+                            height: 340
+                        )
+                        .shadow(color: Color.black.opacity(0.25), radius: 18, x: 0, y: 10)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .transition(.opacity.combined(with: .scale))
