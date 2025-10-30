@@ -43,6 +43,46 @@ struct SidebarView: View {
 
     // 256:762 비율 유지 (사이드바:메인)
     private let sidebarRatio: CGFloat = 256.0 / (256.0 + 762.0) // ≈ 0.2514
+    
+    private var bottomBar: some View {
+        VStack(spacing: 0) {
+            Button { viewModel.helpTapped() } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "questionmark.circle.fill").foregroundStyle(Color.text2).font(.system(size: 20))
+                    Text("도움말").foregroundStyle(Color.text2).font(.buttonText)
+                    Spacer()
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 8)
+            }
+            .buttonStyle(.plain)
+
+            Button { viewModel.settingsTapped() } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "gearshape.fill").foregroundStyle(Color.text2).font(.system(size: 20))
+                    Text("설정").foregroundStyle(Color.text2).font(.buttonText)
+                    Spacer()
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 8)
+            }
+            .buttonStyle(.plain)
+
+            Button { viewModel.trashTapped() } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "trash").foregroundStyle(Color.errorColor).font(.system(size: 20))
+                    Text("휴지통").foregroundStyle(Color.errorColor).font(.buttonText)
+                    Spacer()
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 8)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.bottom, 30)
+        .ignoresSafeArea(.keyboard, edges: .bottom)
+    }
+
 
     var body: some View {
         VStack(spacing: 0) {
@@ -266,52 +306,22 @@ struct SidebarView: View {
             HStack { Rectangle().fill(Color.borderColor).frame(height: 1) }
                 .padding(.horizontal, 20)
 
-            // 하단 고정 메뉴
-            VStack(spacing: 0) {
-                Button { viewModel.helpTapped() } label: {
-                    HStack(spacing: 12) {
-                        Image(systemName: "questionmark.circle.fill").foregroundStyle(Color.text2).font(.system(size: 20))
-                        Text("도움말").foregroundStyle(Color.text2).font(.buttonText)
-                        Spacer()
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 8)
-                }
-                .buttonStyle(.plain)
-
-                Button { viewModel.settingsTapped() } label: {
-                    HStack(spacing: 12) {
-                        Image(systemName: "gearshape.fill").foregroundStyle(Color.text2).font(.system(size: 20))
-                        Text("설정").foregroundStyle(Color.text2).font(.buttonText)
-                        Spacer()
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 8)
-                }
-                .buttonStyle(.plain)
-
-                Button { viewModel.trashTapped() } label: {
-                    HStack(spacing: 12) {
-                        Image(systemName: "trash").foregroundStyle(Color.errorColor).font(.system(size: 20))
-                        Text("휴지통").foregroundStyle(Color.errorColor).font(.buttonText)
-                        Spacer()
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 8)
-                }
-                .buttonStyle(.plain)
-            }
-            .padding(.bottom, 30)
-            .onChange(of: viewModel.isHelpPresented) { _, newValue in
-                isHelpPresented = newValue
-            }
-            .onChange(of: isHelpPresented) { _, newValue in
-                if newValue == false, viewModel.isHelpPresented {
-                    viewModel.isHelpPresented = false
-                }
-            }
+            // 하단 고정 메뉴 (이전 VStack 삭제, 아래에서 overlay로 대체)
         }
         .background(Color.background2)
+        .overlay(alignment: .bottom) {
+            bottomBar
+                .zIndex(1)
+        }
+        .onChange(of: viewModel.isHelpPresented) { _, newValue in
+            isHelpPresented = newValue
+        }
+        .onChange(of: isHelpPresented) { _, newValue in
+            if newValue == false, viewModel.isHelpPresented {
+                viewModel.isHelpPresented = false
+            }
+        }
+        .ignoresSafeArea(.keyboard, edges: .bottom)
         // 폴더 이름 변경 시트
         .sheet(isPresented: $isRenamingSheet, onDismiss: {
             // 닫힐 때 편집 상태 초기화
