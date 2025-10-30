@@ -88,6 +88,8 @@ struct ChatAreaView: View {
                     }
                 }
             }
+            // Keyboard dismiss and tap-to-dismiss modifiers
+            .scrollDismissesKeyboard(.interactively)
         }
     }
 }

@@ -9,13 +9,15 @@ import SwiftUI
 
 struct QuestionView: View {
     @ObservedObject var studyViewModel: StudyViewModel
-    @StateObject private var viewModel = QuestionViewModel()
+    @ObservedObject var viewModel: QuestionViewModel
+    @Binding var isGlobalInputActive: Bool
+    
     @State private var isAPIKeyConfigured = GeminiAPIService.shared.isAPIKeyConfigured()
     @FocusState private var isTextFieldFocused: Bool
     @State private var showingSuggestions = false
     @State private var suggestedQuestions: [String] = []
     @State private var isLoadingSuggestions = false
-    // FocusState<Bool>.Binding → Binding<Bool> 브리지
+    // FocusState<Bool>.Binding → Binding<Bool> 브리지 (ChatAreaView용)
     private var isFocusedBinding: Binding<Bool> {
         Binding(
             get: { isTextFieldFocused },
@@ -26,10 +28,10 @@ struct QuestionView: View {
     var body: some View {
         VStack(spacing: 0) {
             /// 헤더
-                QuestionHeaderBar(
-                    messageCount: viewModel.messages.count,
-                    onClear: { viewModel.clearMessages() }
-                )
+            QuestionHeaderBar(
+                messageCount: viewModel.messages.count,
+                onClear: { viewModel.clearMessages() }
+            )
             
             Divider()
                 .background(Color.borderColor)
@@ -42,8 +44,32 @@ struct QuestionView: View {
                 isTextFieldFocused: isFocusedBinding
             )
             
-            Divider()
-                .background(Color.borderColor)
+            // 인라인 입력 바와 전역 바 사이를 구분하는 Divider
+            Divider().background(Color.borderColor)
+            
+            // ▼ 인라인 입력 바(QuestionView 너비). 전역 바가 활성화되면 숨김.
+            if !isGlobalInputActive {
+                QuestionInputBar(
+                    text: $viewModel.currentMessage,
+                    isEnabled: isAPIKeyConfigured && !viewModel.isLoading,
+                    isSending: viewModel.isLoading,
+                    isGenerating: isLoadingSuggestions,
+                    focus: $isTextFieldFocused,
+                    placeholder: isAPIKeyConfigured ? "메시지를 입력하세요" : "API 키를 먼저 설정해주세요",
+                    onTapLightbulb: {
+                        print("\n💡 ===== 전구 버튼 클릭 (inline QuestionInputBar) =====")
+                        generateSuggestedQuestions()
+                    },
+                    onSend: {
+                        if isAPIKeyConfigured {
+                            viewModel.sendMessage()
+                            isTextFieldFocused = false
+                        }
+                    }
+                )
+                .padding(16)
+                .allowsHitTesting(!isGlobalInputActive)
+            }
             
             /// 추천 질문 메뉴 (팝업 스타일)
             if showingSuggestions {
@@ -63,37 +89,22 @@ struct QuestionView: View {
                 )
                 .zIndex(1000)
             }
-            // NOTE: 입력 UI를 QuestionInputBar로 분리하여 재사용성과 가독성을 높였습니다.
-            // - text: 현재 입력 텍스트 바인딩
-            // - isEnabled: API 키 설정 및 로딩 상태에 따라 활성화 여부
-            // - isSending: 모델 응답 로딩 중 전송 버튼 상태
-            // - isGenerating: 추천 질문 생성 스피너 상태
-            // - focus: 키보드 포커스 연동(FocusState)
-            // - placeholder: 상태에 따른 안내 문구
-            // - onTapLightbulb: 추천 질문 생성 트리거
-            // - onSend: 메시지 전송 트리거
-            // 입력 영역 (컴포넌트화)
-            QuestionInputBar(
-                text: $viewModel.currentMessage,
-                isEnabled: isAPIKeyConfigured && !viewModel.isLoading,
-                isSending: viewModel.isLoading,
-                isGenerating: isLoadingSuggestions,
-                focus: $isTextFieldFocused,
-                placeholder: isAPIKeyConfigured ? "메시지를 입력하세요" : "API 키를 먼저 설정해주세요",
-                onTapLightbulb: {
-                    print("\n💡 ===== 전구 버튼 클릭 (from QuestionInputBar) =====")
-                    generateSuggestedQuestions()
-                },
-                onSend: {
-                    if isAPIKeyConfigured {
-                        viewModel.sendMessage()
-                    }
-                }
-            )
-            .padding(16)
-            .background(Color.background1)
+            
         }
         .background(Color.background1)
+        // ▼ 인라인 입력을 탭하면 전역 바로 승격
+        .onChange(of: isTextFieldFocused) { _, focused in
+            if focused {
+                isGlobalInputActive = true
+                // 전역 바가 포커스를 이어받도록 즉시 해제
+                isTextFieldFocused = false
+            }
+        }
+        .onDisappear {
+            // 정리: 화면 이탈 시 전역 상태 해제
+            isGlobalInputActive = false
+        }
+        
         .animation(.easeInOut(duration: 0.25), value: showingSuggestions)
         .onAppear {
             isAPIKeyConfigured = GeminiAPIService.shared.isAPIKeyConfigured()
@@ -293,8 +304,4 @@ struct QuestionView: View {
             }
         }
     }
-}
-
-#Preview(traits: .landscapeLeft) {
-    QuestionView(studyViewModel: StudyViewModel())
 }
