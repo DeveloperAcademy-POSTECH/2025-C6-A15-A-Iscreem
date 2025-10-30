@@ -92,8 +92,15 @@
 		68B08B652EB083F50067AD9E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		68B08B662EB083F50067AD9E /* LearningToolApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LearningToolApp.swift; sourceTree = "<group>"; };
 		6A6F29482EA351BC006AF158 /* learningTool.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = learningTool.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		6AC9C8612EB09A780050A812 /* FolderDeleteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderDeleteView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		6A6F294A2EA351BC006AF158 /* learningTool */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = learningTool;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		6A6F29452EA351BC006AF158 /* Frameworks */ = {
@@ -237,7 +244,7 @@
 		6A6F293F2EA351BC006AF158 = {
 			isa = PBXGroup;
 			children = (
-				68B08B672EB083F50067AD9E /* learningTool */,
+				6A6F294A2EA351BC006AF158 /* learningTool */,
 				6A6F29492EA351BC006AF158 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -264,6 +271,9 @@
 			buildRules = (
 			);
 			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				6A6F294A2EA351BC006AF158 /* learningTool */,
 			);
 			name = learningTool;
 			packageProductDependencies = (
@@ -311,7 +321,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				68B08B682EB083F50067AD9E /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -509,7 +518,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = site.eifer.app.learningTool;
+				PRODUCT_BUNDLE_IDENTIFIER = name.mumin.learningTool;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -541,7 +550,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = site.eifer.app.learningTool;
+				PRODUCT_BUNDLE_IDENTIFIER = name.mumin.learningTool;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
