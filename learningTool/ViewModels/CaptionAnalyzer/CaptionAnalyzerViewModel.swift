@@ -558,16 +558,7 @@ final class CaptionAnalyzer: ObservableObject {
                 do {
                     let rawKeywords = try await summarizer.summarizeChunk(
                         text: chapterText,
-                        instruction: """
-                            Extract 5–15 core keywords that represent the main academic or conceptual topics of this chapter.
-                            Include only meaningful nouns or proper nouns (in Korean or English).
-                            Do NOT include verbs, adjectives, particles, or generic/common words.
-                            Return the keywords separated by commas.
-
-                            (한국어 안내)
-                            이 챕터의 주요 학문적·개념적 주제를 나타내는 핵심 명사 또는 고유명사만 5~15개 추출하세요.
-                            동사, 형용사, 조사, 일반 단어는 포함하지 말고, 쉼표로 구분하세요.
-                            """
+                        instruction: "이 챕터의 내용을 기반으로, 핵심 주제와 관련된 명사 및 고유명사 키워드만 한국어로 나열하세요. 일반 문장, 조사, 동사, 특수문자, 불용어는 제외하고 의미 있는 단어만, 쉼표나 줄바꿈으로 구분. 핵심 키워드 위주로 5~15개 정도."
                     )
                     candidateKeywords = rawKeywords
                         .components(separatedBy: CharacterSet(charactersIn: ".,;／/\n\t "))
@@ -581,36 +572,18 @@ final class CaptionAnalyzer: ObservableObject {
             // 🟦 setChapterBullets debug → candidateKeywords count/preview
             print("🟦 setChapterBullets debug → candidateKeywords count=\(candidateKeywords.count), preview=\(candidateKeywords.prefix(20))")
 
-            // 불용어 + 한 글자 제거 (한국어 + 영어 공통)
-            let stopwords: [String] = [
-                // 한국어 불용어 및 조사/어미
-                "이","그","저","것","등","및","의","에","를","을","로","에서","으로","와","과","도","는","은","가",
-                "한","하다","되다","있다","없는","없는지","되는","되는지","하는","하는지","되는","된","된지","되어","되어서","되며",
-                "그리고","그러나","그러면서","그런데","또는","또","또한","하지만","만약","즉","혹은","때문에","위해","까지","처럼","같이",
-                "중","등등","각","모든","이런","그런","저런","이러한","저러한",
-                // 영어 불용어
-                "the","and","or","of","to","in","on","for","with","a","an","is","are","was","were","be","been","being",
-                "this","that","these","those","it","its","at","by","as","from","but","about","into","over","after","so","such",
-                "if","then","because","therefore","thus","however","while","when","where","which","who","whose","whom",
-                // 불필요한 형용사/부사적 단어
-                "different","various","several","other","many","much","some","any","every","each","good","bad","great","small","big","large",
-                "specific","general","main","important","necessary","possible","typical","common","simple","complex"
-            ]
+            // 불용어 + 한 글자 제거
+            let stopwords: Set<String> = ["특히","그리고","무엇을","이러한","이런","그런","을","를","이","그","저","것","등","및","의","에","로","에서","으로","와","과","도","는","은","가","한","하다","되다","있다","넘어가","배웁니다","움직이는"]
             let prelim = candidateKeywords
                 .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                .filter { !$0.isEmpty && $0.count > 1 && !stopwords.contains($0.lowercased()) }
-            // 🔹 어미 필터링 (~된, ~하는, ~적인 등)
-            let suffixesToRemove = ["된", "하는", "되는", "적인", "하며", "같은", "하는데"]
-            let prelimFiltered = prelim.filter { word in
-                !suffixesToRemove.contains { word.hasSuffix($0) }
-            }
+                .filter { !$0.isEmpty && $0.count > 1 && !stopwords.contains($0) }
             // 🟧 prelim after filtering → count/preview
-            print("🟧 prelim after filtering → count=\(prelimFiltered.count), preview=\(prelimFiltered.prefix(20))")
+            print("🟧 prelim after filtering → count=\(prelim.count), preview=\(prelim.prefix(20))")
 
             // 🔹 특수문자 제거 + stopwords/불필요 단어 제거
             let additionalStopwords: Set<String> = ["합니다", "있습니다", "해야", "됩니다", "같습니다", "됩니다", "있습니다", "있어요", "입니다", "해요"]
             let quoteCharacters = CharacterSet(charactersIn: "\"“”‘’`'")
-            let refined = prelimFiltered
+            let refined = prelim
                 .map { $0.trimmingCharacters(in: .punctuationCharacters.union(.symbols).union(quoteCharacters)) }
                 .filter { !$0.isEmpty && !additionalStopwords.contains($0) }
             // 중복 제거, 순서 유지
