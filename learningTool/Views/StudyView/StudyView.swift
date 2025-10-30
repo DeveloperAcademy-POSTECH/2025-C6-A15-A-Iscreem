@@ -16,8 +16,11 @@ struct StudyView: View {
     
     @EnvironmentObject private var captionAnalyzer: CaptionAnalyzer
     @Query private var notes: [Note]
+    // ▼ 전역 질문 입력 바 상태 (키보드 상단 바)
     @StateObject private var questionVM = QuestionViewModel()
-    @FocusState private var isQuestionFieldFocused: Bool
+    @State private var showGlobalQuestionBar = false
+    @FocusState private var globalQuestionFocus: Bool
+    
     
     init(note: Note? = nil, onDismiss: (() -> Void)? = nil) {
         _viewModel = StateObject(wrappedValue: StudyViewModel(note: note))
@@ -43,10 +46,10 @@ struct StudyView: View {
                 VStack(spacing: 2) {
                     Text(
                         viewModel.currentNote?.title
-                            ?? "데이터통신 제1장"
+                        ?? "데이터통신 제1장"
                     )
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(Color.text1)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(Color.text1)
                     
                     Text("26:52/58:59")
                         .font(.system(size: 13))
@@ -100,58 +103,55 @@ struct StudyView: View {
                         Divider()
                             .background(Color.borderColor)
                         
-                        QuestionView(studyViewModel: viewModel, viewModel: questionVM)
-                            .frame(maxHeight: .infinity)
+                        // ▼ QuestionView에 VM과 전역 입력 바 활성화 바인딩 주입
+                        QuestionView(
+                            studyViewModel: viewModel,
+                            viewModel: questionVM,
+                            isGlobalInputActive: $showGlobalQuestionBar
+                        )
+                        .frame(maxHeight: .infinity)
                     }
                     .frame(
                         width: max(350, min(450, geometry.size.width * 0.35)
-                        )
+                                  )
                     )
                 }
             }
         }
         .background(Color.background2)
         .keyboardOverlay()
+        // ▼ 전역 입력 바: 키보드 상단(StudyView 전체 너비) — 키보드 높이에 맞춰 자동 패딩
         .overlay(alignment: .bottom) {
-            // Global input bar anchored to StudyView width
-            HStack(spacing: 12) {
-                TextField(
-                    GeminiAPIService.shared.isAPIKeyConfigured() ? "메시지를 입력하세요" : "API 키를 먼저 설정해주세요",
-                    text: $questionVM.currentMessage,
-                    axis: .horizontal
-                )
-                .focused($isQuestionFieldFocused)
-                .font(.system(size: 15))
-                .lineLimit(1)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .background(Color.background2)
-                .cornerRadius(20)
-                .disabled(questionVM.isLoading || !GeminiAPIService.shared.isAPIKeyConfigured())
-                .onSubmit {
-                    if GeminiAPIService.shared.isAPIKeyConfigured() {
-                        questionVM.sendMessage()
-                    }
+            if showGlobalQuestionBar {
+                VStack(spacing: 0) {
+                    Divider().background(Color.borderColor)
+                    QuestionInputBar(
+                        text: $questionVM.currentMessage,
+                        isEnabled: GeminiAPIService.shared.isAPIKeyConfigured() && !questionVM.isLoading,
+                        isSending: questionVM.isLoading,
+                        isGenerating: false,
+                        focus: $globalQuestionFocus,
+                        placeholder: GeminiAPIService.shared.isAPIKeyConfigured() ? "메시지를 입력하세요" : "API 키를 먼저 설정해주세요",
+                        onTapLightbulb: { /* 전역 전구 버튼 필요 시 구현 */ },
+                        onSend: {
+                            if GeminiAPIService.shared.isAPIKeyConfigured() {
+                                questionVM.sendMessage()
+                                // 전송/접기 시 전역 바 닫기
+                                globalQuestionFocus = false
+                                showGlobalQuestionBar = false
+                            }
+                        }
+                    )
+                    .padding(16)
                 }
-
-                Button(action: { questionVM.sendMessage() }) {
-                    Image(systemName: "paperplane.fill")
-                        .font(.system(size: 18))
-                        .foregroundStyle(.white)
-                        .frame(width: 40, height: 40)
-                        .background(
-                            (questionVM.isLoading || questionVM.currentMessage.isEmpty || !GeminiAPIService.shared.isAPIKeyConfigured())
-                            ? Color.text3.opacity(0.5)
-                            : Color.secondColor
-                        )
-                        .clipShape(Circle())
+                .background(Color.background1)
+                .keyboardAdaptivePadding() // 키보드 높이만큼 위로 올리기
+                .zIndex(1000)
+                .onAppear { globalQuestionFocus = true } // 전역 바 등장 시 포커스
+                .onChange(of: globalQuestionFocus) { _, focused in // 키보드 접힘 → 전역 바 닫기
+                    if !focused { showGlobalQuestionBar = false }
                 }
-                .disabled(questionVM.isLoading || questionVM.currentMessage.isEmpty || !GeminiAPIService.shared.isAPIKeyConfigured())
             }
-            .padding(16)
-            .frame(maxWidth: .infinity)
-            .background(Color.background1)
-            .keyboardAdaptivePadding()
         }
         .onAppear { captionAnalyzer.autoSummarizeEnabled = true }
         .onChange(of: captionAnalyzer.summaryStatus) { _, newValue in
@@ -254,18 +254,18 @@ struct APISettingsView: View {
                     
                     /// 현재 상태
                     HStack {
-                        Image(systemName: GeminiAPIService.shared.isAPIKeyConfigured() 
-                              ? "checkmark.circle.fill" 
+                        Image(systemName: GeminiAPIService.shared.isAPIKeyConfigured()
+                              ? "checkmark.circle.fill"
                               : "exclamationmark.circle.fill")
-                            .foregroundStyle(GeminiAPIService.shared.isAPIKeyConfigured() 
-                                           ? Color.green 
-                                           : Color.orange)
+                        .foregroundStyle(GeminiAPIService.shared.isAPIKeyConfigured()
+                                         ? Color.green
+                                         : Color.orange)
                         
-                        Text(GeminiAPIService.shared.isAPIKeyConfigured() 
-                             ? "API 키가 설정되어 있습니다" 
+                        Text(GeminiAPIService.shared.isAPIKeyConfigured()
+                             ? "API 키가 설정되어 있습니다"
                              : "API 키가 설정되지 않았습니다")
-                            .font(.system(size: 13))
-                            .foregroundStyle(Color.text2)
+                        .font(.system(size: 13))
+                        .foregroundStyle(Color.text2)
                         
                         Spacer()
                     }
@@ -379,6 +379,6 @@ struct InfoRow: View {
             title: "데이터통신 제1장",
             lastRead: Date()
         )
-        )
-        .environmentObject(CaptionAnalyzer())
+    )
+    .environmentObject(CaptionAnalyzer())
 }

@@ -15,61 +15,81 @@ struct KeywordView: View {
     @State private var selectedKeyword: String? = nil
     
     private var keywordsToShow: [String] {
-        // 우선 챕터별 키워드 사용 (첫 번째 챕터 기준)
-        if let firstChapterId = analyzer.chapters.first?.id,
-           let chapterKeywords = analyzer.chapterKeywords[firstChapterId],
-           !chapterKeywords.isEmpty {
+        // 🔹 displayKeywords 우선
+        if !analyzer.displayKeywords.isEmpty {
+            return analyzer.displayKeywords
+        }
+        // 챕터별 키워드 fallback
+        else if let firstChapterId = analyzer.chapters.first?.id,
+                let chapterKeywords = analyzer.chapterKeywords[firstChapterId],
+                !chapterKeywords.isEmpty {
             return chapterKeywords
         }
-        // 챕터 키워드가 없으면 누적 키워드 사용
+        // accumulatedKeywords fallback
         else if !analyzer.accumulatedKeywords.isEmpty {
             return analyzer.accumulatedKeywords
         }
-        // 그래도 없으면 최종 요약 기반 키워드
+        // 최종 요약 기반 fallback
         else {
             return analyzer.extractedKeywords
         }
     }
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("이 강의에서 자주 언급되는 핵심 키워드들이 나열됩니다.")
-                .font(.bodyText)
-                .foregroundStyle(Color.text2)
-                .padding(.horizontal, 16)
-                .padding(.top, 12)
-            
-            /// 키워드 태그들 (고정 크기, 5열, 세로 스크롤)
-            ScrollView(.vertical) {
-                LazyVGrid(
-                    columns: [GridItem(.adaptive(minimum: 120, maximum: 260), spacing: 16)],
-                    spacing: 12
-                ) {
-                    ForEach(keywordsToShow, id: \.self) { keyword in
-                        KeywordViewComponent(
-                            keyword: keyword,
-                            isSelected: Binding(
-                                get: { selectedKeyword == keyword },
-                                set: { newValue in
-                                    if newValue {
-                                        // 선택: 해당 키워드만 선택 상태로
-                                        selectedKeyword = keyword
-                                        // StudyViewModel에 키워드 선택 알림 (질문창에 자동 입력 + 추천 질문 생성)
-                                        studyViewModel.selectKeyword(keyword)
-                                    } else {
-                                        // 해제: 현재 선택된 게 이 키워드면 nil로
-                                        if selectedKeyword == keyword {
+        ZStack {
+            VStack(alignment: .leading, spacing: 12) {
+                // 제목 텍스트
+                Text("이 강의에서 자주 언급되는 핵심 키워드들이 나열됩니다.")
+                    .font(.bodyText)
+                    .foregroundStyle(Color.text2)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 12)
+                    // GeometryReader로 텍스트 너비 측정
+                    .background(
+                        GeometryReader { geo in
+                            Rectangle()
+                                .fill(Color.gray.opacity(0.3))
+                                .frame(width: geo.size.width, height: 1)
+                                .offset(y: geo.size.height + 4) // 텍스트 아래에 살짝 떨어뜨림
+                        }
+                    )
+
+                ScrollView(.vertical) {
+                    LazyVGrid(
+                        columns: [GridItem(.adaptive(minimum: 120, maximum: 260), spacing: 16)],
+                        spacing: 12
+                    ) {
+                        ForEach(keywordsToShow, id: \.self) { keyword in
+                            KeywordViewComponent(
+                                keyword: keyword,
+                                isSelected: Binding(
+                                    get: { selectedKeyword == keyword },
+                                    set: { newValue in
+                                        if newValue {
+                                            selectedKeyword = keyword
+                                            studyViewModel.selectKeyword(keyword)
+                                        } else if selectedKeyword == keyword {
                                             selectedKeyword = nil
                                         }
                                     }
-                                }
+                                )
                             )
-                        )
+                        }
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 12)
                 }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 12)
+                .frame(maxWidth: .infinity)
             }
-            .frame(maxWidth: .infinity)
+
+            // 키워드가 없을 때 표시되는 중앙 메시지
+            if keywordsToShow.isEmpty {
+                Text("키워드 도출 중...")
+                    .font(.title3.italic())
+                    .foregroundStyle(Color.gray.opacity(0.7))
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color.background2.opacity(0.5))
+            }
         }
         .background(Color.background2)
     }

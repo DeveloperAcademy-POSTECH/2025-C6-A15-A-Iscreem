@@ -6,292 +6,105 @@
 //
 
 import SwiftUI
-import UIKit
 
 struct QuestionView: View {
     @ObservedObject var studyViewModel: StudyViewModel
     @ObservedObject var viewModel: QuestionViewModel
+    @Binding var isGlobalInputActive: Bool
+    
     @State private var isAPIKeyConfigured = GeminiAPIService.shared.isAPIKeyConfigured()
+    @FocusState private var isTextFieldFocused: Bool
     @State private var showingSuggestions = false
     @State private var suggestedQuestions: [String] = []
     @State private var isLoadingSuggestions = false
+    // FocusState<Bool>.Binding → Binding<Bool> 브리지 (ChatAreaView용)
+    private var isFocusedBinding: Binding<Bool> {
+        Binding(
+            get: { isTextFieldFocused },
+            set: { isTextFieldFocused = $0 }
+        )
+    }
     
     var body: some View {
         VStack(spacing: 0) {
             /// 헤더
-            HStack {
-                Text("AI에게 무엇이든 물어보세요!")
-                    .font(.system(size: 15))
-                    .foregroundStyle(Color.text2)
-                
-                Spacer()
-                
-                Button(action: { generateSuggestedQuestions() }) {
-                    Image(systemName: isLoadingSuggestions ? "arrow.triangle.2.circlepath" : "lightbulb.fill")
-                        .font(.system(size: 14))
-                        .foregroundStyle(Color.orange)
-                }
-                .buttonStyle(.plain)
-                .disabled(!isAPIKeyConfigured || isLoadingSuggestions)
-
-                
-                if viewModel.messages.count > 2 {
-                    Button(action: { viewModel.clearMessages() }) {
-                        Image(systemName: "trash")
-                            .font(.system(size: 14))
-                            .foregroundStyle(Color.errorColor)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(16)
+            QuestionHeaderBar(
+                messageCount: viewModel.messages.count,
+                onClear: { viewModel.clearMessages() }
+            )
             
             Divider()
                 .background(Color.borderColor)
             
             /// 채팅 영역
-            ScrollViewReader { proxy in
-                ScrollView {
-                    VStack(spacing: 16) {
-                        if !isAPIKeyConfigured {
-                            /// API 키 미설정 안내
-                            VStack(spacing: 12) {
-                                Image(systemName: "key.fill")
-                                    .font(.system(size: 40))
-                                    .foregroundStyle(Color.secondColor.opacity(0.6))
-                                
-                                Text("API 키가 설정되지 않았습니다")
-                                    .font(.system(size: 16, weight: .semibold))
-                                    .foregroundStyle(Color.text3)
-                                
-                                Text("우측 상단의 톱니바퀴 버튼을 눌러\nGemini API 키를 설정해주세요.")
-                                    .font(.system(size: 13))
-                                    .foregroundStyle(Color.text3.opacity(0.8))
-                                    .multilineTextAlignment(.center)
-                            }
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .padding(40)
-                        } else if viewModel.messages.isEmpty && !viewModel.isLoading {
-                            /// 메시지 없을 때 안내
-                            VStack(spacing: 12) {
-                                Image(systemName: "bubble.left.and.bubble.right.fill")
-                                    .font(.system(size: 40))
-                                    .foregroundStyle(Color.secondColor.opacity(0.6))
-                                
-                                Text("질문을 입력하고 엔터 또는\n보내기 버튼을 눌러주세요")
-                                    .font(.system(size: 14))
-                                    .foregroundStyle(Color.text3.opacity(0.8))
-                                    .multilineTextAlignment(.center)
-                                    .lineSpacing(4)
-                            }
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .padding(40)
-                        } else {
-                            ForEach(viewModel.messages) { message in
-                                ChatBubble(message: message)
-                                    .id(message.id)
-                            }
-                            
-                            if viewModel.isLoading {
-                                HStack {
-                                    ProgressView()
-                                        .tint(Color.secondColor)
-                                    Text("AI가 답변을 생성중입니다...")
-                                        .font(.system(size: 13))
-                                        .foregroundStyle(Color.text3)
-                                    Spacer()
-                                }
-                                .padding(.horizontal, 16)
-                                .id("loading")
-                            }
-                        }
-                    }
-                    .padding(16)
-                }
-                .onChange(of: viewModel.messages.count) {
-                    if let lastMessage = viewModel.messages.last {
-                        withAnimation {
-                            proxy.scrollTo(lastMessage.id, anchor: .bottom)
-                        }
-                    }
-                }
-                .onChange(of: viewModel.isLoading) { oldValue, isLoading in
-                    if isLoading {
-                        // 로딩이 시작되면 로딩 인디케이터로 스크롤
-                        withAnimation {
-                            proxy.scrollTo("loading", anchor: .bottom)
-                        }
-                    } else if let lastMessage = viewModel.messages.last {
-                        // 로딩이 끝나면 마지막 메시지로 스크롤
-                        withAnimation {
-                            proxy.scrollTo(lastMessage.id, anchor: .bottom)
-                        }
-                    }
-                }
-                // Keyboard dismiss and tap-to-dismiss modifiers
-                .scrollDismissesKeyboard(.interactively)
-            }
+            ChatAreaView(
+                messages: viewModel.messages,
+                isAPIKeyConfigured: isAPIKeyConfigured,
+                isLoading: viewModel.isLoading,
+                isTextFieldFocused: isFocusedBinding
+            )
             
-            Divider()
-                .background(Color.borderColor)
+            // 인라인 입력 바와 전역 바 사이를 구분하는 Divider
+            Divider().background(Color.borderColor)
+            
+            // ▼ 인라인 입력 바(QuestionView 너비). 전역 바가 활성화되면 숨김.
+            if !isGlobalInputActive {
+                QuestionInputBar(
+                    text: $viewModel.currentMessage,
+                    isEnabled: isAPIKeyConfigured && !viewModel.isLoading,
+                    isSending: viewModel.isLoading,
+                    isGenerating: isLoadingSuggestions,
+                    focus: $isTextFieldFocused,
+                    placeholder: isAPIKeyConfigured ? "메시지를 입력하세요" : "API 키를 먼저 설정해주세요",
+                    onTapLightbulb: {
+                        print("\n💡 ===== 전구 버튼 클릭 (inline QuestionInputBar) =====")
+                        generateSuggestedQuestions()
+                    },
+                    onSend: {
+                        if isAPIKeyConfigured {
+                            viewModel.sendMessage()
+                            isTextFieldFocused = false
+                        }
+                    }
+                )
+                .padding(16)
+                .allowsHitTesting(!isGlobalInputActive)
+            }
             
             /// 추천 질문 메뉴 (팝업 스타일)
             if showingSuggestions {
-                ZStack(alignment: .bottom) {
-                    // 반투명 배경 (클릭하면 닫기)
-                    Color.black.opacity(0.3)
-                        .ignoresSafeArea()
-                        .onTapGesture {
-                            showingSuggestions = false
-                        }
-                    
-                    VStack(spacing: 0) {
-                        /// 헤더
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                HStack(spacing: 6) {
-                                    Image(systemName: "lightbulb.fill")
-                                        .font(.system(size: 14))
-                                        .foregroundStyle(Color.orange)
-                                    
-                                    Text("AI 추천 질문")
-                                        .font(.system(size: 15, weight: .bold))
-                                        .foregroundStyle(Color.text1)
-                                }
-                                
-                                let displayText = viewModel.currentMessage.trimmingCharacters(in: .whitespacesAndNewlines)
-                                if !displayText.isEmpty {
-                                    Text("'\(displayText.prefix(30))\(displayText.count > 30 ? "..." : "")' 관련 학습 질문")
-                                        .font(.system(size: 12))
-                                        .foregroundStyle(Color.text3)
-                                } else if let keyword = studyViewModel.selectedKeyword {
-                                    Text("'\(keyword)' 관련 학습 질문")
-                                        .font(.system(size: 12))
-                                        .foregroundStyle(Color.text3)
-                                }
-                            }
-                            
-                            Spacer()
-                            
-                            /// 새로고침 버튼
-                            Button(action: {
-                                regenerateSuggestedQuestions()
-                            }) {
-                                Image(systemName: isLoadingSuggestions ? "arrow.triangle.2.circlepath" : "arrow.clockwise")
-                                    .font(.system(size: 14))
-                                    .foregroundStyle(Color.secondColor)
-                                    .frame(width: 32, height: 32)
-                                    .background(Color.background2)
-                                    .clipShape(Circle())
-                                    .rotationEffect(.degrees(isLoadingSuggestions ? 360 : 0))
-                                    .animation(
-                                        isLoadingSuggestions
-                                            ? .linear(duration: 1).repeatForever(autoreverses: false)
-                                            : .default,
-                                        value: isLoadingSuggestions
-                                    )
-                            }
-                            .buttonStyle(.plain)
-                            .disabled(isLoadingSuggestions)
-                            
-                            /// 닫기 버튼
-                            Button(action: {
-                                withAnimation(.easeOut(duration: 0.2)) {
-                                    showingSuggestions = false
-                                }
-                            }) {
-                                Image(systemName: "xmark")
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundStyle(Color.text3)
-                                    .frame(width: 32, height: 32)
-                                    .background(Color.background2)
-                                    .clipShape(Circle())
-                            }
-                            .buttonStyle(.plain)
-                        }
-                        .padding(16)
-                        .background(Color.background1)
-                        
-                        Divider()
-                            .background(Color.borderColor)
-                        
-                        /// 질문 목록 또는 로딩
-                        if isLoadingSuggestions {
-                            VStack(spacing: 12) {
-                                ProgressView()
-                                    .tint(Color.secondColor)
-                                    .scaleEffect(1.2)
-                                Text("AI가 질문을 생성하고 있습니다...")
-                                    .font(.system(size: 14))
-                                    .foregroundStyle(Color.text3)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 160)
-                            .background(Color.background1)
-                        } else if !suggestedQuestions.isEmpty {
-                            ScrollView {
-                                VStack(spacing: 10) {
-                                    ForEach(Array(suggestedQuestions.enumerated()), id: \.offset) { index, question in
-                                        Button(action: {
-                                            withAnimation {
-                                                viewModel.currentMessage = question
-                                                showingSuggestions = false
-                                            }
-                                        }) {
-                                            HStack(alignment: .top, spacing: 12) {
-                                                // 번호 뱃지
-                                                Text("\(index + 1)")
-                                                    .font(.system(size: 12, weight: .bold))
-                                                    .foregroundStyle(.white)
-                                                    .frame(width: 24, height: 24)
-                                                    .background(
-                                                        LinearGradient(
-                                                            colors: [Color.secondColor, Color.secondColor.opacity(0.7)],
-                                                            startPoint: .topLeading,
-                                                            endPoint: .bottomTrailing
-                                                        )
-                                                    )
-                                                    .clipShape(Circle())
-                                                
-                                                Text(question)
-                                                    .font(.system(size: 14))
-                                                    .foregroundStyle(Color.text1)
-                                                    .multilineTextAlignment(.leading)
-                                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                                
-                                                Image(systemName: "arrow.right.circle.fill")
-                                                    .font(.system(size: 18))
-                                                    .foregroundStyle(Color.secondColor.opacity(0.6))
-                                            }
-                                            .padding(14)
-                                            .background(
-                                                RoundedRectangle(cornerRadius: 12)
-                                                    .fill(Color.background2)
-                                                    .overlay(
-                                                        RoundedRectangle(cornerRadius: 12)
-                                                            .stroke(Color.secondColor.opacity(0.2), lineWidth: 1)
-                                                    )
-                                            )
-                                        }
-                                        .buttonStyle(.plain)
-                                    }
-                                }
-                                .padding(16)
-                            }
-                            .frame(height: 160)
-                            .background(Color.background1)
+                SuggestionsSheetView(
+                    isPresented: $showingSuggestions,
+                    isLoading: isLoadingSuggestions,
+                    suggestedQuestions: suggestedQuestions,
+                    currentMessage: viewModel.currentMessage,
+                    selectedKeyword: studyViewModel.selectedKeyword,
+                    onRegenerate: { regenerateSuggestedQuestions() },
+                    onPick: { picked in
+                        withAnimation {
+                            viewModel.currentMessage = picked
+                            isTextFieldFocused = true
                         }
                     }
-                    .background(Color.background1)
-                    .cornerRadius(16, corners: [.topLeft, .topRight])
-                    .shadow(color: Color.black.opacity(0.3), radius: 20, x: 0, y: -5)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                }
+                )
                 .zIndex(1000)
             }
+            
         }
         .background(Color.background1)
-        .ignoresSafeArea(.keyboard, edges: .bottom)
+        // ▼ 인라인 입력을 탭하면 전역 바로 승격
+        .onChange(of: isTextFieldFocused) { _, focused in
+            if focused {
+                isGlobalInputActive = true
+                // 전역 바가 포커스를 이어받도록 즉시 해제
+                isTextFieldFocused = false
+            }
+        }
+        .onDisappear {
+            // 정리: 화면 이탈 시 전역 상태 해제
+            isGlobalInputActive = false
+        }
+        
         .animation(.easeInOut(duration: 0.25), value: showingSuggestions)
         .onAppear {
             isAPIKeyConfigured = GeminiAPIService.shared.isAPIKeyConfigured()
@@ -301,6 +114,12 @@ struct QuestionView: View {
             let wasConfigured = isAPIKeyConfigured
             isAPIKeyConfigured = GeminiAPIService.shared.isAPIKeyConfigured()
             
+            // API 키가 새로 설정되면 텍스트필드에 포커스
+            if !wasConfigured && isAPIKeyConfigured {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    isTextFieldFocused = true
+                }
+            }
         }
         .onChange(of: studyViewModel.shouldInsertKeyword) { _, shouldInsert in
             if shouldInsert, let keyword = studyViewModel.selectedKeyword {
@@ -309,6 +128,11 @@ struct QuestionView: View {
                     viewModel.currentMessage += " "
                 }
                 viewModel.currentMessage += keyword
+                
+                // 포커스를 텍스트 마지막으로 이동
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    isTextFieldFocused = true
+                }
                 
                 // 삽입 완료 표시
                 studyViewModel.keywordInserted()
@@ -328,7 +152,6 @@ struct QuestionView: View {
                 studyViewModel.suggestionsGenerated()
             }
         }
-        // 입력창 및 키보드 관련 오버레이/관찰자는 StudyView로 이동함
     }
     
     /// AI를 통한 추천 질문 생성 (전구 버튼용 - 토글 기능 포함)
@@ -377,8 +200,8 @@ struct QuestionView: View {
         
         // 요약 컨텍스트가 비어있어도 진행 (기본 질문 생성)
         let contextText = studyViewModel.summaryContext.isEmpty
-            ? "강의 내용에 대한 학습"
-            : studyViewModel.summaryContext
+        ? "강의 내용에 대한 학습"
+        : studyViewModel.summaryContext
         
         print("📝 [생성] 컨텍스트 길이: \(contextText.count)자")
         print("📝 [생성] 컨텍스트 미리보기: \(String(contextText.prefix(100)))...")
@@ -481,76 +304,4 @@ struct QuestionView: View {
             }
         }
     }
-    
-    
-}
-
-struct ChatBubble: View {
-    let message: ChatMessage
-    
-    var body: some View {
-        HStack(alignment: .bottom, spacing: 8) {
-            if message.isUser {
-                Spacer(minLength: 40)
-            }
-
-            VStack(alignment: message.isUser ? .trailing : .leading, spacing: 4) {
-                Text(message.text)
-                    .font(.system(size: 14))
-                    .foregroundStyle(message.isUser ? .white : Color.text1)
-                    .multilineTextAlignment(message.isUser ? .trailing : .leading)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                    .background(
-                        ChatBubbleShape(isRightAligned: message.isUser)
-                            .fill(
-                                message.isUser
-                                    ? Color.primaryColor
-                                    : Color.secondColor.opacity(0.15)
-                            )
-                    )
-
-                Text(timeString(from: message.timestamp))
-                    .font(.system(size: 11))
-                    .foregroundStyle(Color.text3)
-                    .padding(.horizontal, 4)
-            }
-
-            if !message.isUser {
-                Spacer(minLength: 40)
-            }
-        }
-    }
-    
-    private func timeString(from date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.timeStyle = .short
-        formatter.locale = Locale(identifier: "ko_KR")
-        return formatter.string(from: date)
-    }
-}
-
-// MARK: - View Extensions
-extension View {
-    func cornerRadius(_ radius: CGFloat, corners: UIRectCorner) -> some View {
-        clipShape(RoundedCorner(radius: radius, corners: corners))
-    }
-}
-
-struct RoundedCorner: Shape {
-    var radius: CGFloat = .infinity
-    var corners: UIRectCorner = .allCorners
-
-    func path(in rect: CGRect) -> Path {
-        let path = UIBezierPath(
-            roundedRect: rect,
-            byRoundingCorners: corners,
-            cornerRadii: CGSize(width: radius, height: radius)
-        )
-        return Path(path.cgPath)
-    }
-}
-
-#Preview(traits: .landscapeLeft) {
-    QuestionView(studyViewModel: StudyViewModel(), viewModel: QuestionViewModel())
 }

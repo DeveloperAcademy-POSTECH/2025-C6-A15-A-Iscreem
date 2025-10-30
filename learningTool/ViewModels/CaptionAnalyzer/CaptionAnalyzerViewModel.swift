@@ -520,67 +520,106 @@ final class CaptionAnalyzer: ObservableObject {
     }
     
     /// 챕터 불릿을 설정하고, 컨텍스트 기반 키워드 추출 또는 LLM 기반 추출을 트리거합니다.
+    /// extractKeywords()는 챕터 레벨 키워드에는 중복(불필요) — prelim이 이미 불용어 제거를 수행함.
     @MainActor
     private func setChapterBullets(id: UUID, bullets: [String]) {
+        print("🟦 setChapterBullets called for \(id), bullets count=\(bullets.count)")
         chapterBullets[id] = bullets
         let chapterText = bullets.joined(separator: " ")
+
         Task {
-            let updateDisplayKeywords: ([String]) -> Void = { newKeywords in
+            let updateKeywords: ([String]) -> Void = { newKeywords in
                 Task { @MainActor in
                     self.chapterKeywords[id] = newKeywords
-                    let allChapterIDs = self.chapters.map { $0.id }
-                    var keywords: [String] = []
-                    for cid in allChapterIDs {
+
+                    // 전체 챕터 키워드 합치기
+                    var allKeywords: [String] = []
+                    for cid in self.chapters.map({ $0.id }) {
                         if let kws = self.chapterKeywords[cid] {
-                            for kw in kws where !keywords.contains(kw) {
-                                keywords.append(kw)
+                            for kw in kws where !allKeywords.contains(kw) {
+                                allKeywords.append(kw)
                             }
                         }
                     }
-                    // 챕터 별로 키워드 누적
-                    self.displayKeywords.append(contentsOf: newKeywords.filter { !self.displayKeywords.contains($0) })
+
+                    // 🔹 챕터별 키워드 누적 (페이지별 누적 반영)
+                    self.displayKeywords = allKeywords
+                    self.accumulatedKeywords = allKeywords
+
+                    // 🧠 디버그: 현재 챕터별 키워드 누적 상태 출력
+                    print("✅ Chapter \(id) keywords updated → 총 \(allKeywords.count)개 단어 누적됨")
+                    print("🧩 현재 displayKeywords: \(self.displayKeywords)")
                 }
             }
+
+            var candidateKeywords: [String] = []
+
             if #available(iOS 26.0, *), let summarizer = self.summarizer {
                 do {
                     let rawKeywords = try await summarizer.summarizeChunk(
                         text: chapterText,
-                        instruction: "이 텍스트에서 맥락 파악하여 중요한 단어를 모두 나열하세요. 구분자는 쉼표(,)로 합니다."
-                    )
+                        instruction: """
+                            Extract 5–15 core keywords that represent the main academic or conceptual topics of this chapter.
+                            Include only meaningful nouns or proper nouns (in Korean or English).
+                            Do NOT include verbs, adjectives, particles, or generic/common words.
+                            Return the keywords separated by commas.
 
-                    // 2단계로 분리하여 처리: 기술 관련 키워드만 선별
-                    let refinedKeywordsText = try await summarizer.summarizeChunk(
-                        text: rawKeywords,
-                        instruction: "주어진 단어 목록에서 컴퓨터공학, 인공지능, 데이터, 프로그래밍 등 컴퓨터공학 지식 및 기술 관련 핵심 키워드만 추리세요. 단, '특히', '그리고', '무엇을 통해', '이러한', '이런', '그런' 등 불용어나 문장 연결어, 의미 없는 단어는 모두 제거하세요. 형용사나 동사 대신 명사 중심의 기술 용어만 남기세요."
+                            (한국어 안내)
+                            이 챕터의 주요 학문적·개념적 주제를 나타내는 핵심 명사 또는 고유명사만 5~15개 추출하세요.
+                            동사, 형용사, 조사, 일반 단어는 포함하지 말고, 쉼표로 구분하세요.
+                            """
                     )
-
-                    // refinedKeywordsText를 실제 파싱 대상으로 사용
-                    let keywordsText = refinedKeywordsText
-                    // 온점(.), 쉼표(,), 세미콜론(;), 줄바꿈(\n), 슬래시(/), 탭 등 다양한 구분자 처리
-                    let separators = CharacterSet(charactersIn: ".,;／/\n\t ")
-                    let keywords = keywordsText
-                        .components(separatedBy: separators)
-                        .map {
-                            $0
-                                .replacingOccurrences(of: "**", with: "") // ✅ 별표 제거
-                                .trimmingCharacters(in: .whitespacesAndNewlines)
-                        }
-                        .filter { !$0.isEmpty && $0.count > 1 } // 한 글자 제거
-                    await MainActor.run {
-                        updateDisplayKeywords(keywords)
-                    }
+                    candidateKeywords = rawKeywords
+                        .components(separatedBy: CharacterSet(charactersIn: ".,;／/\n\t "))
+                        .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
                 } catch {
-                    // Fallback to contextual extraction if summarizer fails
-                    let keywords = await extractChapterKeywordsContextual(from: chapterText)
-                    await MainActor.run {
-                        updateDisplayKeywords(keywords)
-                    }
+                    candidateKeywords = chapterText.components(separatedBy: .whitespacesAndNewlines)
                 }
             } else {
-                let keywords = await extractChapterKeywordsContextual(from: chapterText)
-                await MainActor.run {
-                    updateDisplayKeywords(keywords)
-                }
+                candidateKeywords = chapterText.components(separatedBy: .whitespacesAndNewlines)
+            }
+            // 🟦 setChapterBullets debug → candidateKeywords count/preview
+            print("🟦 setChapterBullets debug → candidateKeywords count=\(candidateKeywords.count), preview=\(candidateKeywords.prefix(20))")
+
+            // 불용어 + 한 글자 제거 (한국어 + 영어 공통)
+            let stopwords: [String] = [
+                // 한국어 불용어 및 조사/어미
+                "이","그","저","것","등","및","의","에","를","을","로","에서","으로","와","과","도","는","은","가",
+                "한","하다","되다","있다","없는","없는지","되는","되는지","하는","하는지","되는","된","된지","되어","되어서","되며",
+                "그리고","그러나","그러면서","그런데","또는","또","또한","하지만","만약","즉","혹은","때문에","위해","까지","처럼","같이",
+                "중","등등","각","모든","이런","그런","저런","이러한","저러한",
+                // 영어 불용어
+                "the","and","or","of","to","in","on","for","with","a","an","is","are","was","were","be","been","being",
+                "this","that","these","those","it","its","at","by","as","from","but","about","into","over","after","so","such",
+                "if","then","because","therefore","thus","however","while","when","where","which","who","whose","whom",
+                // 불필요한 형용사/부사적 단어
+                "different","various","several","other","many","much","some","any","every","each","good","bad","great","small","big","large",
+                "specific","general","main","important","necessary","possible","typical","common","simple","complex"
+            ]
+            let prelim = candidateKeywords
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty && $0.count > 1 && !stopwords.contains($0.lowercased()) }
+            // 🔹 어미 필터링 (~된, ~하는, ~적인 등)
+            let suffixesToRemove = ["된", "하는", "되는", "적인", "하며", "같은", "하는데"]
+            let prelimFiltered = prelim.filter { word in
+                !suffixesToRemove.contains { word.hasSuffix($0) }
+            }
+            // 🟧 prelim after filtering → count/preview
+            print("🟧 prelim after filtering → count=\(prelimFiltered.count), preview=\(prelimFiltered.prefix(20))")
+
+            // 🔹 특수문자 제거 + stopwords/불필요 단어 제거
+            let additionalStopwords: Set<String> = ["합니다", "있습니다", "해야", "됩니다", "같습니다", "됩니다", "있습니다", "있어요", "입니다", "해요"]
+            let quoteCharacters = CharacterSet(charactersIn: "\"“”‘’`'")
+            let refined = prelimFiltered
+                .map { $0.trimmingCharacters(in: .punctuationCharacters.union(.symbols).union(quoteCharacters)) }
+                .filter { !$0.isEmpty && !additionalStopwords.contains($0) }
+            // 중복 제거, 순서 유지
+            var seen: Set<String> = []
+            let finalKeywords = refined.filter { seen.insert($0).inserted }
+            
+            await MainActor.run {
+                updateKeywords(finalKeywords)
+                print("🟨 refined keywords -> \(finalKeywords)")
             }
         }
     }
