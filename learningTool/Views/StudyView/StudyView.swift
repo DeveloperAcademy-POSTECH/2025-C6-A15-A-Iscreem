@@ -120,8 +120,8 @@ struct StudyView: View {
         }
         .background(Color.background2)
         .keyboardOverlay()
-        // ▼ 전역 입력 바: 키보드 상단(화면 너비=StudyView 기준)에 표시
-        .safeAreaInset(edge: .bottom) {
+        // ▼ 전역 입력 바: 키보드 상단(StudyView 전체 너비) — 키보드 높이에 맞춰 자동 패딩
+        .overlay(alignment: .bottom) {
             if showGlobalQuestionBar {
                 VStack(spacing: 0) {
                     Divider().background(Color.borderColor)
@@ -145,8 +145,10 @@ struct StudyView: View {
                     .padding(16)
                 }
                 .background(Color.background1)
-                .onAppear { globalQuestionFocus = true }            // 전역 바 등장 시 포커스
-                .onChange(of: globalQuestionFocus) { _, focused in   // 키보드 접힘 → 전역 바 닫기
+                .keyboardAdaptivePadding() // 키보드 높이만큼 위로 올리기
+                .zIndex(1000)
+                .onAppear { globalQuestionFocus = true } // 전역 바 등장 시 포커스
+                .onChange(of: globalQuestionFocus) { _, focused in // 키보드 접힘 → 전역 바 닫기
                     if !focused { showGlobalQuestionBar = false }
                 }
             }
