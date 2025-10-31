@@ -470,6 +470,11 @@ struct HomeView: View {
             lastRead: Date(),
             thumbnailURL: youtubeLink
         )
+        if let selected = selectedFolderName,
+           selected != "__ALL__",
+           let target = folders.first(where: { $0.name == selected }) {
+            newNote.folder = target
+        }
         modelContext.insert(newNote)
         onNoteCreated?(newNote)
         
