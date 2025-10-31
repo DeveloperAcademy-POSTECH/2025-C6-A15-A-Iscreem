@@ -30,14 +30,7 @@ struct HomeView: View {
     @State private var isKeyboardVisible: Bool = false
     @State private var keyboardHeight: CGFloat = 0
     
-    enum NoteSortOption: String, CaseIterable {
-        case dateDescending = "최신순"
-        case dateAscending = "오래된순"
-        case nameAscending = "제목 A→Z"
-        case nameDescending = "제목 Z→A"
-    }
-
-    @State private var noteSort: NoteSortOption = .dateDescending
+    @State private var headerSort: HeaderSortOption = .recentlyOpenedDesc
     @State private var showNoteSortMenu = false
     
     // 적응형 그리드
@@ -126,38 +119,21 @@ struct HomeView: View {
                             }
                             .buttonStyle(.plain)
                             .popover(isPresented: $showNoteSortMenu, arrowEdge: .top) {
-                                VStack(spacing: 0) {
-                                    ForEach(NoteSortOption.allCases, id: \.self) { option in
-                                        Button {
-                                            noteSort = option
-                                            showNoteSortMenu = false
-                                        } label: {
-                                            HStack(spacing: 10) {
-                                                if noteSort == option {
-                                                    Image(systemName: "checkmark")
-                                                        .font(.system(size: 12, weight: .bold))
-                                                } else {
-                                                    Color.clear.frame(width: 12, height: 12)
-                                                }
-                                                Text(option.rawValue)
-                                                    .font(.system(size: 14))
-                                                Spacer()
-                                            }
-                                            .padding(.horizontal, 14)
-                                            .padding(.vertical, 10)
-                                            .contentShape(Rectangle())
-                                        }
-                                        .buttonStyle(.plain)
-                                        
-                                        if option != NoteSortOption.allCases.last {
-                                            Divider().background(Color.borderColor)
-                                        }
+                                PopoverMenuContent(
+                                    selectedSort: $headerSort,
+                                    onEditNote: {
+                                        // TODO: hook up to an edit UI if needed
+                                        showNoteSortMenu = false
                                     }
-                                }
-                                .frame(width: 180)
+                                )
+                                .frame(width: 255, height: 270)
                                 .background(Color.background1)
                                 .cornerRadius(14)
                                 .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.borderColor, lineWidth: 1))
+                            }
+                            .onChange(of: headerSort) { _ in
+                                // 선택이 바뀌면 팝오버 닫기
+                                showNoteSortMenu = false
                             }
                             
                             
@@ -334,8 +310,8 @@ struct HomeView: View {
                     ZStack {
                         Color.black.opacity(0.35)
                             .ignoresSafeArea()
-                            .onTapGesture { withAnimation(.easeInOut(duration: 0.2)) { showResetConfirm = false } }
-
+                            .onTapGesture { withAnimation(.easeInOut(duration: 0.2)) { showResetConfirm = false }
+                            }
                         ResetConfirmAlertView(
                             isPresented: $showResetConfirm,
                             onConfirm: {
@@ -516,7 +492,7 @@ struct HomeView: View {
         let q = searchQuery
         let filtered = q.isEmpty ? base : base.filter { matches($0.title, query: q) }
         // 3) 정렬 적용
-        return sortNotes(filtered, by: noteSort)
+        return sortNotes(filtered, by: headerSort)
     }
     
     
@@ -929,16 +905,32 @@ private func isSubsequence(_ small: String, in big: String) -> Bool {
     return false
 }
 
-private func sortNotes(_ input: [Note], by option: HomeView.NoteSortOption) -> [Note] {
+private func sortNotes(_ input: [Note], by option: HeaderSortOption) -> [Note] {
+    func progressValue(_ note: Note) -> Double {
+        // Mirror로 다양한 프로퍼티명을 허용
+        let m = Mirror(reflecting: note)
+        if let p = m.children.first(where: { $0.label == "progress" || $0.label == "percentage" })?.value as? Double {
+            return p <= 1.0 ? (p * 100.0) : p
+        }
+        if let pInt = m.children.first(where: { $0.label == "progressPercent" })?.value as? Int {
+            return Double(pInt)
+        }
+        return 0.0
+    }
+    
     switch option {
-    case .dateDescending:
-        return input.sorted { $0.createdAt > $1.createdAt }
-    case .dateAscending:
-        return input.sorted { $0.createdAt < $1.createdAt }
-    case .nameAscending:
+    case .alphabeticalAsc:
         return input.sorted { $0.title.localizedCompare($1.title) == .orderedAscending }
-    case .nameDescending:
+    case .alphabeticalDesc:
         return input.sorted { $0.title.localizedCompare($1.title) == .orderedDescending }
+    case .recentlyOpenedAsc:
+        return input.sorted { $0.lastRead < $1.lastRead }
+    case .recentlyOpenedDesc:
+        return input.sorted { $0.lastRead > $1.lastRead }
+    case .progressAsc:
+        return input.sorted { progressValue($0) < progressValue($1) }
+    case .progressDesc:
+        return input.sorted { progressValue($0) > progressValue($1) }
     }
 }
 
