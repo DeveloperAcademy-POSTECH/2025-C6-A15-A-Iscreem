@@ -2,7 +2,6 @@ import SwiftUI
 import SwiftData
 
 struct SettingsDetailView: View {
-    @Binding var showResetConfirm: Bool
     @State private var isHelpPresented: Bool = false
     @State private var isFolderDeletePresented: Bool = false
     @State private var folderIDsPendingDelete = Set<PersistentIdentifier>()
@@ -130,7 +129,7 @@ struct SettingsDetailView: View {
                         Spacer()
                         
                         Button {
-                            withAnimation(.easeInOut(duration: 0.2)) { showResetConfirm = true }
+                            // 노트 초기화 로직
                         } label: {
                             Text("초기화")
                                 .font(.system(size: 14, weight: .medium))
@@ -180,7 +179,6 @@ struct SettingsDetailView: View {
 struct SettingView: View {
     enum ThemeOption { case system, light, dark }
     enum LanguageOption { case korean, english }
-    @State private var showResetConfirm: Bool = false
     
     var body: some View {
         NavigationSplitView {
@@ -188,7 +186,7 @@ struct SettingView: View {
                 .navigationSplitViewColumnWidth(min: 280, ideal: 320, max: 400)
                 .toolbar(.hidden, for: .navigationBar)
         } detail: {
-            SettingsDetailView(showResetConfirm: $showResetConfirm)
+            SettingsDetailView()
         }
     }
 }
@@ -231,106 +229,8 @@ struct LanguageButton: View {
     }
 }
 
-// MARK: - Reset Confirm Alert (Centered Card)
-struct ResetConfirmAlertView: View {
-    @Binding var isPresented: Bool
-    var onConfirm: (() -> Void)? = nil
-
-    @State private var confirmationText: String = ""
-    private let requiredText = "초기화를 진행 하겠습니다."
-
-    var body: some View {
-        VStack(spacing: 0) {
-            // Title & description
-            VStack(alignment: .leading, spacing: 12) {
-                Text("모든 노트가 초기화 됩니다!")
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(Color.text1)
-
-                Text("이 작업은 실행 이후 복구할 수 없습니다.")
-                    .font(.system(size: 14))
-                    .foregroundStyle(Color.text2)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 20)
-            .padding(.top, 22)
-
-            Spacer(minLength: 8)
-
-            // Input area
-            VStack(alignment: .leading, spacing: 0) {
-                Text(requiredText)
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(Color.text1)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                Divider().background(Color.borderColor).padding(.vertical, 10)
-
-                TextField("위 문장을 입력하세요.", text: $confirmationText, axis: .horizontal)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled(true)
-                    .font(.system(size: 15))
-                    .foregroundStyle(Color.text1)
-                    .padding(.vertical, 8)
-            }
-            .padding(16)
-            .background(Color.background2)
-            .cornerRadius(14)
-            .padding(.horizontal, 20)
-
-            Spacer(minLength: 8)
-
-            // Buttons
-            HStack(spacing: 12) {
-                Button {
-                    withAnimation(.easeInOut(duration: 0.2)) { isPresented = false }
-                } label: {
-                    Text("취소")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(Color.text1)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(Color.gray.opacity(0.2))
-                        .cornerRadius(14)
-                }
-                .buttonStyle(.plain)
-
-                Button {
-                    onConfirm?()
-                } label: {
-                    Text("초기화")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(isValid ? Color.errorColor : Color.text3.opacity(0.5))
-                        .cornerRadius(14)
-                }
-                .buttonStyle(.plain)
-                .disabled(!isValid)
-            }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 16)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .frame(width: 360, height: 330)
-        .background(Color(.systemBackground))
-        .cornerRadius(20)
-        .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.borderColor, lineWidth: 1))
-    }
-
-    private var isValid: Bool {
-        confirmationText.trimmingCharacters(in: .whitespacesAndNewlines) == requiredText
-    }
-}
-
 #Preview(traits: .landscapeLeft) {
     SettingView()
-}
-
-#Preview(traits: .landscapeLeft) {
-    SettingsDetailView(showResetConfirm: .constant(false))
 }
 
 

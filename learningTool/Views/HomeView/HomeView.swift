@@ -49,7 +49,6 @@ struct HomeView: View {
     @State private var isShowingSettings: Bool = false
     @State private var isFolderDeletePresented: Bool = false
     @State private var folderIDsPendingDelete = Set<PersistentIdentifier>()
-    @State private var showResetConfirm: Bool = false
 
     var body: some View {
         NavigationSplitView {
@@ -259,7 +258,7 @@ struct HomeView: View {
                     }
                 }
                 if isShowingSettings {
-                    SettingsDetailView(showResetConfirm: $showResetConfirm)
+                    SettingsDetailView()
                         .transition(.opacity)
                         .background(Color(.systemBackground))
                 }
