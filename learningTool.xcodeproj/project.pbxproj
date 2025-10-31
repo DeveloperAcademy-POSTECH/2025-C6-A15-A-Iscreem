@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		684152A72EB47D0D00075A8F /* HeaderComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 684152A62EB47CED00075A8F /* HeaderComponents.swift */; };
 		68AE7A142EB2788B008FF275 /* QuestionInputBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68AE7A132EB27874008FF275 /* QuestionInputBar.swift */; };
 		68AE7A162EB285E8008FF275 /* View+Corners.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68AE7A152EB285E1008FF275 /* View+Corners.swift */; };
 		68AE7A182EB28664008FF275 /* ChatBubble.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68AE7A172EB28663008FF275 /* ChatBubble.swift */; };
@@ -51,6 +52,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		684152A62EB47CED00075A8F /* HeaderComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeaderComponents.swift; sourceTree = "<group>"; };
 		68AE7A132EB27874008FF275 /* QuestionInputBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestionInputBar.swift; sourceTree = "<group>"; };
 		68AE7A152EB285E1008FF275 /* View+Corners.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "View+Corners.swift"; sourceTree = "<group>"; };
 		68AE7A172EB28663008FF275 /* ChatBubble.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatBubble.swift; sourceTree = "<group>"; };
@@ -109,6 +111,7 @@
 		68B08B3E2EB083F50067AD9E /* Components */ = {
 			isa = PBXGroup;
 			children = (
+				684152A62EB47CED00075A8F /* HeaderComponents.swift */,
 				68B08B3B2EB083F50067AD9E /* KeywordViewComponent.swift */,
 				68B08B3C2EB083F50067AD9E /* NoteComponent.swift */,
 				68B08B3D2EB083F50067AD9E /* QuestionBubbleComponent.swift */,
@@ -345,6 +348,7 @@
 				68B08B782EB083F50067AD9E /* HomeViewModel.swift in Sources */,
 				68B08B792EB083F50067AD9E /* QuestionViewModel.swift in Sources */,
 				68AE7A162EB285E8008FF275 /* View+Corners.swift in Sources */,
+				684152A72EB47D0D00075A8F /* HeaderComponents.swift in Sources */,
 				68B08B7A2EB083F50067AD9E /* SidebarViewModel.swift in Sources */,
 				68AE7A1A2EB2870E008FF275 /* QuestionHeaderBar.swift in Sources */,
 				68B08B7B2EB083F50067AD9E /* StudyViewModel.swift in Sources */,
