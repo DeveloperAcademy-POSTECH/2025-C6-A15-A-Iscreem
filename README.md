@@ -41,6 +41,8 @@ Attach videos if you are available
 <img width="964" height="714" alt="스크린샷 2025-10-22 오후 6 42 02" src="https://github.com/user-attachments/assets/f1964cf2-90f7-489a-ad17-66748b5a1bb9" />
 
 <video src="https://github.com/user-attachments/assets/3f8f7ee3-317a-417a-b368-a337a972d227" width="920" controls playsinline></video>
+<video src="https://raw.githubusercontent.com/<USER>/<REPO>/<BRANCH>/assets/KakaoTalk_Video_2025-10-28-17-52-00.mp4"
+       width="920" autoplay loop muted playsinline></video>
 
 
 ## :pushpin: Features
