@@ -10,6 +10,7 @@
 		684152A72EB47D0D00075A8F /* HeaderComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 684152A62EB47CED00075A8F /* HeaderComponents.swift */; };
 		685FD1E02EB4949E00132910 /* SettingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 685FD1DE2EB4949E00132910 /* SettingView.swift */; };
 		685FD1E12EB4949E00132910 /* ViewModelToggle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 685FD1DF2EB4949E00132910 /* ViewModelToggle.swift */; };
+		685FD2492EB4B1AD00132910 /* NoteEditView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 685FD2482EB4B1AD00132910 /* NoteEditView.swift */; };
 		68AE7A142EB2788B008FF275 /* QuestionInputBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68AE7A132EB27874008FF275 /* QuestionInputBar.swift */; };
 		68AE7A162EB285E8008FF275 /* View+Corners.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68AE7A152EB285E1008FF275 /* View+Corners.swift */; };
 		68AE7A182EB28664008FF275 /* ChatBubble.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68AE7A172EB28663008FF275 /* ChatBubble.swift */; };
@@ -57,6 +58,7 @@
 		684152A62EB47CED00075A8F /* HeaderComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeaderComponents.swift; sourceTree = "<group>"; };
 		685FD1DE2EB4949E00132910 /* SettingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingView.swift; sourceTree = "<group>"; };
 		685FD1DF2EB4949E00132910 /* ViewModelToggle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModelToggle.swift; sourceTree = "<group>"; };
+		685FD2482EB4B1AD00132910 /* NoteEditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteEditView.swift; sourceTree = "<group>"; };
 		68AE7A132EB27874008FF275 /* QuestionInputBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestionInputBar.swift; sourceTree = "<group>"; };
 		68AE7A152EB285E1008FF275 /* View+Corners.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "View+Corners.swift"; sourceTree = "<group>"; };
 		68AE7A172EB28663008FF275 /* ChatBubble.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatBubble.swift; sourceTree = "<group>"; };
@@ -180,6 +182,7 @@
 		68B08B582EB083F50067AD9E /* HomeView */ = {
 			isa = PBXGroup;
 			children = (
+				685FD2482EB4B1AD00132910 /* NoteEditView.swift */,
 				685FD1DE2EB4949E00132910 /* SettingView.swift */,
 				685FD1DF2EB4949E00132910 /* ViewModelToggle.swift */,
 				68B08B562EB083F50067AD9E /* HomeView.swift */,
@@ -331,6 +334,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				685FD2492EB4B1AD00132910 /* NoteEditView.swift in Sources */,
 				68B08B692EB083F50067AD9E /* KeywordViewComponent.swift in Sources */,
 				68B08B6A2EB083F50067AD9E /* NoteComponent.swift in Sources */,
 				68B08B6B2EB083F50067AD9E /* QuestionBubbleComponent.swift in Sources */,
