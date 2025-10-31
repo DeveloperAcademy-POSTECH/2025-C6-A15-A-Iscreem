@@ -44,12 +44,13 @@ struct HomeView: View {
         self.onNoteSelected = onNoteSelected
         self.onNoteCreated = onNoteCreated
     }
-
+    
     @State private var isHelpPresented: Bool = false
     @State private var isShowingSettings: Bool = false
     @State private var isFolderDeletePresented: Bool = false
     @State private var folderIDsPendingDelete = Set<PersistentIdentifier>()
-
+    @State private var showResetConfirm: Bool = false
+    
     var body: some View {
         NavigationSplitView {
             SidebarView(onFolderSelected: { name in
@@ -258,7 +259,7 @@ struct HomeView: View {
                     }
                 }
                 if isShowingSettings {
-                    SettingsDetailView()
+                    SettingsDetailView(showResetConfirm: $showResetConfirm)
                         .transition(.opacity)
                         .background(Color(.systemBackground))
                 }
@@ -373,27 +374,27 @@ struct HomeView: View {
                         .onTapGesture {
                             withAnimation(.easeInOut(duration: 0.2)) { showCreateNote = false }
                         }
-
+                    
                     VStack(alignment: .trailing, spacing: 20) {
                         CreateNoteView(youtubeLink: $youtubeLink, noteTitle: $noteTitle)
-
+                        
                         // 노트 생성 버튼
                         Button(action: {
-                             createNoteTapped()
+                            createNoteTapped()
                         }) {
-                           HStack(spacing: 6) {
-                               Image(systemName: "arrow.right")
-                                   .font(.system(size: 14, weight: .semibold))
-                               Text("노트 생성")
-                                   .font(.system(size: 15, weight: .semibold))
-                           }
+                            HStack(spacing: 6) {
+                                Image(systemName: "arrow.right")
+                                    .font(.system(size: 14, weight: .semibold))
+                                Text("노트 생성")
+                                    .font(.system(size: 15, weight: .semibold))
+                            }
                             .foregroundStyle(.white)
                             .padding(.horizontal, 28)
                             .padding(.vertical, 12)
                             .background(Color.secondColor)
                             .cornerRadius(20)
                         }
-                       .disabled(!isFormValid)
+                        .disabled(!isFormValid)
                     }
                     // ⬇️ 기본은 화면 중앙에, 키보드가 올라오면 자동으로 위로 밀려 올라가도록 처리
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: isKeyboardVisible ? .bottom : .center)
@@ -460,24 +461,24 @@ struct HomeView: View {
     }
     
     private var isFormValid: Bool {
-            !youtubeLink.isEmpty && !noteTitle.isEmpty
-        }
-
-        private func createNoteTapped() {
-            let newNote = Note(
-                title: noteTitle,
-                lastRead: Date(),
-                thumbnailURL: youtubeLink
-            )
-            modelContext.insert(newNote)
-            onNoteCreated?(newNote)
-
-            // reset
-            youtubeLink = ""
-            noteTitle = ""
-
-            withAnimation(.easeInOut(duration: 0.2)) { showCreateNote = false }
-        }
+        !youtubeLink.isEmpty && !noteTitle.isEmpty
+    }
+    
+    private func createNoteTapped() {
+        let newNote = Note(
+            title: noteTitle,
+            lastRead: Date(),
+            thumbnailURL: youtubeLink
+        )
+        modelContext.insert(newNote)
+        onNoteCreated?(newNote)
+        
+        // reset
+        youtubeLink = ""
+        noteTitle = ""
+        
+        withAnimation(.easeInOut(duration: 0.2)) { showCreateNote = false }
+    }
     
     private var filteredNotes: [Note] {
         // 1) 폴더 선택 필터
@@ -588,7 +589,7 @@ struct HomeView: View {
                 }
         }
     }
-
+    
     // MARK: - List Thumbnail Helpers
     @ViewBuilder
     private func thumbnailView(for note: Note) -> some View {
@@ -623,17 +624,17 @@ struct HomeView: View {
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Color.text3)
                 .frame(minWidth: 260, maxWidth: .infinity, alignment: .leading)
-
+            
             Text("강의 길이")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Color.text3)
                 .frame(width: 72, alignment: .trailing)
-
+            
             Text("수강률")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Color.text3)
                 .frame(width: 72, alignment: .trailing)
-
+            
             Text("최근 학습 일시")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Color.text3)
@@ -643,7 +644,7 @@ struct HomeView: View {
         .padding(.vertical, 10)
         .background(Color.background1)
     }
-
+    
     private var placeholderThumbnail: some View {
         ZStack {
             Rectangle()
@@ -657,7 +658,7 @@ struct HomeView: View {
                 .foregroundStyle(Color.text3)
         }
     }
-
+    
     /// Try to resolve a thumbnail URL for a note:
     /// 1) If the model has `thumbnailURL`/`thumbnailUrl` (String), use it directly.
     /// 2) Else, try to find a YouTube-like link property (`youtubeURL`, `videoURL`, `url`, `link`, ...),
@@ -667,24 +668,24 @@ struct HomeView: View {
         var thumbString: String?
         var linkString: String?
         var youtubeId: String?
-
+        
         for child in mirror.children {
             guard let label = child.label else { continue }
-
+            
             // 직접 썸네일 URL을 저장하는 경우
             if thumbString == nil,
                (label == "thumbnailURL" || label == "thumbnailUrl"),
                let s = child.value as? String, !s.isEmpty {
                 thumbString = s
             }
-
+            
             // 임의의 문자열 필드에 유튜브 링크가 들어있는 경우 (heurstics)
             if linkString == nil,
                let s = child.value as? String,
                s.lowercased().contains("youtu") {
                 linkString = s
             }
-
+            
             // 영상 id만 저장하는 경우
             if youtubeId == nil,
                ["youtubeID","youtubeId","videoID","videoId"].contains(label),
@@ -692,13 +693,13 @@ struct HomeView: View {
                 youtubeId = s
             }
         }
-
+        
         if let t = thumbString, let u = URL(string: t) { return u }
         if let id = youtubeId, let u = URL(string: "https://img.youtube.com/vi/\(id)/hqdefault.jpg") { return u }
         if let l = linkString, let u = YouTubeThumbnail.thumbnailURL(from: l) { return u }
         return nil
     }
-
+    
     @ViewBuilder
     private func noteRow(_ note: Note) -> some View {
         HStack(spacing: 12) {
@@ -707,26 +708,26 @@ struct HomeView: View {
                 thumbnailView(for: note)
                     .frame(width: 56, height: 56)
                     .cornerRadius(8)
-
+                
                 Text(note.title)
                     .font(.system(size: 16, weight: .medium))
                     .foregroundStyle(Color.text1)
                     .lineLimit(1)
             }
             .frame(minWidth: 260, maxWidth: .infinity, alignment: .leading)
-
+            
             // 2) 강의 길이
             Text(durationText(for: note))
                 .font(.system(size: 14))
                 .foregroundStyle(Color.text2)
                 .frame(width: 72, alignment: .trailing)
-
+            
             // 3) 수강률
             Text(progressText(for: note))
                 .font(.system(size: 14))
                 .foregroundStyle(Color.text2)
                 .frame(width: 72, alignment: .trailing)
-
+            
             // 4) 최근 학습 일시
             Text(lastReadText(for: note))
                 .font(.system(size: 14))
@@ -747,7 +748,7 @@ struct HomeView: View {
             }
         }
     }
-
+    
     @ViewBuilder
     private func homeItemRow(_ item: HomeItem) -> some View {
         switch item {
@@ -767,14 +768,14 @@ struct HomeView: View {
                             .cornerRadius(8)
                             .overlay(RoundedRectangle(cornerRadius: 8)
                                 .stroke(Color.borderColor, lineWidth: 1))
-
+                        
                         Text(folder.name)
                             .font(.system(size: 16, weight: .medium))
                             .foregroundStyle(Color.text1)
                             .lineLimit(1)
                     }
                     .frame(minWidth: 260, maxWidth: .infinity, alignment: .leading)
-
+                    
                     // 우측 컬럼 (폴더는 표시값 없음)
                     Text("—").frame(width: 72, alignment: .trailing).foregroundStyle(Color.text3)
                     Text("—").frame(width: 72, alignment: .trailing).foregroundStyle(Color.text3)
@@ -786,7 +787,7 @@ struct HomeView: View {
                 .padding(.vertical, 10)
             }
             .buttonStyle(.plain)
-
+            
         case .note(let n):
             noteRow(n)
         }
@@ -813,7 +814,7 @@ private func jamoKey(_ s: String) -> String {
     let LBase: UInt32 = 0x1100/*, LCount: UInt32 = 19*/
     let VBase: UInt32 = 0x1161, VCount: UInt32 = 21
     let TBase: UInt32 = 0x11A7, TCount: UInt32 = 28
-//    let NCount: UInt32 = VCount * TCount // 588
+    //    let NCount: UInt32 = VCount * TCount // 588
     
     // Compatibility Jamo → Modern Jamo (subset: initials & vowels)
     let compToModern: [UInt32: UInt32] = [
@@ -935,7 +936,7 @@ private func sortNotes(_ input: [Note], by option: HeaderSortOption) -> [Note] {
 
 private func durationText(for note: Note) -> String {
     let m = Mirror(reflecting: note)
-
+    
     if let secs = m.children.first(where: { $0.label == "duration" || $0.label == "length" })?.value as? TimeInterval {
         let mm = Int(secs) / 60
         let ss = Int(secs) % 60
@@ -949,7 +950,7 @@ private func durationText(for note: Note) -> String {
 
 private func progressText(for note: Note) -> String {
     let m = Mirror(reflecting: note)
-
+    
     if let p = m.children.first(where: { $0.label == "progress" || $0.label == "percentage" })?.value as? Double {
         // 0.0~1.0 또는 0~100 모두 허용
         let v = p <= 1.0 ? (p * 100.0) : p
