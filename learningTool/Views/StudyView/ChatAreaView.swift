@@ -82,10 +82,6 @@ struct ChatAreaView: View {
                     withAnimation { proxy.scrollTo("loading", anchor: .bottom) }
                 } else if let last = messages.last {
                     withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
-                    // 응답 직후 입력창에 포커스
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                        isTextFieldFocused = true
-                    }
                 }
             }
             // Keyboard dismiss and tap-to-dismiss modifiers
