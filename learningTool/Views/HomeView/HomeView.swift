@@ -334,8 +334,8 @@ struct HomeView: View {
                     ZStack {
                         Color.black.opacity(0.35)
                             .ignoresSafeArea()
-                            .onTapGesture { withAnimation(.easeInOut(duration: 0.2)) { showResetConfirm = false } }
-
+                            .onTapGesture { withAnimation(.easeInOut(duration: 0.2)) { showResetConfirm = false }
+                            }
                         ResetConfirmAlertView(
                             isPresented: $showResetConfirm,
                             onConfirm: {
