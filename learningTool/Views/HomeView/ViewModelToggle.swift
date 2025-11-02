@@ -5,8 +5,14 @@
 //  Created by Yulim KIm on 10/28/25.
 //
 
-import SwiftUI
+//
+//  ViewModeToggle.swift
+//  learningTool
+//
+//  Created by Yulim Kim on 10/28/25.
+//
 
+import SwiftUI
 
 struct ViewModeToggle: View {
     @Binding var selection: HomeViewModel.ViewMode
@@ -27,7 +33,6 @@ struct ViewModeToggle: View {
                 .fill(Color.background2)
                 .overlay(Capsule().stroke(Color.borderColor, lineWidth: 1))
 
-            // Two equal slots + moving thumb
             HStack(spacing: 0) {
                 ForEach(items, id: \.self) { mode in
                     ZStack {
