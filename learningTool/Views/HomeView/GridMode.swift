@@ -45,18 +45,13 @@ extension HomeView {
                     NoteComponent(note: note)
                         .onTapGesture { onNoteSelected?(note) }
                         .contextMenu {
-                            // 🔵 컨텍스트 메뉴 버튼들
-                            Button {
+                            Button("이름 변경") {
                                 noteToRename.wrappedValue = note
                                 renameText.wrappedValue = note.title
-                            } label: {
-                                Label("이름 변경", systemImage: "pencil")
                             }
-                            Button(role: .destructive) {
+                            Button("삭제", role: .destructive) {
                                 modelContext.delete(note)
                                 try? modelContext.save()
-                            } label: {
-                                Label("삭제", systemImage: "trash")
                             }
                         }
                 }
@@ -93,33 +88,26 @@ extension HomeView {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(14)
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+                .background(Color.background2)
+                .cornerRadius(12)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .strokeBorder(.white.opacity(0.2), lineWidth: 0.5)
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.borderColor, lineWidth: 1)
                 )
             }
-            .buttonStyle(.plain)
-            .shadow(color: .black.opacity(0.06), radius: 8, x: 0, y: 2)
-            
         case .note(let note):
             NoteComponent(note: note)
                 .onTapGesture {
                     onNoteSelected?(note)
                 }
                 .contextMenu {
-                    // 🔵 컨텍스트 메뉴 버튼들
-                    Button {
+                    Button("이름 변경") {
                         noteToRename.wrappedValue = note
                         renameText.wrappedValue = note.title
-                    } label: {
-                        Label("이름 변경", systemImage: "pencil")
                     }
-                    Button(role: .destructive) {
+                    Button("삭제", role: .destructive) {
                         modelContext.delete(note)
                         try? modelContext.save()
-                    } label: {
-                        Label("삭제", systemImage: "trash")
                     }
                 }
         }

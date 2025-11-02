@@ -100,18 +100,6 @@ struct HomeView: View {
             addButton
                 .ignoresSafeArea(.keyboard, edges: .bottom)
         }
-        .background {
-            LinearGradient(
-                colors: [
-                    Color.black.opacity(0.12),
-                    Color.blue.opacity(0.10)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-            .backgroundExtensionEffect()
-        }
         .navigationSplitViewStyle(.balanced)
         .keyboardOverlay()
         .applyOverlays(
@@ -149,18 +137,6 @@ struct HomeView: View {
                 isShowingSettings = true
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: .hideSettings)) { _ in
-            withAnimation(.easeInOut(duration: 0.2)) {
-                isShowingSettings = false
-            }
-        }
-        .onAppear {
-            // 앱 시작 직후 ‘전체 보기’로 진입 → + 버튼 보이게
-            if selectedFolderName == nil {
-                selectedFolderName = "__ALL__"
-                headerSubtitle = "전체 보기"
-            }
-        }
     }
     
     // MARK: - Header View
@@ -180,7 +156,7 @@ struct HomeView: View {
             
             HStack(spacing: 12) {
                 searchBar
-                sortButton // 정렬 버튼
+                sortButton
                 ViewModeToggle(selection: $viewModel.selectedViewMode) { mode in
                     viewModel.viewModeButtonTapped(mode)
                 }
@@ -190,7 +166,6 @@ struct HomeView: View {
         .padding()
     }
     
-    // MARK: - 검색바
     private var searchBar: some View {
         HStack {
             Image(systemName: "magnifyingglass")
@@ -202,15 +177,10 @@ struct HomeView: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .frame(minWidth: 220, maxWidth: 320)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .strokeBorder(.white.opacity(0.2), lineWidth: 0.5)
-        )
-        .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 2)
+        .background(Color.background2)
+        .cornerRadius(8)
     }
     
-    // MARK: - 정렬 버튼
     private var sortButton: some View {
         Button {
             showNoteSortMenu.toggle()
@@ -219,14 +189,11 @@ struct HomeView: View {
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(Color.text2)
                 .frame(width: 36, height: 36)
-                .background(.ultraThinMaterial, in: Circle())
-                .overlay(
-                    Circle()
-                        .strokeBorder(.white.opacity(0.2), lineWidth: 0.5)
-                )
+                .background(Color.background2)
+                .clipShape(Circle())
+                .overlay(Circle().stroke(Color.borderColor, lineWidth: 1))
         }
         .buttonStyle(.plain)
-        .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 2)
         .popover(isPresented: $showNoteSortMenu, arrowEdge: .top) {
             PopoverMenuContent(
                 selectedSort: $headerSort,
@@ -235,12 +202,9 @@ struct HomeView: View {
                 }
             )
             .frame(width: 255, height: 270)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
-            .overlay(
-                RoundedRectangle(cornerRadius: 14)
-                    .strokeBorder(.white.opacity(0.2), lineWidth: 0.5)
-            )
-            .shadow(color: .black.opacity(0.15), radius: 20, x: 0, y: 8)
+            .background(Color.background1)
+            .cornerRadius(14)
+            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.borderColor, lineWidth: 1))
         }
         .onChange(of: headerSort) { _ in
             showNoteSortMenu = false
@@ -320,41 +284,21 @@ struct HomeView: View {
         .offset(y: -50)
     }
     
-    // Add button visibility: hide on Settings, show on Home (전체 보기)
-    private var shouldShowAddButton: Bool {
-        // isAllView is true when selectedFolderName == "__ALL__"
-        // Hide when Settings overlay is showing
-        return !isShowingSettings && isAllView
-    }
-    // 🔵 추가 버튼 (Gradient + Floating)
+    // MARK: - Add Button
     private var addButton: some View {
         Button {
             viewModel.addButtonTapped()
             withAnimation(.easeInOut(duration: 0.2)) { showCreateNote = true }
         } label: {
             Image(systemName: "plus")
-                .font(.system(size: 30, weight: .semibold))
+                .font(.system(size: 22))
                 .foregroundStyle(.white)
                 .frame(width: 60, height: 60)
-                .background(
-                    LinearGradient(
-                        colors: [Color.secondColor, Color.secondColor.opacity(0.85)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    in: Circle()
-                )
-                .overlay(
-                    Circle()
-                        .strokeBorder(.white.opacity(0.3), lineWidth: 1)
-                )
+                .background(Color.secondColor)
+                .clipShape(Circle())
+                .shadow(color: Color.secondColor.opacity(0.4), radius: 8, x: 0, y: 4)
         }
-        .buttonStyle(.plain)
         .padding(32)
-        // Hide when Settings is open, show again on Home (전체 보기)
-        .opacity(shouldShowAddButton ? 1 : 0)
-        .allowsHitTesting(shouldShowAddButton)
-        .animation(.easeInOut(duration: 0.2), value: shouldShowAddButton)
     }
     
     // MARK: - Actions
@@ -376,42 +320,6 @@ struct HomeView: View {
         noteTitle = ""
         
         withAnimation(.easeInOut(duration: 0.2)) { showCreateNote = false }
-    }
-}
-
-// MARK: - Consolidated App Root (moved from ContentView)
-extension HomeView {
-    struct AppRootView: View {
-        @State private var selectedNote: Note?
-        @State private var showStudyView = false
-        
-        var body: some View {
-            ScaledContainer(baseSize: CGSize(width: 1366, height: 1024),
-                            minScale: 0.78,  // 터치 최소 44pt 근사 유지용(원하면 0.75~0.85 사이 조절)
-                            maxScale: 1.0,
-                            alignment: .topLeading) {
-                ZStack {
-                    if showStudyView, let note = selectedNote {
-                        StudyView(note: note) {
-                            showStudyView = false
-                            selectedNote = nil
-                        }
-                    } else {
-                        HomeView(
-                            onNoteSelected: { note in
-                                selectedNote = note
-                                withAnimation { showStudyView = true }
-                            },
-                            onNoteCreated: { note in
-                                selectedNote = note
-                                withAnimation { showStudyView = true }
-                            }
-                        )
-                    }
-                }
-            }
-            .keyboardOverlay()
-        }
     }
 }
 

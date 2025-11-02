@@ -104,12 +104,9 @@ struct HelpOverlay: View {
                     width: min(680, geometry.size.width * 0.70),
                     height: min(620, geometry.size.height * 0.78)
                 )
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20)
-                        .strokeBorder(.white.opacity(0.3), lineWidth: 1)
-                )
-                .shadow(color: .black.opacity(0.25), radius: 30, x: 0, y: 15)
+                .background(Color.background1)
+                .cornerRadius(20)
+                .shadow(color: Color.black.opacity(0.25), radius: 18, x: 0, y: 10)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .transition(.opacity.combined(with: .scale))
@@ -153,12 +150,7 @@ struct ResetConfirmOverlay: View {
                     width: min(420, geo.size.width * 0.70),
                     height: 340
                 )
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20)
-                        .strokeBorder(.white.opacity(0.3), lineWidth: 1)
-                )
-                .shadow(color: .black.opacity(0.25), radius: 30, x: 0, y: 15)
+                .shadow(color: Color.black.opacity(0.25), radius: 18, x: 0, y: 10)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .transition(.opacity.combined(with: .scale))
@@ -166,7 +158,7 @@ struct ResetConfirmOverlay: View {
     }
 }
 
-// MARK: - 🔵 Create Note Overlay (노트 생성 오버레이)
+// MARK: - Create Note Overlay
 struct CreateNoteOverlay: View {
     @Binding var showCreateNote: Bool
     @Binding var youtubeLink: String
@@ -200,29 +192,10 @@ struct CreateNoteOverlay: View {
                     .foregroundStyle(.white)
                     .padding(.horizontal, 28)
                     .padding(.vertical, 12)
-                    .background(
-                        ZStack {
-                            // Gradient background
-                            LinearGradient(
-                                colors: [
-                                    Color.secondColor,
-                                    Color.secondColor.opacity(0.85)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                            Color.white.opacity(0.1)
-                        }
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 20))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 20)
-                            .strokeBorder(.white.opacity(0.3), lineWidth: 1)
-                    )
+                    .background(Color.secondColor)
+                    .cornerRadius(20)
                 }
-                .buttonStyle(.plain)
                 .disabled(!isFormValid)
-                .opacity(isFormValid ? 1.0 : 0.5)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: isKeyboardVisible ? .bottom : .center)
             .padding(.horizontal, 24)
@@ -246,7 +219,7 @@ struct CreateNoteOverlay: View {
     }
 }
 
-// MARK: - Rename Note Sheet (이름 변경 시트)
+// MARK: - Rename Note Sheet
 struct RenameNoteSheet: View {
     let note: Note
     @Binding var noteToRename: Note?
@@ -255,38 +228,21 @@ struct RenameNoteSheet: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("노트 이름 변경")
-                .font(.title3.weight(.semibold))
-            
+            Text("노트 이름 변경").font(.title3)
             TextField("제목", text: $renameText)
                 .textFieldStyle(.roundedBorder)
-                .padding(.vertical, 4)
-            
-            HStack(spacing: 12) {
+            HStack {
                 Spacer()
-                
-                // 취소 버튼 (Liquid Glass)
-                Button("취소") {
-                    noteToRename = nil
-                }
-                .buttonStyle(.bordered)
-                .tint(.secondary)
-                
-                // 저장 버튼 (Liquid Glass + Accent)
-                Button {
+                Button("취소") { noteToRename = nil }
+                Button("저장") {
                     note.title = renameText
                     try? modelContext.save()
                     noteToRename = nil
-                } label: {
-                    Text("저장")
-                        .fontWeight(.semibold)
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(Color.secondColor)
             }
         }
-        .padding(24)
-        .frame(minWidth: 360)
-        .background(.ultraThinMaterial)
+        .padding()
+        .frame(minWidth: 320)
     }
 }
