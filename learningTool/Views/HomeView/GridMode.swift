@@ -45,13 +45,18 @@ extension HomeView {
                     NoteComponent(note: note)
                         .onTapGesture { onNoteSelected?(note) }
                         .contextMenu {
-                            Button("이름 변경") {
+                            // 🔵 컨텍스트 메뉴 버튼들
+                            Button {
                                 noteToRename.wrappedValue = note
                                 renameText.wrappedValue = note.title
+                            } label: {
+                                Label("이름 변경", systemImage: "pencil")
                             }
-                            Button("삭제", role: .destructive) {
+                            Button(role: .destructive) {
                                 modelContext.delete(note)
                                 try? modelContext.save()
+                            } label: {
+                                Label("삭제", systemImage: "trash")
                             }
                         }
                 }
@@ -60,6 +65,7 @@ extension HomeView {
         .padding()
     }
     
+    // MARK: - 🔵 Grid Item View (폴더/노트 타일)
     @ViewBuilder
     func homeItemView(
         _ item: HomeItem,
@@ -72,6 +78,7 @@ extension HomeView {
     ) -> some View {
         switch item {
         case .folder(let folder):
+            // 🔵 폴더 타일 버튼 (Liquid Glass)
             Button {
                 selectedFolderName.wrappedValue = folder.name
                 headerSubtitle.wrappedValue = folder.name
@@ -86,26 +93,33 @@ extension HomeView {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(14)
-                .background(Color.background2)
-                .cornerRadius(12)
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.borderColor, lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 16)
+                        .strokeBorder(.white.opacity(0.2), lineWidth: 0.5)
                 )
             }
+            .buttonStyle(.plain)
+            .shadow(color: .black.opacity(0.06), radius: 8, x: 0, y: 2)
+            
         case .note(let note):
             NoteComponent(note: note)
                 .onTapGesture {
                     onNoteSelected?(note)
                 }
                 .contextMenu {
-                    Button("이름 변경") {
+                    // 🔵 컨텍스트 메뉴 버튼들
+                    Button {
                         noteToRename.wrappedValue = note
                         renameText.wrappedValue = note.title
+                    } label: {
+                        Label("이름 변경", systemImage: "pencil")
                     }
-                    Button("삭제", role: .destructive) {
+                    Button(role: .destructive) {
                         modelContext.delete(note)
                         try? modelContext.save()
+                    } label: {
+                        Label("삭제", systemImage: "trash")
                     }
                 }
         }

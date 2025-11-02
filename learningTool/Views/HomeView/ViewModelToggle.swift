@@ -30,15 +30,23 @@ struct ViewModeToggle: View {
 
         ZStack {
             Capsule()
-                .fill(Color.background2)
-                .overlay(Capsule().stroke(Color.borderColor, lineWidth: 1))
+                .fill(.ultraThinMaterial.opacity(0.5))
+                .background(
+                    Capsule()
+                        .fill(.ultraThinMaterial.opacity(0.5))
+                        .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
+                )
+                .overlay(
+                    Capsule()
+                        .stroke(Color.borderColor.opacity(0.5), lineWidth: 1)
+                )
 
             HStack(spacing: 0) {
                 ForEach(items, id: \.self) { mode in
                     ZStack {
                         if selection == mode {
                             RoundedRectangle(cornerRadius: (Layout.height - 8) / 2)
-                                .fill(Color.white)
+                                .fill(Color.white.opacity(0.85))
                                 .matchedGeometryEffect(id: "thumb", in: ns)
                                 .padding(4)
                         }

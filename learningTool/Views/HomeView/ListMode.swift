@@ -63,6 +63,7 @@ extension HomeView {
         }
     }
     
+    // MARK: - List Header Row
     @ViewBuilder
     func listHeaderRow() -> some View {
         HStack {
@@ -91,6 +92,7 @@ extension HomeView {
         .background(Color.background1)
     }
     
+    // MARK: - 🔵 Note Row (리스트 모드 노트 행)
     @ViewBuilder
     func noteRow(
         _ note: Note,
@@ -128,20 +130,31 @@ extension HomeView {
                 .frame(width: 110, alignment: .trailing)
         }
         .padding(.vertical, 10)
+        .padding(.horizontal, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(Color.clear)
+        )
         .contentShape(Rectangle())
         .onTapGesture { onNoteSelected?(note) }
         .contextMenu {
-            Button("이름 변경") {
+            // 🔵 컨텍스트 메뉴 버튼들
+            Button {
                 noteToRename.wrappedValue = note
                 renameText.wrappedValue = note.title
+            } label: {
+                Label("이름 변경", systemImage: "pencil")
             }
-            Button("삭제", role: .destructive) {
+            Button(role: .destructive) {
                 modelContext.delete(note)
                 try? modelContext.save()
+            } label: {
+                Label("삭제", systemImage: "trash")
             }
         }
     }
     
+    // MARK: - 🔵 Home Item Row (폴더/노트 행)
     @ViewBuilder
     func homeItemRow(
         _ item: HomeItem,
@@ -154,6 +167,7 @@ extension HomeView {
     ) -> some View {
         switch item {
         case .folder(let folder):
+            // 🔵 폴더 행 버튼 (Liquid Glass 효과)
             Button {
                 selectedFolderName.wrappedValue = folder.name
                 headerSubtitle.wrappedValue = folder.name
@@ -164,10 +178,11 @@ extension HomeView {
                             .font(.system(size: 20, weight: .semibold))
                             .foregroundStyle(Color.text2)
                             .frame(width: 56, height: 56)
-                            .background(Color.background2)
-                            .cornerRadius(8)
-                            .overlay(RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color.borderColor, lineWidth: 1))
+                            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .strokeBorder(.white.opacity(0.2), lineWidth: 0.5)
+                            )
                         
                         Text(folder.name)
                             .font(.system(size: 16, weight: .medium))
@@ -184,8 +199,14 @@ extension HomeView {
                         .frame(width: 110, alignment: .trailing)
                 }
                 .padding(.vertical, 10)
+                .padding(.horizontal, 8)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(.ultraThinMaterial.opacity(0.3))
+                )
             }
             .buttonStyle(.plain)
+            .shadow(color: .black.opacity(0.04), radius: 4, x: 0, y: 1)
             
         case .note(let n):
             noteRow(
@@ -198,6 +219,7 @@ extension HomeView {
         }
     }
     
+    // MARK: - Thumbnail View
     @ViewBuilder
     func thumbnailView(for note: Note) -> some View {
         if let url = NoteFormattingUtils.thumbnailURL(for: note) {
@@ -214,11 +236,12 @@ extension HomeView {
                 }
             }
             .clipped()
-            .cornerRadius(8)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
             .overlay(
                 RoundedRectangle(cornerRadius: 8)
-                    .stroke(Color.borderColor, lineWidth: 1)
+                    .strokeBorder(.white.opacity(0.2), lineWidth: 0.5)
             )
+            .shadow(color: .black.opacity(0.06), radius: 4, x: 0, y: 1)
         } else {
             placeholderThumbnail
         }
@@ -226,15 +249,15 @@ extension HomeView {
     
     var placeholderThumbnail: some View {
         ZStack {
-            Rectangle()
-                .fill(Color.background2)
-                .cornerRadius(8)
+            RoundedRectangle(cornerRadius: 8)
+                .fill(.ultraThinMaterial)
                 .overlay(
                     RoundedRectangle(cornerRadius: 8)
-                        .stroke(Color.borderColor, lineWidth: 1)
+                        .strokeBorder(.white.opacity(0.2), lineWidth: 0.5)
                 )
             Image(systemName: "play.rectangle.fill")
                 .foregroundStyle(Color.text3)
         }
+        .shadow(color: .black.opacity(0.06), radius: 4, x: 0, y: 1)
     }
 }
