@@ -419,3 +419,5 @@ extension Notification.Name {
     static let showSettings = Notification.Name("ShowSettings")
     static let hideSettings = Notification.Name("HideSettings")
 }
+
+
