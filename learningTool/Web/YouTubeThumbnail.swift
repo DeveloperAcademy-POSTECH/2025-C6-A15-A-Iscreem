@@ -8,7 +8,7 @@
 
 import Foundation
 
-enum YouTubeThumbnail {
+extension YouTubeThumbnail {
     /// YouTube URL에서 동영상 ID 추출 (youtu.be, watch?v=, shorts, live 지원)
     static func videoID(from urlString: String) -> String? {
         guard let url = URL(string: urlString), let host = url.host else { return nil }
@@ -45,3 +45,4 @@ enum YouTubeThumbnail {
         return URL(string: "https://img.youtube.com/vi/\(id)/hqdefault.jpg")
     }
 }
+
