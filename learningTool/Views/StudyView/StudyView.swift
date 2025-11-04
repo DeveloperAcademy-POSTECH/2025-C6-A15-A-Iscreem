@@ -416,7 +416,22 @@ struct StudyView: View {
     @ViewBuilder
     private func iPhoneLayout(geometry: GeometryProxy) -> some View {
         let totalHeight = geometry.size.height
-        let mediaHeight = min(totalHeight * 0.3, geometry.size.width * 9 / 16) // 16:9 비율 또는 30% 높이
+        let totalWidth = geometry.size.width
+        
+        // 가로 모드 감지 (너비 > 높이)
+        let isLandscape = totalWidth > totalHeight
+        
+        // MediaView 높이 계산 (가로/세로 모드에 따라 다르게)
+        let mediaHeight: CGFloat = {
+            if isLandscape {
+                // 가로 모드: 화면 높이의 50% 사용, 최소 200pt 보장
+                return max(totalHeight * 0.5, 200)
+            } else {
+                // 세로 모드: 16:9 비율 또는 화면 높이의 30%
+                return min(totalHeight * 0.3, totalWidth * 9 / 16)
+            }
+        }()
+        
         let collapsedHeight: CGFloat = 80
         let summaryExpandedHeight: CGFloat = 250
         let questionExpandedHeight: CGFloat = 300
