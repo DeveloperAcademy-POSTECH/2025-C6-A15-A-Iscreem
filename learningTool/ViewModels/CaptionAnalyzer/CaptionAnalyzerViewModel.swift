@@ -490,9 +490,10 @@ final class CaptionAnalyzer: ObservableObject {
                     guard sid == self.sessionId else { return }
                     self.finalSummary = merged.trimmingCharacters(in: .whitespacesAndNewlines)
                     self.isMergingFinal = false
-                    // finalSummary 기반 키워드 추출
+                    // NOTE: Final (extracted) keywords are computed for runtime display only and are not persisted.
                     self.extractedKeywords = self.extractKeywords()
-                    self.persistCacheToBoundNoteIfPossible()    }
+                    self.persistCacheToBoundNoteIfPossible()
+                }
                 self.log.info("sum[\(runTag)] merge done")
             } catch {
                 let ns = error as NSError
@@ -854,7 +855,7 @@ final class CaptionAnalyzer: ObservableObject {
     @MainActor
     private func persistCacheToBoundNoteIfPossible() {
         guard let note = self.boundNote else { return }
-        
+
         // 챕터 → 캐시 모델로 스냅샷
         var snapshot: [CachedChapter] = []
         for ch in self.chapters {
@@ -863,17 +864,19 @@ final class CaptionAnalyzer: ObservableObject {
                                           bullets: Array(bullets.prefix(4))))
         }
         note.cachedChapters = snapshot
-        
+
         note.cachedSummaryLines = self.summaryText
             .replacingOccurrences(of: "\r\n", with: "\n")
             .replacingOccurrences(of: "\r", with: "\n")
             .components(separatedBy: "\n")
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
-        
+
         note.cachedFinalSummary = self.finalSummary.isEmpty ? nil : self.finalSummary
-        note.cachedKeywords = self.extractedKeywords
-        
+        // Persist only chapter-derived keywords (progressive). Do NOT persist final extracted keywords.
+        let chapterKeywords = !self.accumulatedKeywords.isEmpty ? self.accumulatedKeywords : self.displayKeywords
+        note.cachedKeywords = Array(chapterKeywords.prefix(40))
+
         // ⚠️ 실제 디스크 저장은 View 레벨에서 `try? modelContext.save()` 호출로 마무리해주세요.
     }
     
