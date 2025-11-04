@@ -1,12 +1,12 @@
-# :iPad: [Project/App Name]
+# iPad: [Project/App Name]
 [Logo/Cover Image]
 <img width="4096" height="4096" alt="Main" src="https://github.com/user-attachments/assets/ee94215f-bde7-4403-9682-b74f73522d14" />
 
-## :[App statement]:
+## [App statement]
 
 아이패드로 유튜브 강의를 들으며 공부하는 대학생의 몰입이 깨지지 않도록 AI가 요약하고 핵심 키워드를 보여주면서 바로 질문할 수 있는 앱
 
-## :[App statement][Eng]:
+## [App statement][Eng]
 
 An app designed for university students studying with YouTube lectures on iPad — it helps maintain focus by using AI to summarize content, highlight key concepts, and enable instant questions without breaking immersion.
 
