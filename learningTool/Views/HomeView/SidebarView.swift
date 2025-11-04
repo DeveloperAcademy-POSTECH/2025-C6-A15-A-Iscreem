@@ -43,46 +43,6 @@ struct SidebarView: View {
 
     // 256:762 비율 유지 (사이드바:메인)
     private let sidebarRatio: CGFloat = 256.0 / (256.0 + 762.0) // ≈ 0.2514
-    
-    private var bottomBar: some View {
-        VStack(spacing: 0) {
-            Button { viewModel.helpTapped() } label: {
-                HStack(spacing: 12) {
-                    Image(systemName: "questionmark.circle.fill").foregroundStyle(Color.text2).font(.system(size: 20))
-                    Text("도움말").foregroundStyle(Color.text2).font(.buttonText)
-                    Spacer()
-                }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 8)
-            }
-            .buttonStyle(.plain)
-
-            Button { viewModel.settingsTapped() } label: {
-                HStack(spacing: 12) {
-                    Image(systemName: "gearshape.fill").foregroundStyle(Color.text2).font(.system(size: 20))
-                    Text("설정").foregroundStyle(Color.text2).font(.buttonText)
-                    Spacer()
-                }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 8)
-            }
-            .buttonStyle(.plain)
-
-            Button { viewModel.trashTapped() } label: {
-                HStack(spacing: 12) {
-                    Image(systemName: "trash").foregroundStyle(Color.errorColor).font(.system(size: 20))
-                    Text("휴지통").foregroundStyle(Color.errorColor).font(.buttonText)
-                    Spacer()
-                }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 8)
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(.bottom, 30)
-        .ignoresSafeArea(.keyboard, edges: .bottom)
-    }
-
 
     var body: some View {
         VStack(spacing: 0) {
@@ -188,32 +148,32 @@ struct SidebarView: View {
                 .padding(.horizontal, 20)
                 .padding(.top, 50)
                 .padding(.bottom, 16)
+                .contentShape(Rectangle())
 
                 // 구분선
                 HStack { Rectangle().fill(Color.borderColor).frame(height: 1) }
                     .padding(.horizontal, 20)
             }
             .background(Color.clear)
+            // 고정 '전체 보기' 행 (스크롤 영역 바깥)
+            Button {
+                viewModel.allViewTapped()
+                onFolderSelected?("__ALL__")
+                // 설정 오버레이 닫기 → 홈의 + 버튼 다시 보이게
+                NotificationCenter.default.post(name: .hideSettings, object: nil)
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "square.grid.2x2.fill").foregroundStyle(Color.text2).font(.system(size: 20))
+                    Text("전체 보기").foregroundStyle(Color.text2).font(.buttonText)
+                    Spacer()
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 8)
+            }
+            .buttonStyle(.plain)
 
             // 중간 스크롤 영역
             List {
-                // 전체 보기
-                Section {
-                    Button {
-                        viewModel.allViewTapped()
-                        onFolderSelected?("__ALL__")
-                    } label: {
-                        HStack(spacing: 12) {
-                            Image(systemName: "square.grid.2x2.fill").foregroundStyle(Color.text2).font(.system(size: 20))
-                            Text("전체 보기").foregroundStyle(Color.text2).font(.buttonText)
-                            Spacer()
-                        }
-                    }
-                    .buttonStyle(.plain)
-                    .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 8, trailing: 20))
-                }
-
                 // 폴더 목록
                 Section {
                     ForEach(sortedFolders, id: \.persistentModelID) { folder in
@@ -301,6 +261,9 @@ struct SidebarView: View {
             }
             .listStyle(.sidebar)
             .scrollContentBackground(.hidden)
+            .background(Color.clear)
+            .padding(.horizontal, 12)
+            .contentShape(Rectangle())
 
             // 하단 구분선
             HStack { Rectangle().fill(Color.borderColor).frame(height: 1) }
@@ -308,10 +271,8 @@ struct SidebarView: View {
 
             // 하단 고정 메뉴 (이전 VStack 삭제, 아래에서 overlay로 대체)
         }
-        .background(Color.background2)
-        .overlay(alignment: .bottom) {
+        .safeAreaInset(edge: .bottom) {
             bottomBar
-                .zIndex(1)
         }
         .onChange(of: viewModel.isHelpPresented) { _, newValue in
             isHelpPresented = newValue
@@ -350,6 +311,47 @@ struct SidebarView: View {
             .padding()
             .frame(minWidth: 320)
         }
+    }
+    
+    private var bottomBar: some View {
+        VStack(spacing: 0) {
+            Button { viewModel.helpTapped() } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "questionmark.circle.fill").foregroundStyle(Color.text2).font(.system(size: 20))
+                    Text("도움말").foregroundStyle(Color.text2).font(.buttonText)
+                    Spacer()
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 8)
+            }
+            .buttonStyle(.plain)
+
+            Button { viewModel.settingsTapped() } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "gearshape.fill").foregroundStyle(Color.text2).font(.system(size: 20))
+                    Text("설정").foregroundStyle(Color.text2).font(.buttonText)
+                    Spacer()
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 8)
+            }
+            .buttonStyle(.plain)
+
+            Button { viewModel.trashTapped() } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "trash").foregroundStyle(Color.errorColor).font(.system(size: 20))
+                    Text("휴지통").foregroundStyle(Color.errorColor).font(.buttonText)
+                    Spacer()
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 8)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.bottom, 30)
+        .ignoresSafeArea(.keyboard, edges: .bottom)
+        .padding(.horizontal, 12)
+        .contentShape(Rectangle())
     }
     
     @ViewBuilder
@@ -395,12 +397,7 @@ struct SidebarView: View {
             }
         }
         .frame(width: 204, height: 145)
-        .background(Color.background1)
-        .cornerRadius(16)
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(Color.borderColor, lineWidth: 1)
-        )
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .presentationCompactAdaptation(.popover)
     }
 
