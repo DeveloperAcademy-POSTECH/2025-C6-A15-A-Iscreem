@@ -386,23 +386,28 @@ extension HomeView {
         @State private var showStudyView = false
         
         var body: some View {
-            ZStack {
-                if showStudyView, let note = selectedNote {
-                    StudyView(note: note) {
-                        showStudyView = false
-                        selectedNote = nil
-                    }
-                } else {
-                    HomeView(
-                        onNoteSelected: { note in
-                            selectedNote = note
-                            withAnimation { showStudyView = true }
-                        },
-                        onNoteCreated: { note in
-                            selectedNote = note
-                            withAnimation { showStudyView = true }
+            ScaledContainer(baseSize: CGSize(width: 1366, height: 1024),
+                            minScale: 0.78,  // 터치 최소 44pt 근사 유지용(원하면 0.75~0.85 사이 조절)
+                            maxScale: 1.0,
+                            alignment: .topLeading) {
+                ZStack {
+                    if showStudyView, let note = selectedNote {
+                        StudyView(note: note) {
+                            showStudyView = false
+                            selectedNote = nil
                         }
-                    )
+                    } else {
+                        HomeView(
+                            onNoteSelected: { note in
+                                selectedNote = note
+                                withAnimation { showStudyView = true }
+                            },
+                            onNoteCreated: { note in
+                                selectedNote = note
+                                withAnimation { showStudyView = true }
+                            }
+                        )
+                    }
                 }
             }
             .keyboardOverlay()

@@ -283,6 +283,7 @@ struct SidebarView: View {
             }
         }
         .ignoresSafeArea(.keyboard, edges: .bottom)
+        .compactScaled(base: CGSize(width: 390, height: 844), min: 0.9, max: 1.0)
         // 폴더 이름 변경 시트
         .sheet(isPresented: $isRenamingSheet, onDismiss: {
             // 닫힐 때 편집 상태 초기화
@@ -309,7 +310,6 @@ struct SidebarView: View {
                 }
             }
             .padding()
-            .frame(minWidth: 320)
         }
     }
     
@@ -487,13 +487,17 @@ struct SidebarView: View {
 
 #Preview(traits: .landscapeLeft) {
     GeometryReader { geometry in
-        let sidebarWidth = geometry.size.width * (256.0 / (256.0 + 762.0))
+        let w = geometry.size.width
+        let insets = geometry.safeAreaInsets
+        let h = geometry.size.height - insets.top - insets.bottom
+        
         NavigationSplitView {
             SidebarView(isHelpPresented: .constant(false))
+                .frame(height: h)
                 .navigationSplitViewColumnWidth(
-                    min: sidebarWidth * 0.9,
-                    ideal: sidebarWidth,
-                    max: sidebarWidth * 1.1
+                    min: w * 0.25,
+                    ideal: w * 0.25,
+                    max: w * 0.25
                 )
         } detail: {
             Color.background1.ignoresSafeArea()
