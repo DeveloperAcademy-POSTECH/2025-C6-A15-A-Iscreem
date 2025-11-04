@@ -100,6 +100,18 @@ struct HomeView: View {
             addButton
                 .ignoresSafeArea(.keyboard, edges: .bottom)
         }
+        .background {
+            LinearGradient(
+                colors: [
+                    Color.black.opacity(0.12),
+                    Color.blue.opacity(0.10)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+            .backgroundExtensionEffect()
+        }
         .navigationSplitViewStyle(.balanced)
         .keyboardOverlay()
         .applyOverlays(
@@ -135,6 +147,18 @@ struct HomeView: View {
         .onReceive(NotificationCenter.default.publisher(for: .showSettings)) { _ in
             withAnimation(.easeInOut(duration: 0.2)) {
                 isShowingSettings = true
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .hideSettings)) { _ in
+            withAnimation(.easeInOut(duration: 0.2)) {
+                isShowingSettings = false
+            }
+        }
+        .onAppear {
+            // 앱 시작 직후 ‘전체 보기’로 진입 → + 버튼 보이게
+            if selectedFolderName == nil {
+                selectedFolderName = "__ALL__"
+                headerSubtitle = "전체 보기"
             }
         }
     }
@@ -296,6 +320,12 @@ struct HomeView: View {
         .offset(y: -50)
     }
     
+    // Add button visibility: hide on Settings, show on Home (전체 보기)
+    private var shouldShowAddButton: Bool {
+        // isAllView is true when selectedFolderName == "__ALL__"
+        // Hide when Settings overlay is showing
+        return !isShowingSettings && isAllView
+    }
     // 🔵 추가 버튼 (Gradient + Floating)
     private var addButton: some View {
         Button {
@@ -321,6 +351,10 @@ struct HomeView: View {
         }
         .buttonStyle(.plain)
         .padding(32)
+        // Hide when Settings is open, show again on Home (전체 보기)
+        .opacity(shouldShowAddButton ? 1 : 0)
+        .allowsHitTesting(shouldShowAddButton)
+        .animation(.easeInOut(duration: 0.2), value: shouldShowAddButton)
     }
     
     // MARK: - Actions
@@ -345,6 +379,38 @@ struct HomeView: View {
     }
 }
 
+// MARK: - Consolidated App Root (moved from ContentView)
+extension HomeView {
+    struct AppRootView: View {
+        @State private var selectedNote: Note?
+        @State private var showStudyView = false
+        
+        var body: some View {
+            ZStack {
+                if showStudyView, let note = selectedNote {
+                    StudyView(note: note) {
+                        showStudyView = false
+                        selectedNote = nil
+                    }
+                } else {
+                    HomeView(
+                        onNoteSelected: { note in
+                            selectedNote = note
+                            withAnimation { showStudyView = true }
+                        },
+                        onNoteCreated: { note in
+                            selectedNote = note
+                            withAnimation { showStudyView = true }
+                        }
+                    )
+                }
+            }
+            .keyboardOverlay()
+        }
+    }
+}
+
 extension Notification.Name {
     static let showSettings = Notification.Name("ShowSettings")
+    static let hideSettings = Notification.Name("HideSettings")
 }
