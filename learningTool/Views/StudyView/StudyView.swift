@@ -121,6 +121,15 @@ struct StudyView: View {
     @State private var leftTopRatio: CGFloat = 0.7     // left column top fraction
     @State private var rightTopRatio: CGFloat = 0.6    // right column top fraction
     
+    // iPhone 전용 collapse 상태
+    @State private var isPhoneSummaryCollapsed: Bool = false
+    @State private var isPhoneQuestionCollapsed: Bool = false
+    
+    // 디바이스 타입 감지
+    private var isIPad: Bool {
+        UIDevice.current.userInterfaceIdiom == .pad
+    }
+    
     
     init(note: Note? = nil, onDismiss: (() -> Void)? = nil) {
         _viewModel = StateObject(wrappedValue: StudyViewModel(note: note))
@@ -173,9 +182,69 @@ struct StudyView: View {
             Divider()
                 .background(Color.borderColor)
             
-            /// 메인 콘텐츠 (2열 레이아웃)
+            /// 메인 콘텐츠 (디바이스별 레이아웃)
             GeometryReader { geometry in
-                HStack(spacing: 0) {
+                if isIPad {
+                    // iPad: 기존 2열 레이아웃
+                    iPadLayout(geometry: geometry)
+                } else {
+                    // iPhone: 단일 컬럼 세로 레이아웃
+                    iPhoneLayout(geometry: geometry)
+                }
+            }
+        }
+        .background(Color.background2)
+        .keyboardOverlay()
+        // ▼ 전역 입력 바: 키보드 상단(StudyView 전체 너비) — 키보드 높이에 맞춰 자동 패딩
+        .overlay(alignment: .bottom) {
+            if showGlobalQuestionBar {
+                VStack(spacing: 0) {
+                    Divider().background(Color.borderColor)
+                    QuestionInputBar(
+                        text: $questionVM.currentMessage,
+                        isEnabled: GeminiAPIService.shared.isAPIKeyConfigured() && !questionVM.isLoading,
+                        isSending: questionVM.isLoading,
+                        isGenerating: false,
+                        focus: $globalQuestionFocus,
+                        placeholder: GeminiAPIService.shared.isAPIKeyConfigured() ? "메시지를 입력하세요" : "API 키를 먼저 설정해주세요",
+                        onTapLightbulb: { /* 전역 전구 버튼 필요 시 구현 */ },
+                        onSend: {
+                            if GeminiAPIService.shared.isAPIKeyConfigured() {
+                                questionVM.sendMessage()
+                                // 전송/접기 시 전역 바 닫기
+                                globalQuestionFocus = false
+                                showGlobalQuestionBar = false
+                            }
+                        }
+                    )
+                    .padding(16)
+                }
+                .background(Color.background1)
+                .keyboardAdaptivePadding() // 키보드 높이만큼 위로 올리기
+                .zIndex(1000)
+                .onAppear { globalQuestionFocus = true } // 전역 바 등장 시 포커스
+                .onChange(of: globalQuestionFocus) { _, focused in // 키보드 접힘 → 전역 바 닫기
+                    if !focused { showGlobalQuestionBar = false }
+                }
+            }
+        }
+        .onAppear { captionAnalyzer.autoSummarizeEnabled = true }
+        .onChange(of: captionAnalyzer.summaryStatus) { _, newValue in
+            if case .ready = newValue {
+                // CaptionAnalyzer가 바인딩된 Note에 캐시를 써 둔 뒤,
+                // 컨텍스트를 저장하여 영구화
+                try? modelContext.save()
+            }
+        }
+        .sheet(isPresented: $showingAPISettings) {
+            APISettingsView()
+        }
+    }
+    
+    // MARK: - iPad Layout
+    @ViewBuilder
+    private func iPadLayout(geometry: GeometryProxy) -> some View {
+        HStack(spacing: 0) {
                     let handleW: CGFloat = 10
                     let handleH: CGFloat = 12
                     let availW = geometry.size.width - handleW
@@ -341,55 +410,57 @@ struct StudyView: View {
                         .frame(width: rightW)
                     }
                 }
-            }
-        }
-        .background(Color.background2)
-        .keyboardOverlay()
-        // ▼ 전역 입력 바: 키보드 상단(StudyView 전체 너비) — 키보드 높이에 맞춰 자동 패딩
-        .overlay(alignment: .bottom) {
-            if showGlobalQuestionBar {
-                VStack(spacing: 0) {
-                    Divider().background(Color.borderColor)
-                    QuestionInputBar(
-                        text: $questionVM.currentMessage,
-                        isEnabled: GeminiAPIService.shared.isAPIKeyConfigured() && !questionVM.isLoading,
-                        isSending: questionVM.isLoading,
-                        isGenerating: false,
-                        focus: $globalQuestionFocus,
-                        placeholder: GeminiAPIService.shared.isAPIKeyConfigured() ? "메시지를 입력하세요" : "API 키를 먼저 설정해주세요",
-                        onTapLightbulb: { /* 전역 전구 버튼 필요 시 구현 */ },
-                        onSend: {
-                            if GeminiAPIService.shared.isAPIKeyConfigured() {
-                                questionVM.sendMessage()
-                                // 전송/접기 시 전역 바 닫기
-                                globalQuestionFocus = false
-                                showGlobalQuestionBar = false
-                            }
-                        }
+    }
+    
+    // MARK: - iPhone Layout
+    @ViewBuilder
+    private func iPhoneLayout(geometry: GeometryProxy) -> some View {
+        let totalHeight = geometry.size.height
+        let mediaHeight = min(totalHeight * 0.3, geometry.size.width * 9 / 16) // 16:9 비율 또는 30% 높이
+        let collapsedHeight: CGFloat = 80
+        let summaryExpandedHeight: CGFloat = 250
+        let questionExpandedHeight: CGFloat = 300
+        
+        ScrollView {
+            VStack(spacing: 0) {
+                // MARK: MediaView (상단)
+                MediaView(note: viewModel.currentNote, videoURL: resolvedVideoURL)
+                    .frame(height: mediaHeight)
+                    .frame(maxWidth: .infinity)
+                
+                // MARK: KeywordView (중간)
+                KeywordView(analyzer: captionAnalyzer, studyViewModel: viewModel)
+                    .frame(minHeight: 200)
+                    .frame(maxWidth: .infinity)
+                
+                // MARK: SummaryView (하단 1, 접기 가능)
+                CollapsiblePane(
+                    isCollapsed: $isPhoneSummaryCollapsed,
+                    height: isPhoneSummaryCollapsed ? collapsedHeight : summaryExpandedHeight
+                ) {
+                    SummaryView()
+                        .frame(maxWidth: .infinity)
+                }
+                .frame(maxWidth: .infinity)
+                
+                // MARK: QuestionView (하단 2, 접기 가능)
+                CollapsiblePane(
+                    isCollapsed: $isPhoneQuestionCollapsed,
+                    height: isPhoneQuestionCollapsed ? collapsedHeight : questionExpandedHeight
+                ) {
+                    QuestionView(
+                        studyViewModel: viewModel,
+                        viewModel: questionVM,
+                        isGlobalInputActive: $showGlobalQuestionBar
                     )
-                    .padding(16)
+                    .frame(maxWidth: .infinity)
                 }
-                .background(Color.background1)
-                .keyboardAdaptivePadding() // 키보드 높이만큼 위로 올리기
-                .zIndex(1000)
-                .onAppear { globalQuestionFocus = true } // 전역 바 등장 시 포커스
-                .onChange(of: globalQuestionFocus) { _, focused in // 키보드 접힘 → 전역 바 닫기
-                    if !focused { showGlobalQuestionBar = false }
-                }
+                .frame(maxWidth: .infinity)
             }
-        }
-        .onAppear { captionAnalyzer.autoSummarizeEnabled = true }
-        .onChange(of: captionAnalyzer.summaryStatus) { _, newValue in
-            if case .ready = newValue {
-                // CaptionAnalyzer가 바인딩된 Note에 캐시를 써 둔 뒤,
-                // 컨텍스트를 저장하여 영구화
-                try? modelContext.save()
-            }
-        }
-        .sheet(isPresented: $showingAPISettings) {
-            APISettingsView()
         }
     }
+    
+    // MARK: - Helpers
     // 현재 노트의 유튜브 링크를 우선 사용하고,
     // 없으면 같은 제목의 노트를 SwiftData에서 찾아 링크를 사용합니다.
     private var resolvedVideoURL: String? {
