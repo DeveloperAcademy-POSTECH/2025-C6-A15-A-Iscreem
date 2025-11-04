@@ -183,12 +183,24 @@ struct SettingView: View {
     @State private var showResetConfirm: Bool = false
     
     var body: some View {
-        NavigationSplitView {
-            SidebarView(onFolderSelected: { _ in }, isHelpPresented: .constant(false), requestDeleteConfirmation: { _ in })
-                .navigationSplitViewColumnWidth(min: 280, ideal: 320, max: 400)
-                .toolbar(.hidden, for: .navigationBar)
-        } detail: {
-            SettingsDetailView(showResetConfirm: $showResetConfirm)
+        GeometryReader { proxy in
+            let w = proxy.size.width
+            let insets = proxy.safeAreaInsets
+            let h = proxy.size.height - insets.top - insets.bottom
+            
+            NavigationSplitView {
+                SidebarView(onFolderSelected: { _ in }, isHelpPresented: .constant(false), requestDeleteConfirmation: { _ in })
+                    .frame(height: h)
+                    .navigationSplitViewColumnWidth(
+                        min: w * 0.25,
+                        ideal: w * 0.25,
+                        max: w * 0.25
+                    )
+                    .toolbar(.hidden, for: .navigationBar)
+            } detail: {
+                SettingsDetailView(showResetConfirm: $showResetConfirm)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
         }
     }
 }
