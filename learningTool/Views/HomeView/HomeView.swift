@@ -100,6 +100,18 @@ struct HomeView: View {
             addButton
                 .ignoresSafeArea(.keyboard, edges: .bottom)
         }
+        .background {
+                    LinearGradient(
+                        colors: [
+                            Color.black.opacity(0.12),
+                            Color.blue.opacity(0.10)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    .ignoresSafeArea()
+                    .backgroundExtensionEffect()
+                }
         .navigationSplitViewStyle(.balanced)
         .keyboardOverlay()
         .applyOverlays(
@@ -135,6 +147,18 @@ struct HomeView: View {
         .onReceive(NotificationCenter.default.publisher(for: .showSettings)) { _ in
             withAnimation(.easeInOut(duration: 0.2)) {
                 isShowingSettings = true
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .hideSettings)) { _ in
+            withAnimation(.easeInOut(duration: 0.2)) {
+                isShowingSettings = false
+            }
+        }
+        .onAppear {
+            // 앱 시작 직후 ‘전체 보기’로 진입 → + 버튼 보이게
+            if selectedFolderName == nil {
+                selectedFolderName = "__ALL__"
+                headerSubtitle = "전체 보기"
             }
         }
     }
@@ -284,6 +308,13 @@ struct HomeView: View {
         .offset(y: -50)
     }
     
+    // Add button visibility: hide on Settings, show on Home (전체 보기)
+    private var shouldShowAddButton: Bool {
+        // isAllView is true when selectedFolderName == "__ALL__"
+        // Hide when Settings overlay is showing
+        return !isShowingSettings && isAllView
+    }
+    
     // MARK: - Add Button
     private var addButton: some View {
         Button {
@@ -294,11 +325,25 @@ struct HomeView: View {
                 .font(.system(size: 22))
                 .foregroundStyle(.white)
                 .frame(width: 60, height: 60)
-                .background(Color.secondColor)
-                .clipShape(Circle())
-                .shadow(color: Color.secondColor.opacity(0.4), radius: 8, x: 0, y: 4)
+                .background(
+                    LinearGradient(
+                        colors: [Color.secondColor, Color.secondColor.opacity(0.85)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    in: Circle()
+                )
+                .overlay(
+                    Circle()
+                        .strokeBorder(.white.opacity(0.3), lineWidth: 1)
+                )
         }
+        .buttonStyle(.plain)
         .padding(32)
+        // Hide when Settings is open, show again on Home (전체 보기)
+        .opacity(shouldShowAddButton ? 1 : 0)
+        .allowsHitTesting(shouldShowAddButton)
+        .animation(.easeInOut(duration: 0.2), value: shouldShowAddButton)
     }
     
     // MARK: - Actions
@@ -322,6 +367,42 @@ struct HomeView: View {
         withAnimation(.easeInOut(duration: 0.2)) { showCreateNote = false }
     }
 }
+
+// MARK: - Consolidated App Root (moved from ContentView)
+extension HomeView {
+    struct AppRootView: View {
+        @State private var selectedNote: Note?
+        @State private var showStudyView = false
+
+        var body: some View {
+            ScaledContainer(baseSize: CGSize(width: 1366, height: 1024),
+                            minScale: 0.78,  // 터치 최소 44pt 근사 유지용(원하면 0.75~0.85 사이 조절)
+                            maxScale: 1.0,
+                            alignment: .topLeading) {
+                ZStack {
+                    if showStudyView, let note = selectedNote {
+                        StudyView(note: note) {
+                            showStudyView = false
+                            selectedNote = nil
+                        }
+                    } else {
+                        HomeView(
+                            onNoteSelected: { note in
+                                selectedNote = note
+                                withAnimation { showStudyView = true }
+                            },
+                            onNoteCreated: { note in
+                                selectedNote = note
+                                withAnimation { showStudyView = true }
+                            }
+                        )
+                    }
+                }
+            }
+            .keyboardOverlay()
+        }
+    }
+ }
 
 extension Notification.Name {
     static let showSettings = Notification.Name("ShowSettings")
