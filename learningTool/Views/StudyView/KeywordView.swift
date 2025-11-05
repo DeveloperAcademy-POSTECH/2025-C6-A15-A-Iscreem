@@ -15,30 +15,15 @@ struct KeywordView: View {
     @State private var selectedKeyword: String? = nil
     
     private var keywordsToShow: [String] {
-        // 🔹 displayKeywords 우선
-        if !analyzer.displayKeywords.isEmpty {
-            return analyzer.displayKeywords
-        }
-        // 챕터별 키워드 fallback
-        else if let firstChapterId = analyzer.chapters.first?.id,
-                let chapterKeywords = analyzer.chapterKeywords[firstChapterId],
-                !chapterKeywords.isEmpty {
-            return chapterKeywords
-        }
-        // accumulatedKeywords fallback
-        else if !analyzer.accumulatedKeywords.isEmpty {
-            return analyzer.accumulatedKeywords
-        }
-        // 최종 요약 기반 fallback
-        else {
-            return analyzer.extractedKeywords
-        }
+        // ✅ displayKeywords만 사용 (챕터별로 실시간 업데이트되는 키워드)
+        // 챕터별 키워드가 추출될 때마다 즉시 누적되어 표시됨
+        return analyzer.displayKeywords
     }
     
     var body: some View {
         ZStack {
             VStack(alignment: .leading, spacing: 12) {
-                // 🔵 제목 텍스트 (Liquid Glass 효과)
+                // 제목 텍스트
                 Text("이 강의에서 자주 언급되는 핵심 키워드들이 나열됩니다.")
                     .font(.bodyText)
                     .foregroundStyle(Color.text2)
@@ -68,7 +53,7 @@ struct KeywordView: View {
                         spacing: 12
                     ) {
                         ForEach(keywordsToShow, id: \.self) { keyword in
-                            // 🔵 키워드 컴포넌트 (Liquid Glass)
+                            // 키워드 컴포넌트
                             KeywordChip(
                                 keyword: keyword,
                                 isSelected: selectedKeyword == keyword,
@@ -89,7 +74,7 @@ struct KeywordView: View {
                 .frame(maxWidth: .infinity)
             }
 
-            // 🔵 키워드가 없을 때 표시되는 중앙 메시지 (Liquid Glass)
+            // 키워드가 없을 때 표시되는 중앙 메시지
             if keywordsToShow.isEmpty {
                 VStack(spacing: 16) {
                     ProgressView()
@@ -114,7 +99,7 @@ struct KeywordView: View {
     }
 }
 
-// MARK: - 🔵 Keyword Chip (Liquid Glass UI)
+// MARK: - Keyword Chip
 struct KeywordChip: View {
     let keyword: String
     let isSelected: Bool
