@@ -57,6 +57,101 @@ Attach videos if you are available
 
 
 
+## Tree
+```
+.
+├── learningTool
+│   ├── Assets.xcassets
+│   │   ├── AccentColor.colorset
+│   │   │   └── Contents.json
+│   │   ├── AppIcon.appiconset
+│   │   │   └── Contents.json
+│   │   └── Contents.json
+│   ├── Components
+│   │   ├── HeaderComponents.swift
+│   │   ├── HelpView.swift
+│   │   ├── KeywordViewComponent.swift
+│   │   ├── NoteComponent.swift
+│   │   └── QuestionBubbleComponent.swift
+│   ├── Extensions
+│   │   ├── Color+Extension.swift
+│   │   ├── Font+Extension.swift
+│   │   ├── View+Corners.swift
+│   │   └── View+Keyboard.swift
+│   ├── LearningToolApp.swift
+│   ├── Models
+│   │   ├── ChatMessage.swift
+│   │   ├── Folder.swift
+│   │   └── Note.swift
+│   ├── Services
+│   │   └── GeminiAPIService.swift
+│   ├── ViewModels
+│   │   ├── CaptionAnalyzer
+│   │   │   ├── AppleFMSummarizer.swift
+│   │   │   ├── CaptionAnalyzerViewModel.swift
+│   │   │   ├── HTTPSummarizer.swift
+│   │   │   └── Summarizer.swift
+│   │   ├── ContentViewModel.swift
+│   │   ├── HomeViewModel.swift
+│   │   ├── QuestionViewModel.swift
+│   │   ├── SidebarViewModel.swift
+│   │   └── StudyViewModel.swift
+│   ├── Views
+│   │   ├── ContentView.swift
+│   │   ├── HomeView
+│   │   │   ├── CreateNoteView.swift
+│   │   │   ├── FolderDeleteView.swift
+│   │   │   ├── GridMode.swift
+│   │   │   ├── Helpers.swift
+│   │   │   ├── HomeView.swift
+│   │   │   ├── ListMode.swift
+│   │   │   ├── Overlay.swift
+│   │   │   ├── SettingView.swift
+│   │   │   ├── SidebarView.swift
+│   │   │   ├── Utils
+│   │   │   │   ├── KoreanSearchUtils.swift
+│   │   │   │   └── NoteFormattingUtils.swift
+│   │   │   └── ViewModelToggle.swift
+│   │   └── StudyView
+│   │       ├── ChatAreaView.swift
+│   │       ├── ChatBubble.swift
+│   │       ├── KeywordView.swift
+│   │       ├── MediaView.swift
+│   │       ├── QuestionHeaderBar.swift
+│   │       ├── QuestionInputBar.swift
+│   │       ├── QuestionView.swift
+│   │       ├── StudyView.swift
+│   │       ├── SuggestionsSheetView.swift
+│   │       └── SummaryView.swift
+│   └── Web
+│       ├── YouTubeThumbnail.swift
+│       ├── YouTubeWebViewHost.swift
+│       └── YouTubeWebViewRepresentable..swift
+├── learningTool.xcodeproj
+│   ├── project.pbxproj
+│   ├── project.xcworkspace
+│   │   ├── contents.xcworkspacedata
+│   │   ├── xcshareddata
+│   │   │   └── swiftpm
+│   │   │       └── configuration
+│   │   └── xcuserdata
+│   │       ├── coulson.xcuserdatad
+│   │       │   └── UserInterfaceState.xcuserstate
+│   │       └── mumin.xcuserdatad
+│   │           └── UserInterfaceState.xcuserstate
+│   └── xcuserdata
+│       ├── coulson.xcuserdatad
+│       │   ├── xcdebugger
+│       │   │   └── Breakpoints_v2.xcbkptlist
+│       │   └── xcschemes
+│       │       └── xcschememanagement.plist
+│       └── mumin.xcuserdatad
+│           └── xcschemes
+│               └── xcschememanagement.plist
+├── LICENSE
+└── README.md
+```
+
 
 ## :sparkles: Skills & Tech Stack
 
