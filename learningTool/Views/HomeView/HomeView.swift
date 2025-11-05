@@ -39,6 +39,7 @@ struct HomeView: View {
     @State var isFolderDeletePresented: Bool = false
     @State var folderIDsPendingDelete = Set<PersistentIdentifier>()
     @State var showResetConfirm: Bool = false
+    @Namespace private var glassNS
     
     init(
         onNoteSelected: ((Note) -> Void)? = nil,
@@ -192,22 +193,20 @@ struct HomeView: View {
     
     // MARK: - 🔵 검색바 (Liquid Glass)
     private var searchBar: some View {
-        HStack {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(Color.text3)
-            TextField("노트 검색", text: $viewModel.searchText, axis: .horizontal)
-                .font(.system(size: 16))
-                .lineLimit(1)
+        GlassEffectContainer(spacing: 0) {
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(Color.text3)
+                TextField("노트 검색", text: $viewModel.searchText, axis: .horizontal)
+                    .font(.system(size: 16))
+                    .lineLimit(1)
+            }
+            .padding(.horizontal, 12)
+            .frame(minWidth: 220, maxWidth: 320)
+            .frame(height: 36)
+            .glassEffect()
+            .glassEffectUnion(id: "search", namespace: glassNS)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .frame(minWidth: 220, maxWidth: 320)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .strokeBorder(.white.opacity(0.2), lineWidth: 0.5)
-        )
-        .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 2)
     }
     
     // MARK: - 🔵 정렬 버튼 (Liquid Glass)
