@@ -1,13 +1,12 @@
-# :ℹ️📋: [A-iSCREEM/AINO]
-[Logo/Cover Image]
+### ℹ️📋 [learningTool/AINO]
+## [Logo/Cover Image]
 ![Main](https://github.com/user-attachments/assets/1ec39b2d-e1db-4db9-9c27-77a1559c7cf5)
 
-![Main_1024](https://github.com/user-attachments/assets/3a65c48b-0934-44dd-bb06-78a73bfc83f8)
 [Dark-teal]
 <img width="128" height="128" alt="tinted_teal" src="https://github.com/user-attachments/assets/5452a8e8-dd1e-4ca6-8fbe-5b58bd3d9a4e" />
 [Dark-purple]
 <img width="128" height="128" alt="tinted_purple" src="https://github.com/user-attachments/assets/3fba02bb-2151-445d-9862-53f1268f1daa" />
-[Dark-amber[
+[Dark-amber]
 <img width="128" height="128" alt="tinted_amber" src="https://github.com/user-attachments/assets/4f640957-db60-423d-95b8-a9756e85c43f" />
 
 
@@ -22,7 +21,7 @@ An app designed for university students studying with YouTube lectures on iPad �
 
 
 
-### :📞: Apple Intelligence (On-Device) Requirements
+### 📞 Apple Intelligence (On-Device) Requirements
 This app’s AI summarization uses Apple’s on-device foundation model (Apple Intelligence).
 
 - **iPhone:** iPhone 16 lineup, iPhone 15 Pro/Pro Max  
@@ -37,13 +36,13 @@ Refs: Apple Newsroom availability notes.  [oai_citation:5‡Apple](https://www.a
 
 
 
-## :📊: 다이어그램
+## 📊 다이어그램
 
 Attach photos if you are available
 <img width="1582" height="2271" alt="analyzer_flow" src="https://github.com/user-attachments/assets/238ce3af-27cb-4030-8f53-83b29f9fa35b" />
 <img width="2016" height="1422" alt="async_sequence" src="https://github.com/user-attachments/assets/99cd58ab-af15-43d5-b17a-64f5c8b1f6a7" />
 
-## :framed_picture: Demo (optional)
+## :framed_picture: Demo
 
 Attach videos if you are available
 <img width="1472" height="1183" alt="스크린샷 2025-10-20 오후 6 41 10" src="https://github.com/user-attachments/assets/7c78688e-6fa6-46d1-aa60-d2966a4be2e8" />
@@ -66,7 +65,7 @@ Attach videos if you are available
 
 
 
-## :🌿: Tree
+## 🌿 Tree
 ```
 .
 ├── learningTool
@@ -180,7 +179,7 @@ Attach videos if you are available
 ![WebKit](https://img.shields.io/badge/WebKit-WKWebView-1F8A70)
 
 
-## :👥 Team:
+## 👥 Team
 
 | Member | GitHub |
 |---|---|
