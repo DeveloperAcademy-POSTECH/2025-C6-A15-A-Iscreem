@@ -90,7 +90,7 @@ private struct CompactScaleModifier: ViewModifier {
     let base: CGSize
     let min: CGFloat
     let max: CGFloat
-
+    
     func body(content: Content) -> some View {
         Group {
             if hSize == .compact {
@@ -126,7 +126,7 @@ struct ScaledContainer<Content: View>: View {
     let maxScale: CGFloat
     let alignment: Alignment
     @ViewBuilder var content: () -> Content
-
+    
     init(
         baseSize: CGSize = CGSize(width: 1366, height: 1024),
         minScale: CGFloat = 0.75,
@@ -140,7 +140,7 @@ struct ScaledContainer<Content: View>: View {
         self.alignment = alignment
         self.content = content
     }
-
+    
     var body: some View {
         GeometryReader { geo in
             // 기준 크기 대비 가로/세로 스케일 → 더 작은 쪽 채택
@@ -148,11 +148,11 @@ struct ScaledContainer<Content: View>: View {
             let sH = geo.size.height / max(baseSize.height, 1)
             let raw = min(sW, sH)
             let scale = min(max(raw, minScale), maxScale) // 0.75~1.0 클램프
-
+            
             ZStack(alignment: alignment) {
                 content()
                     .scaleEffect(scale, anchor: .topLeading)
-                    // 스케일 후 히트영역 불일치 방지를 위해 논리 프레임을 보정
+                // 스케일 후 히트영역 불일치 방지를 위해 논리 프레임을 보정
                     .frame(width: geo.size.width / scale,
                            height: geo.size.height / scale,
                            alignment: alignment)
@@ -161,4 +161,4 @@ struct ScaledContainer<Content: View>: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignment)
         }
     }
- }
+}

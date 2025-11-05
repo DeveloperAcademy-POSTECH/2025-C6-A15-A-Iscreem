@@ -5,6 +5,13 @@
 //  Created by Yulim Kim on 10/28/25.
 //
 
+//
+//  ViewModeToggle.swift
+//  learningTool
+//
+//  Created by Yulim Kim on 10/28/25.
+//
+
 import SwiftUI
 
 struct ViewModeToggle: View {

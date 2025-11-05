@@ -101,17 +101,17 @@ struct HomeView: View {
                 .ignoresSafeArea(.keyboard, edges: .bottom)
         }
         .background {
-                    LinearGradient(
-                        colors: [
-                            Color.black.opacity(0.12),
-                            Color.blue.opacity(0.10)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                    .ignoresSafeArea()
-                    .backgroundExtensionEffect()
-                }
+            LinearGradient(
+                colors: [
+                    Color.black.opacity(0.12),
+                    Color.blue.opacity(0.10)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+            .backgroundExtensionEffect()
+        }
         .navigationSplitViewStyle(.balanced)
         .keyboardOverlay()
         .applyOverlays(
@@ -190,6 +190,7 @@ struct HomeView: View {
         .padding()
     }
     
+    // MARK: - 🔵 검색바 (Liquid Glass)
     private var searchBar: some View {
         HStack {
             Image(systemName: "magnifyingglass")
@@ -201,10 +202,15 @@ struct HomeView: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .frame(minWidth: 220, maxWidth: 320)
-        .background(Color.background2)
-        .cornerRadius(8)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .strokeBorder(.white.opacity(0.2), lineWidth: 0.5)
+        )
+        .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 2)
     }
     
+    // MARK: - 🔵 정렬 버튼 (Liquid Glass)
     private var sortButton: some View {
         Button {
             showNoteSortMenu.toggle()
@@ -213,11 +219,14 @@ struct HomeView: View {
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(Color.text2)
                 .frame(width: 36, height: 36)
-                .background(Color.background2)
-                .clipShape(Circle())
-                .overlay(Circle().stroke(Color.borderColor, lineWidth: 1))
+                .background(.ultraThinMaterial, in: Circle())
+                .overlay(
+                    Circle()
+                        .strokeBorder(.white.opacity(0.2), lineWidth: 0.5)
+                )
         }
         .buttonStyle(.plain)
+        .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 2)
         .popover(isPresented: $showNoteSortMenu, arrowEdge: .top) {
             PopoverMenuContent(
                 selectedSort: $headerSort,
@@ -226,9 +235,12 @@ struct HomeView: View {
                 }
             )
             .frame(width: 255, height: 270)
-            .background(Color.background1)
-            .cornerRadius(14)
-            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.borderColor, lineWidth: 1))
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .strokeBorder(.white.opacity(0.2), lineWidth: 0.5)
+            )
+            .shadow(color: .black.opacity(0.15), radius: 20, x: 0, y: 8)
         }
         .onChange(of: headerSort) { _ in
             showNoteSortMenu = false
@@ -315,14 +327,14 @@ struct HomeView: View {
         return !isShowingSettings && isAllView
     }
     
-    // MARK: - Add Button
+    // 🔵 추가 버튼 (Gradient + Floating)
     private var addButton: some View {
         Button {
             viewModel.addButtonTapped()
             withAnimation(.easeInOut(duration: 0.2)) { showCreateNote = true }
         } label: {
             Image(systemName: "plus")
-                .font(.system(size: 22))
+                .font(.system(size: 30, weight: .semibold))
                 .foregroundStyle(.white)
                 .frame(width: 60, height: 60)
                 .background(
@@ -373,7 +385,7 @@ extension HomeView {
     struct AppRootView: View {
         @State private var selectedNote: Note?
         @State private var showStudyView = false
-
+        
         var body: some View {
             ScaledContainer(baseSize: CGSize(width: 1366, height: 1024),
                             minScale: 0.78,  // 터치 최소 44pt 근사 유지용(원하면 0.75~0.85 사이 조절)
@@ -399,10 +411,10 @@ extension HomeView {
                     }
                 }
             }
-            .keyboardOverlay()
+                            .keyboardOverlay()
         }
     }
- }
+}
 
 extension Notification.Name {
     static let showSettings = Notification.Name("ShowSettings")
