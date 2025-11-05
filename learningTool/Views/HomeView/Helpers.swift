@@ -152,7 +152,7 @@ struct ScaledContainer<Content: View>: View {
             ZStack(alignment: alignment) {
                 content()
                     .scaleEffect(scale, anchor: .topLeading)
-                    // 스케일 후 히트영역 불일치 방지를 위해 논리 프레임을 보정
+                // 스케일 후 히트영역 불일치 방지를 위해 논리 프레임을 보정
                     .frame(width: geo.size.width / scale,
                            height: geo.size.height / scale,
                            alignment: alignment)

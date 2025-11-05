@@ -23,7 +23,7 @@ struct KeywordView: View {
     var body: some View {
         ZStack {
             VStack(alignment: .leading, spacing: 12) {
-                // 제목 텍스트
+                // 🔵 제목 텍스트 (Liquid Glass 효과)
                 Text("이 강의에서 자주 언급되는 핵심 키워드들이 나열됩니다.")
                     .font(.bodyText)
                     .foregroundStyle(Color.text2)
@@ -46,14 +46,14 @@ struct KeywordView: View {
                                 .offset(y: geo.size.height + 4)
                         }
                     )
-
+                
                 ScrollView(.vertical) {
                     LazyVGrid(
                         columns: [GridItem(.adaptive(minimum: 120, maximum: 260), spacing: 16)],
                         spacing: 12
                     ) {
                         ForEach(keywordsToShow, id: \.self) { keyword in
-                            // 키워드 컴포넌트
+                            // 🔵 키워드 컴포넌트 (Liquid Glass)
                             KeywordChip(
                                 keyword: keyword,
                                 isSelected: selectedKeyword == keyword,
@@ -73,8 +73,8 @@ struct KeywordView: View {
                 }
                 .frame(maxWidth: .infinity)
             }
-
-            // 키워드가 없을 때 표시되는 중앙 메시지
+            
+            // 🔵 키워드가 없을 때 표시되는 중앙 메시지 (Liquid Glass)
             if keywordsToShow.isEmpty {
                 VStack(spacing: 16) {
                     ProgressView()
@@ -99,7 +99,7 @@ struct KeywordView: View {
     }
 }
 
-// MARK: - Keyword Chip
+// MARK: - 🔵 Keyword Chip (Liquid Glass UI)
 struct KeywordChip: View {
     let keyword: String
     let isSelected: Bool
@@ -138,15 +138,15 @@ struct KeywordChip: View {
                     RoundedRectangle(cornerRadius: 20)
                         .strokeBorder(
                             isSelected
-                                ? Color.white.opacity(0.3)
-                                : Color.white.opacity(0.15),
+                            ? Color.white.opacity(0.3)
+                            : Color.white.opacity(0.15),
                             lineWidth: isSelected ? 1 : 0.5
                         )
                 )
                 .shadow(
                     color: isSelected
-                        ? Color.secondColor.opacity(0.25)
-                        : .black.opacity(0.06),
+                    ? Color.secondColor.opacity(0.25)
+                    : .black.opacity(0.06),
                     radius: isSelected ? 10 : 6,
                     x: 0,
                     y: isSelected ? 4 : 2

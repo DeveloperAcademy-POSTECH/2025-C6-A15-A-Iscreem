@@ -1,8 +1,8 @@
 //
-//  ViewModelToggle.swift
+//  ViewModeToggle.swift
 //  learningTool
 //
-//  Created by Yulim KIm on 10/28/25.
+//  Created by Yulim Kim on 10/28/25.
 //
 
 //
@@ -12,18 +12,17 @@
 //  Created by Yulim Kim on 10/28/25.
 //
 
-
 import SwiftUI
 
 struct ViewModeToggle: View {
     @Binding var selection: HomeViewModel.ViewMode
     var onChange: ((HomeViewModel.ViewMode) -> Void)?
-
+    
     private enum Layout {
         static let width: CGFloat = 116
         static let height: CGFloat = 36
     }
-
+    
     var body: some View {
         Picker("", selection: $selection) {
             Label("Grid", systemImage: "square.grid.2x2")

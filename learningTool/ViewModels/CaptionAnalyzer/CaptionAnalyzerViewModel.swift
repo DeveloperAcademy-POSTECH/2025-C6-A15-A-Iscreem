@@ -537,7 +537,6 @@ final class CaptionAnalyzer: ObservableObject {
             }
         }
     }
-    
     func prefetchFromTracks(_ jsTracks: [[String: Any]]) async {
         let sid = self.sessionId
         log.info("tracks(begin) rawCount=\(jsTracks.count)")

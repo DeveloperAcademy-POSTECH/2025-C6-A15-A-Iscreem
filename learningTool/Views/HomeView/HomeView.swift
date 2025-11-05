@@ -180,7 +180,7 @@ struct HomeView: View {
             
             HStack(spacing: 12) {
                 searchBar
-                sortButton // 정렬 버튼
+                sortButton
                 ViewModeToggle(selection: $viewModel.selectedViewMode) { mode in
                     viewModel.viewModeButtonTapped(mode)
                 }
@@ -190,7 +190,7 @@ struct HomeView: View {
         .padding()
     }
     
-    // MARK: - 검색바
+    // MARK: - 🔵 검색바 (Liquid Glass)
     private var searchBar: some View {
         HStack {
             Image(systemName: "magnifyingglass")
@@ -210,7 +210,7 @@ struct HomeView: View {
         .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 2)
     }
     
-    // MARK: - 정렬 버튼
+    // MARK: - 🔵 정렬 버튼 (Liquid Glass)
     private var sortButton: some View {
         Button {
             showNoteSortMenu.toggle()
@@ -326,6 +326,7 @@ struct HomeView: View {
         // Hide when Settings overlay is showing
         return !isShowingSettings && isAllView
     }
+    
     // 🔵 추가 버튼 (Gradient + Floating)
     private var addButton: some View {
         Button {
@@ -410,7 +411,7 @@ extension HomeView {
                     }
                 }
             }
-            .keyboardOverlay()
+                            .keyboardOverlay()
         }
     }
 }
@@ -419,3 +420,5 @@ extension Notification.Name {
     static let showSettings = Notification.Name("ShowSettings")
     static let hideSettings = Notification.Name("HideSettings")
 }
+
+
