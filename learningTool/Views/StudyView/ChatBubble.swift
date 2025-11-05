@@ -4,7 +4,7 @@
 //
 //  Created by coulson on 10/30/25.
 //  QuestionView에서 사용하던 말풍선 UI를 분리
-//  ChatBubbleShape 는 QuestionBubbleComponent.swift 에 이미 존재(재사용)
+//  리퀴드글라스 디자인 적용
 
 import SwiftUI
 
@@ -22,16 +22,18 @@ struct ChatBubble: View {
                     .font(.system(size: 14))
                     .foregroundStyle(message.isUser ? .white : Color.text1)
                     .multilineTextAlignment(message.isUser ? .trailing : .leading)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
                     .background(
-                        ChatBubbleShape(isRightAligned: message.isUser)
-                            .fill(
-                                message.isUser
-                                ? Color.primaryColor
-                                : Color.secondColor.opacity(0.15)
-                            )
+                        message.isUser
+                        ? Color.accentColor
+                        : Color.background1
                     )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.accentColor, lineWidth: 1)
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
                 
                 Text(timeString(from: message.timestamp))
                     .font(.system(size: 11))
