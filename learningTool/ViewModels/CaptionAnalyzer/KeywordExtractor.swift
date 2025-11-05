@@ -31,17 +31,21 @@ final class KeywordExtractor {
                 let rawKeywords = try await summarizer.summarizeChunk(
                     text: text,
                     instruction: """
-                    Extract 5–15 core keywords that represent the main academic or conceptual topics of this chapter.
-                    Include only meaningful nouns or proper nouns (in Korean or English).
-                    Do NOT include verbs, adjectives, particles, or generic/common words.
-                    Return the keywords separated by commas.
-                    (한국어 안내)
-                    이 챕터의 주요 학문적·개념적 주제를 나타내는 핵심 명사 또는 고유명사만 5~15개 추출하세요.
-                    동사, 형용사, 조사, 일반 단어는 포함하지 말고, 쉼표로 구분하세요.
-"""
+                    다음 챕터에서 핵심 개념을 나타내는 명사나 고유명사를 5~15개 추출하세요.
+                    
+                    **규칙:**
+                    - 한글 용어를 최우선으로 추출 (예: 데이터베이스, 인공지능, 머신러닝)
+                    - 영어는 Swift, API, DBMS, JSON처럼 한글로 번역하기 어려운 기술 용어만 포함
+                    - 동사, 형용사, 조사는 제외
+                    - 쉼표로 구분
+                    
+                    **예시:**
+                    입력: "Swift는 iOS 앱 개발에 사용되는 프로그래밍 언어입니다. 데이터베이스 설계와 SQL 쿼리를 배웁니다."
+                    출력: Swift, iOS, 앱 개발, 프로그래밍 언어, 데이터베이스, 설계, SQL, 쿼리
+                    """
                 )
                 candidateKeywords = rawKeywords
-                    .components(separatedBy: CharacterSet(charactersIn: ".,;／/\n\t "))
+                    .components(separatedBy: CharacterSet(charactersIn: ".,;、/\n\t "))
                     .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             } catch {
                 candidateKeywords = text.components(separatedBy: .whitespacesAndNewlines)
@@ -52,9 +56,13 @@ final class KeywordExtractor {
         
         print("🟦 candidateKeywords count=\(candidateKeywords.count), preview=\(candidateKeywords.prefix(20))")
         
+        // ✅ 강화된 전처리: 오타 보정 + 불용어 제거
+        let preprocessed = preprocessKeywords(candidateKeywords)
+        print("🟧 preprocessed keywords count=\(preprocessed.count), preview=\(preprocessed.prefix(20))")
+        
         // 정규식 및 불용어 기반 정제
-        let refined = refineKeywords(candidateKeywords)
-        print("🟧 refined keywords count=\(refined.count), preview=\(refined.prefix(20))")
+        let refined = refineKeywords(preprocessed)
+        print("🟨 refined keywords count=\(refined.count), preview=\(refined.prefix(20))")
         
         // 중복 제거, 순서 유지
         var seen: Set<String> = []
@@ -168,6 +176,25 @@ final class KeywordExtractor {
     
     // MARK: - Private Helpers
     
+    /// ✅ NEW: 오타 보정 및 유사 단어 통합 (컴활 ≠ 코마)
+    private func preprocessKeywords(_ candidates: [String]) -> [String] {
+        // 일반적인 오타 패턴 보정 사전
+        let typoCorrections: [String: String] = [
+            "코마": "컴활",
+            "데타": "데이터",
+            "프로그램잉": "프로그래밍",
+            "알고리듬": "알고리즘",
+            "데이타베이스": "데이터베이스",
+            "웹사이트": "웹사이트",
+            "프레임웍": "프레임워크",
+            // 필요시 추가
+        ]
+        
+        return candidates.map { word in
+            typoCorrections[word] ?? word
+        }
+    }
+    
     /// 키워드 정제: 정규식 기반 불용어·조사·어미 제거
     private func refineKeywords(_ candidates: [String]) -> [String] {
         // 한국어·영어 불용어 (정규식으로 매칭 가능한 것은 정규식 활용)
@@ -186,11 +213,11 @@ final class KeywordExtractor {
             "합니다", "있습니다", "해야", "됩니다", "같습니다", "있어요", "입니다", "해요"
         ]
         
-        // 정규식: 한국어 어미 패턴 (된, 하는, 되는, 적인, 하며, 같은, 하는데 등)
-        let koreanSuffixPattern = try! NSRegularExpression(pattern: "(된|하는|되는|적인|하며|같은|하는데)$", options: [])
+        // 정규식: 한국어 어미 패턴 (듯, 하는, 되는, 적인, 하며, 같은, 하는데 등)
+        let koreanSuffixPattern = try! NSRegularExpression(pattern: "(듯|하는|되는|적인|하며|같은|하는데)$", options: [])
         
         // 특수문자 및 따옴표 제거용 CharacterSet
-        let quoteCharacters = CharacterSet(charactersIn: "\"'`”’“‘“”’")
+        let quoteCharacters = CharacterSet(charactersIn: "\"'`")
         let unwantedCharacters = CharacterSet.punctuationCharacters.union(.symbols).union(quoteCharacters)
         
         let refined = candidates

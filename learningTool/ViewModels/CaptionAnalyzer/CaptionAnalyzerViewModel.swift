@@ -153,7 +153,7 @@ final class CaptionAnalyzer: ObservableObject {
                 let c = Chapter(start: 0, end: 0, title: ch.title, gist: ch.bullets.joined(separator: " "))
                 rebuilt.append(c)
                 bulletsMap[c.id] = ch.bullets
-                keywordsMap[c.id] = ch.keywords
+                keywordsMap[c.id] = ch.keywords // ✅ 저장된 키워드 복원
                 
                 // 🔹 챕터별 키워드 누적 (중복 제거)
                 for kw in ch.keywords where !allKeywords.contains(kw) {
@@ -196,15 +196,27 @@ final class CaptionAnalyzer: ObservableObject {
         
         var built: [Chapter] = []
         var bulletsMap: [UUID: [String]] = [:]
+        var keywordsMap: [UUID: [String]] = [:]
+        var allKeywords: [String] = []
+        
         for ch in cachedChapters {
             let c = Chapter(start: 0, end: 0,
                             title: ch.title.isEmpty ? "제목" : ch.title,
                             gist: (ch.bullets.first ?? ""))
             built.append(c)
             bulletsMap[c.id] = Array(ch.bullets.prefix(4))
+            keywordsMap[c.id] = ch.keywords // ✅ 키워드 복원
+            
+            for kw in ch.keywords where !allKeywords.contains(kw) {
+                allKeywords.append(kw)
+            }
         }
+        
         self.chapters = built
         self.chapterBullets = bulletsMap
+        self.chapterKeywords = keywordsMap
+        self.displayKeywords = allKeywords
+        self.accumulatedKeywords = allKeywords
         
         if !note.cachedSummaryLines.isEmpty {
             self.summaryText = note.cachedSummaryLines
@@ -215,7 +227,6 @@ final class CaptionAnalyzer: ObservableObject {
             self.finalSummary = fs
         }
         self.extractedKeywords = note.cachedKeywords
-        self.displayKeywords = Array(note.cachedKeywords.prefix(40))
     }
     
     // MARK: - Summarization Orchestration
@@ -378,6 +389,9 @@ final class CaptionAnalyzer: ObservableObject {
 
                     print("✅ Chapter \(id) keywords updated → 총 \(allKeywords.count)개 단어 누적됨")
                     print("🧩 현재 displayKeywords: \(self.displayKeywords)")
+                    
+                    // ✅ 키워드가 업데이트될 때마다 즉시 저장
+                    self.persistCacheToBoundNoteIfPossible()
                 }
             }
 
@@ -401,8 +415,10 @@ final class CaptionAnalyzer: ObservableObject {
         var snapshot: [CachedChapter] = []
         for ch in self.chapters {
             let bullets = self.chapterBullets[ch.id] ?? []
+            let keywords = self.chapterKeywords[ch.id] ?? [] // ✅ 챕터별 키워드 저장
             snapshot.append(CachedChapter(title: ch.title,
-                                          bullets: Array(bullets.prefix(4))))
+                                          bullets: Array(bullets.prefix(4)),
+                                          keywords: keywords)) // ✅ keywords 파라미터 추가
         }
         note.cachedChapters = snapshot
         
@@ -415,6 +431,8 @@ final class CaptionAnalyzer: ObservableObject {
         
         note.cachedFinalSummary = self.finalSummary.isEmpty ? nil : self.finalSummary
         note.cachedKeywords = self.extractedKeywords
+        
+        print("💾 persistCacheToBoundNoteIfPossible: 챕터 \(snapshot.count)개 저장, 총 키워드 \(self.accumulatedKeywords.count)개")
     }
     
     // MARK: - youtubei (player API) Prefetch
@@ -567,4 +585,3 @@ final class CaptionAnalyzer: ObservableObject {
         }
     }
 }
-
