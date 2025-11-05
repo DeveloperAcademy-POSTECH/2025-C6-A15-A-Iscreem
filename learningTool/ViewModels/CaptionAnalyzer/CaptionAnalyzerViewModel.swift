@@ -143,18 +143,32 @@ final class CaptionAnalyzer: ObservableObject {
             self.summaryText = note.cachedSummaryLines.joined(separator: "\n")
             self.finalSummary = note.cachedFinalSummary ?? ""
             self.extractedKeywords = note.cachedKeywords
-            self.displayKeywords = Array(note.cachedKeywords.prefix(40))
             
             var rebuilt: [Chapter] = []
             var bulletsMap: [UUID:[String]] = [:]
+            var keywordsMap: [UUID:[String]] = [:]
+            var allKeywords: [String] = []
+            
             for ch in note.cachedChapters {
                 let c = Chapter(start: 0, end: 0, title: ch.title, gist: ch.bullets.joined(separator: " "))
                 rebuilt.append(c)
                 bulletsMap[c.id] = ch.bullets
+                keywordsMap[c.id] = ch.keywords
+                
+                // 🔹 챕터별 키워드 누적 (중복 제거)
+                for kw in ch.keywords where !allKeywords.contains(kw) {
+                    allKeywords.append(kw)
+                }
             }
+            
             self.chapters = rebuilt
             self.chapterBullets = bulletsMap
+            self.chapterKeywords = keywordsMap
+            self.displayKeywords = allKeywords
+            self.accumulatedKeywords = allKeywords
             self.summaryStatus = .ready
+            
+            print("✅ bind() → 캐시 복원 완료: 챕터 \(rebuilt.count)개, 키워드 \(allKeywords.count)개")
         } else {
             self.summaryText = ""
             self.finalSummary = ""
@@ -162,6 +176,8 @@ final class CaptionAnalyzer: ObservableObject {
             self.displayKeywords = []
             self.chapters = []
             self.chapterBullets = [:]
+            self.chapterKeywords = [:]
+            self.accumulatedKeywords = []
             self.summaryStatus = .idle
         }
     }
@@ -255,11 +271,11 @@ final class CaptionAnalyzer: ObservableObject {
             },
             onChapterTitleUpdate: { [weak self] id, title in
                 guard let self else { return }
-                await self.setChapterTitle(id: id, title: title)
+                self.setChapterTitle(id: id, title: title)
             },
             onChapterGistUpdate: { [weak self] id, gist in
                 guard let self else { return }
-                await self.setChapterGist(id: id, gist: gist)
+                self.setChapterGist(id: id, gist: gist)
             },
             onChapterBulletsUpdate: { [weak self] id, bullets in
                 guard let self else { return }
@@ -551,3 +567,4 @@ final class CaptionAnalyzer: ObservableObject {
         }
     }
 }
+
