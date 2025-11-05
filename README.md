@@ -1,12 +1,14 @@
 # iPad: [Project/App Name]
 [Logo/Cover Image]
+![Main](https://github.com/user-attachments/assets/1ec39b2d-e1db-4db9-9c27-77a1559c7cf5)
+
 ![Main_1024](https://github.com/user-attachments/assets/3a65c48b-0934-44dd-bb06-78a73bfc83f8)
 [Dark-teal]
-<img width="1024" height="1024" alt="tinted_teal" src="https://github.com/user-attachments/assets/5452a8e8-dd1e-4ca6-8fbe-5b58bd3d9a4e" />
+<img width="128" height="128" alt="tinted_teal" src="https://github.com/user-attachments/assets/5452a8e8-dd1e-4ca6-8fbe-5b58bd3d9a4e" />
 [Dark-purple]
-<img width="1024" height="1024" alt="tinted_purple" src="https://github.com/user-attachments/assets/3fba02bb-2151-445d-9862-53f1268f1daa" />
+<img width="128" height="128" alt="tinted_purple" src="https://github.com/user-attachments/assets/3fba02bb-2151-445d-9862-53f1268f1daa" />
 [Dark-amber[
-<img width="1024" height="1024" alt="tinted_amber" src="https://github.com/user-attachments/assets/4f640957-db60-423d-95b8-a9756e85c43f" />
+<img width="128" height="128" alt="tinted_amber" src="https://github.com/user-attachments/assets/4f640957-db60-423d-95b8-a9756e85c43f" />
 
 
 ## [App statement]
