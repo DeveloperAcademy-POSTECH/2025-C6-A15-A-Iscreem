@@ -12,6 +12,7 @@
 //  Created by Yulim Kim on 10/28/25.
 //
 
+
 import SwiftUI
 
 struct ViewModeToggle: View {
@@ -22,50 +23,26 @@ struct ViewModeToggle: View {
         static let width: CGFloat = 116
         static let height: CGFloat = 36
     }
-    
-    @Namespace private var ns
 
     var body: some View {
-        let items: [HomeViewModel.ViewMode] = [.grid, .list]
-
-        ZStack {
-            Capsule()
-                .fill(.ultraThinMaterial.opacity(0.5))
-                .background(
-                    Capsule()
-                        .fill(.ultraThinMaterial.opacity(0.5))
-                        .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
-                )
-                .overlay(
-                    Capsule()
-                        .stroke(Color.borderColor.opacity(0.5), lineWidth: 1)
-                )
-
-            HStack(spacing: 0) {
-                ForEach(items, id: \.self) { mode in
-                    ZStack {
-                        if selection == mode {
-                            RoundedRectangle(cornerRadius: (Layout.height - 8) / 2)
-                                .fill(Color.white.opacity(0.85))
-                                .matchedGeometryEffect(id: "thumb", in: ns)
-                                .padding(4)
-                        }
-                        
-                        Image(systemName: mode == .grid ? "square.grid.2x2" : "list.bullet")
-                            .foregroundStyle(Color.text2)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        withAnimation(.easeInOut(duration: 0.18)) {
-                            selection = mode
-                        }
-                        onChange?(mode)
-                    }
-                }
-            }
-            .padding(2)
+        Picker("", selection: $selection) {
+            Label("Grid", systemImage: "square.grid.2x2")
+                .tag(HomeViewModel.ViewMode.grid)
+            Label("List", systemImage: "list.bullet")
+                .tag(HomeViewModel.ViewMode.list)
         }
+        .pickerStyle(.segmented)
+        .labelStyle(.iconOnly)          // 아이콘만 표시
+        .labelsHidden()                 // 접근성 라벨만 유지, 시각 라벨 숨김
+        .tint(Color.text1)              // 선택된 세그먼트 색상
         .frame(width: Layout.width, height: Layout.height)
+        .background(.ultraThinMaterial, in: Capsule())               // 리퀴드 글래스 베이스
+        .overlay(Capsule().stroke(Color.borderColor.opacity(0.5),    // 테두리
+                                  lineWidth: 1))
+        .onChange(of: selection) { newValue in
+            onChange?(newValue)
+        }
+        .accessibilityLabel("View mode")
+        .accessibilityValue(selection == .grid ? "Grid" : "List")
     }
 }
