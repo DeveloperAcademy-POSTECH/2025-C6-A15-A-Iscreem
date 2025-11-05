@@ -1,4 +1,4 @@
-# iPad: [Project/App Name]
+# :ℹ️📋: [A-iSCREEM/AINO]
 [Logo/Cover Image]
 ![Main](https://github.com/user-attachments/assets/1ec39b2d-e1db-4db9-9c27-77a1559c7cf5)
 
@@ -22,7 +22,7 @@ An app designed for university students studying with YouTube lectures on iPad �
 
 
 
-### :Apple Intelligence (On-Device) Requirements:
+### :📞: Apple Intelligence (On-Device) Requirements
 This app’s AI summarization uses Apple’s on-device foundation model (Apple Intelligence).
 
 - **iPhone:** iPhone 16 lineup, iPhone 15 Pro/Pro Max  
@@ -37,7 +37,7 @@ Refs: Apple Newsroom availability notes.  [oai_citation:5‡Apple](https://www.a
 
 
 
-## :다이어그램:
+## :📊: 다이어그램
 
 Attach photos if you are available
 <img width="1582" height="2271" alt="analyzer_flow" src="https://github.com/user-attachments/assets/238ce3af-27cb-4030-8f53-83b29f9fa35b" />
@@ -66,7 +66,7 @@ Attach videos if you are available
 
 
 
-## Tree
+## :🌿: Tree
 ```
 .
 ├── learningTool
@@ -163,14 +163,6 @@ Attach videos if you are available
 
 
 ## :sparkles: Skills & Tech Stack
-
-<img src="https://img.shields.io/badge/Swift-FA7343?style=flat&logo=Swift&logoColor=white"/>, SwiftUI
-
-위와 같이 배지를 사용하여 더 풍성한 Readme를 만들 수 있습니다.
-[참조](https://shields.io/)
-
-
-## :사용 기술:
 
 	•	언어/런타임: Swift 5.x, Swift Concurrency(async/await, Task, @MainActor)
 	•	UI: SwiftUI (NavigationSplitView, UIViewRepresentable로 WKWebView 브리지)
