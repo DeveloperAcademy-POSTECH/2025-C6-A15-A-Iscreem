@@ -107,10 +107,21 @@ struct SummaryView: View {
             return Summary(
                 id: ch.id,
                 title: title,
-                items: Array(bullets.prefix(4)),
+                items: Array(bullets.prefix(4)).map(stripBulletPrefix),
                 progress: "\(idx + 1) / \(total)"
             )
         }
+    }
+
+    /// UI에서 불릿 기호를 제거해 '불릿 없이 최대 4줄'을 보이도록 한다.
+    private func stripBulletPrefix(_ s: String) -> String {
+        var t = s.trimmingCharacters(in: .whitespacesAndNewlines)
+        let prefixes = ["•", "-", "–", "—", "∙", "·", "●", "*"]
+        if let p = prefixes.first(where: { t.hasPrefix($0) }) {
+            t.removeFirst(p.count)
+            t = t.trimmingCharacters(in: .whitespaces)
+        }
+        return t
     }
 
     private func pagedChapters(_ list: [Summary]) -> some View {
@@ -163,7 +174,27 @@ private struct SummaryDisclosureCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            DisclosureGroup(isExpanded: $isExpanded) {
+            // Header row with custom chevron (no DisclosureGroup)
+            Button(action: {
+                withAnimation(.easeInOut(duration: 0.2)) { isExpanded.toggle() }
+            }) {
+                HStack {
+                    Text("#\(index). \(summary.title)")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(Color.text1)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Color.text3)
+                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                        .animation(.easeInOut(duration: 0.2), value: isExpanded)
+                }
+                .contentShape(Rectangle()) // make the whole row tappable
+            }
+            .buttonStyle(.plain)
+
+            // Collapsible content
+            if isExpanded {
                 VStack(alignment: .leading, spacing: 8) {
                     ForEach(Array(summary.items.enumerated()), id: \.offset) { _, line in
                         HStack(alignment: .top, spacing: 8) {
@@ -176,19 +207,8 @@ private struct SummaryDisclosureCard: View {
                     }
                 }
                 .padding(.top, 8)
-            } label: {
-                HStack {
-                    Text("#\(index). \(summary.title)")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(Color.text1)
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 14))
-                        .foregroundStyle(Color.text3)
-                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
-                }
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
-
         }
         .padding(16)
         .background(Color.background2)
