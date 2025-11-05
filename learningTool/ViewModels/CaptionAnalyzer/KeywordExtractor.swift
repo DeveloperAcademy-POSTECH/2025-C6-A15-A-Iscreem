@@ -31,17 +31,22 @@ final class KeywordExtractor {
                 let rawKeywords = try await summarizer.summarizeChunk(
                     text: text,
                     instruction: """
-                    다음 챕터에서 핵심 개념을 나타내는 명사나 고유명사를 5~15개 추출하세요.
+                    다음 챕터에서 가장 핵심적인 개념을 나타내는 명사나 고유명사를 **정확히 10개만** 추출하세요.
                     
-                    **규칙:**
-                    - 한글 용어를 최우선으로 추출 (예: 데이터베이스, 인공지능, 머신러닝)
-                    - 영어는 Swift, API, DBMS, JSON처럼 한글로 번역하기 어려운 기술 용어만 포함
-                    - 동사, 형용사, 조사는 제외
-                    - 쉼표로 구분
+                    **엄격한 규칙:**
+                    1. 챕터의 주제와 직접 관련된 핵심 용어만 선택 (일반적이거나 부차적인 단어 제외)
+                    2. 한글 용어 우선 (예: 데이터베이스, 프로그래밍, 알고리즘)
+                    3. 영어는 Swift, API, SQL, JSON, HTTP 같은 번역 불가능한 기술 용어만
+                    4. 동사, 형용사, 조사, 수식어는 절대 포함 금지
+                    5. "방법", "기능", "사용", "학습" 같은 일반 명사 제외
+                    6. 정확히 10개만 쉼표로 구분하여 출력
                     
-                    **예시:**
-                    입력: "Swift는 iOS 앱 개발에 사용되는 프로그래밍 언어입니다. 데이터베이스 설계와 SQL 쿼리를 배웁니다."
-                    출력: Swift, iOS, 앱 개발, 프로그래밍 언어, 데이터베이스, 설계, SQL, 쿼리
+                    **좋은 예시:**
+                    입력: "Swift는 iOS 앱 개발에 사용되는 프로그래밍 언어입니다. 데이터베이스 설계 원리와 SQL 쿼리 최적화 기법을 배웁니다."
+                    출력: Swift, iOS, 앱 개발, 프로그래밍 언어, 데이터베이스, 설계 원리, SQL, 쿼리 최적화, 데이터 모델링, 정규화
+                    
+                    **나쁜 예시 (이런 단어들은 제외):**
+                    방법, 기능, 사용, 학습, 내용, 설명, 이해, 중요, 필요, 다양한
                     """
                 )
                 candidateKeywords = rawKeywords
@@ -66,8 +71,12 @@ final class KeywordExtractor {
         
         // 중복 제거, 순서 유지
         var seen: Set<String> = []
-        let finalKeywords = refined.filter { seen.insert($0).inserted }
+        let unique = refined.filter { seen.insert($0).inserted }
         
+        // ✅ 정확히 10개로 제한 (앞부분이 더 중요한 키워드)
+        let finalKeywords = Array(unique.prefix(10))
+        
+        print("✅ Final keywords (limited to 10): \(finalKeywords)")
         return finalKeywords
     }
     
@@ -185,8 +194,16 @@ final class KeywordExtractor {
             "프로그램잉": "프로그래밍",
             "알고리듬": "알고리즘",
             "데이타베이스": "데이터베이스",
+            "데이타": "데이터",
             "웹사이트": "웹사이트",
             "프레임웍": "프레임워크",
+            "어플리케이션": "애플리케이션",
+            "엘고리즘": "알고리즘",
+            "프로그램밍": "프로그래밍",
+            "디비": "데이터베이스",
+            "에스큐엘": "SQL",
+            "디비엠에스": "DBMS",
+            "에이피아이": "API",
             // 필요시 추가
         ]
         
@@ -203,14 +220,22 @@ final class KeywordExtractor {
             "이","그","저","것","등","및","의","에","를","을","로","에서","으로","와","과","도","는","은","가",
             "그리고","그러나","그러면서","그런데","또는","또","또한","하지만","만약","즉","혹은","때문에","위해","까지","처럼","같이",
             "중","등등","각","모든","이런","그런","저런","이러한","저러한",
+            // ✅ 일반적이고 맥락 없는 한국어 명사 추가
+            "방법","기능","사용","학습","내용","설명","이해","개념","의미","정의","특징","종류","형태","과정","단계",
+            "결과","영향","효과","목적","원리","구조","시스템","요소","부분","전체","일부","예시","경우","상황",
+            "문제","해결","분석","평가","비교","차이","관계","연결","적용","활용","구현","개발","제공","지원",
             // 영어 불용어
             "the","and","or","of","to","in","on","for","with","a","an","is","are","was","were","be","been","being",
             "this","that","these","those","it","its","at","by","as","from","but","about","into","over","after","so","such",
             "if","then","because","therefore","thus","however","while","when","where","which","who","whose","whom",
             "different","various","several","other","many","much","some","any","every","each","good","bad","great","small","big","large",
             "specific","general","main","important","necessary","possible","typical","common","simple","complex",
+            "method","function","use","usage","learning","content","description","understanding","concept","meaning",
+            "definition","feature","type","form","process","step","result","effect","purpose","principle","structure",
+            "system","element","part","whole","example","case","situation","problem","solution","analysis",
             // 추가 한국어 불용어
-            "합니다", "있습니다", "해야", "됩니다", "같습니다", "있어요", "입니다", "해요"
+            "합니다", "있습니다", "해야", "됩니다", "같습니다", "있어요", "입니다", "해요",
+            "통해","대한","위한","따른","관련","필요","중요","다양한","여러","주요","기본","핵심"
         ]
         
         // 정규식: 한국어 어미 패턴 (듯, 하는, 되는, 적인, 하며, 같은, 하는데 등)

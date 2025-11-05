@@ -15,24 +15,9 @@ struct KeywordView: View {
     @State private var selectedKeyword: String? = nil
     
     private var keywordsToShow: [String] {
-        // 🔹 displayKeywords 우선
-        if !analyzer.displayKeywords.isEmpty {
-            return analyzer.displayKeywords
-        }
-        // 챕터별 키워드 fallback
-        else if let firstChapterId = analyzer.chapters.first?.id,
-                let chapterKeywords = analyzer.chapterKeywords[firstChapterId],
-                !chapterKeywords.isEmpty {
-            return chapterKeywords
-        }
-        // accumulatedKeywords fallback
-        else if !analyzer.accumulatedKeywords.isEmpty {
-            return analyzer.accumulatedKeywords
-        }
-        // 최종 요약 기반 fallback
-        else {
-            return analyzer.extractedKeywords
-        }
+        // ✅ displayKeywords만 사용 (챕터별로 실시간 업데이트되는 키워드)
+        // 챕터별 키워드가 추출될 때마다 즉시 누적되어 표시됨
+        return analyzer.displayKeywords
     }
     
     var body: some View {

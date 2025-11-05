@@ -290,7 +290,9 @@ final class CaptionAnalyzer: ObservableObject {
             },
             onChapterBulletsUpdate: { [weak self] id, bullets in
                 guard let self else { return }
-                await self.setChapterBullets(id: id, bullets: bullets)
+                await MainActor.run {
+                    self.setChapterBullets(id: id, bullets: bullets)
+                }
             },
             onSummaryProgress: { [weak self] processed, total in
                 guard let self else { return }
@@ -585,3 +587,4 @@ final class CaptionAnalyzer: ObservableObject {
         }
     }
 }
+
