@@ -84,17 +84,18 @@ final class SummarizerEngine {
             guard !trimmed.isEmpty else { continue }
             
             do {
-                let one = try await summarizer.summarizeChunk(
+                let raw = try await summarizer.summarizeChunk(
                     text: trimmed,
                     instruction: "아래 문단을 한국어로 한 문장 핵심 요약. 고유명사/숫자 유지. 군더더기 없이."
                 ).replacingOccurrences(of: "\n", with: " ")
-                linesOut.append("• " + one.trimmingCharacters(in: .whitespacesAndNewlines))
+                let clean = stripBulletPrefix(raw).trimmingCharacters(in: .whitespacesAndNewlines)
+                linesOut.append("• " + clean)
                 self.log.info("sum[\(runTag)] step \(i+1) ok")
                 await onSummaryProgress(i + 1, paragraphs.count)
             } catch {
                 let ns = error as NSError
                 self.log.error("sum[\(runTag)] step \(i+1) error: \(ns.localizedDescription, privacy: .public)")
-                linesOut.append("• " + firstLine(trimmed))
+                linesOut.append("• " + stripBulletPrefix(firstLine(trimmed)))
             }
             
             // UI에 간헐적으로 누적 반영 (시간 스로틀: 0.8s)
@@ -135,6 +136,17 @@ final class SummarizerEngine {
     
     private func firstLine(_ s: String) -> String {
         s.split(separator: "\n", maxSplits: 1).first.map(String.init) ?? s
+    }
+
+    /// Remove any leading bullet/dash so we can add a single "• " in step 4 only.
+    private func stripBulletPrefix(_ s: String) -> String {
+        var t = s.trimmingCharacters(in: .whitespacesAndNewlines)
+        let prefixes = ["•", "-", "–", "—", "∙", "·", "●", "*"]
+        if let p = prefixes.first(where: { t.hasPrefix($0) }) {
+            t.removeFirst(p.count)
+            t = t.trimmingCharacters(in: .whitespaces)
+        }
+        return t
     }
     
     private func makeParagraphs(from chunks: [CueChunk], targetChars: Int = 600) -> [String] {
