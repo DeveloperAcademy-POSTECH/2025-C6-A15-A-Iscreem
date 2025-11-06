@@ -14,12 +14,24 @@ struct KeywordView: View {
     // 키워드 한 번에 하나만 클릭
     @State private var selectedKeyword: String? = nil
     
-    private var keywordsToShow: [String] {
-        // ✅ displayKeywords만 사용 (챕터별로 실시간 업데이트되는 키워드)
-        // 챕터별 키워드가 추출될 때마다 즉시 누적되어 표시됨
-        return analyzer.displayKeywords
-    }
+    @State private var stableKeywords: [String] = []
     
+    private var keywordsToShow: [String] {
+        stableKeywords
+    }
+
+    // 중복 제거(대소문자 무시) + 공백 제거
+    private func dedup(_ arr: [String]) -> [String] {
+        var seen = Set<String>()
+        var out: [String] = []
+        for raw in arr {
+            let k = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !k.isEmpty else { continue }
+            let key = k.lowercased()
+            if seen.insert(key).inserted { out.append(k) }
+        }
+        return out
+    }
     var body: some View {
         ZStack {
             VStack(alignment: .leading, spacing: 12) {
@@ -52,7 +64,7 @@ struct KeywordView: View {
                         columns: [GridItem(.adaptive(minimum: 120, maximum: 260), spacing: 16)],
                         spacing: 12
                     ) {
-                        ForEach(keywordsToShow, id: \.self) { keyword in
+                        ForEach(Array(keywordsToShow.enumerated()), id: \.offset) { _, keyword in
                             // 🔵 키워드 컴포넌트 (Liquid Glass)
                             KeywordChip(
                                 keyword: keyword,
@@ -62,7 +74,10 @@ struct KeywordView: View {
                                         selectedKeyword = nil
                                     } else {
                                         selectedKeyword = keyword
-                                        studyViewModel.selectKeyword(keyword)
+                                        // 선택 직후 리스트 갱신 프레임과의 충돌 방지
+                                        DispatchQueue.main.async {
+                                            studyViewModel.selectKeyword(keyword)
+                                        }
                                     }
                                 }
                             )
@@ -96,6 +111,14 @@ struct KeywordView: View {
             }
         }
         .background(Color.background2)
+        .onAppear {
+            // 초기 표시용 안정화
+            self.stableKeywords = dedup(analyzer.displayKeywords)
+        }
+        .onChange(of: analyzer.displayKeywords) { _, newValue in
+            // 비동기 갱신 동안 중복/순서 변동으로 인한 충돌 방지
+            self.stableKeywords = dedup(newValue)
+        }
     }
 }
 
