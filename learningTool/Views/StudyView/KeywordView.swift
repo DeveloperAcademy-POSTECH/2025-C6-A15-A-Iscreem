@@ -162,7 +162,8 @@ struct KeywordChip: View {
                         } else {
                             // Base tint under material for glass impression
                             RoundedRectangle(cornerRadius: corner)
-                                .fill(Color.background1.opacity(baseBgOpacity))
+                                .fill(Color.white.opacity(0.02))
+//                                .fill(Color.background1.opacity(baseBgOpacity))
                         }
 
                         // Official glass-like material layer
@@ -172,15 +173,16 @@ struct KeywordChip: View {
                         // Subtle gloss highlight (top-left)
                         RoundedRectangle(cornerRadius: corner)
                             .fill(
-                                RadialGradient(
-                                    colors: [
-                                        Color.white.opacity(isHovering || isPressed ? 0.35 : 0.18),
-                                        .clear
-                                    ],
-                                    center: .topLeading,
-                                    startRadius: 0,
-                                    endRadius: 140
-                                )
+//                                RadialGradient(
+//                                    colors: [
+//                                        Color.white.opacity(isHovering || isPressed ? 0.35 : 0.18),
+//                                        .clear
+//                                    ],
+//                                    center: .topLeading,
+//                                    startRadius: 0,
+//                                    endRadius: 140
+//                                )
+                                Color.white.opacity(0.02)
                             )
                             .blendMode(.plusLighter)
 
