@@ -155,6 +155,7 @@ Attach videos if you are available
 
 ## 📊 Full Architecture Map
 
+
 ![All Swift Files](learningtool_all_swift_diagram.svg)
 
 
