@@ -56,6 +56,9 @@ Attach videos if you are available
 - 키워드에 호버하여 빠른 채팅 입력
 - 키워드 입력시 적당한 질문을 생성해주는 질문 생성 기능
 
+## 📊 Full Architecture Map
+
+![All Swift Files](learningtool_all_swift_diagram.svg)
 
 
 ## 🌿 Tree
@@ -153,10 +156,6 @@ Attach videos if you are available
 └── README.md
 ```
 
-
-## 📊 Full Architecture Map
-
-![All Swift Files](learningtool_all_swift_diagram.svg)
 
 
 ## :sparkles: Skills & Tech Stack
