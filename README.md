@@ -35,21 +35,6 @@ Refs: Apple Newsroom availability notes.  [oai_citation:5‡Apple](https://www.a
 
 
 
-
-## 📊 다이어그램
-
-## Architecture
-
-![Flow](learningtool_flowchart.svg)
-
-## Keyword → Q&A Flow
-
-![Sequence](learningtool_sequence_keyword_qa.svg)
-
-## Class Diagram
-
-![Classes](learningtool_class_diagram.svg)
-
 ## :framed_picture: Demo
 
 Attach videos if you are available
@@ -186,6 +171,21 @@ Attach videos if you are available
 ![SwiftData](https://img.shields.io/badge/SwiftData-Persistence-0C7BDC)
 ![WebKit](https://img.shields.io/badge/WebKit-WKWebView-1F8A70)
 
+
+
+## 📊 다이어그램
+
+## Architecture
+
+![Flow](learningtool_flowchart.svg)
+
+## Keyword → Q&A Flow
+
+![Sequence](learningtool_sequence_keyword_qa.svg)
+
+## Class Diagram
+
+![Classes](learningtool_class_diagram.svg)
 
 ## 👥 Team
 
