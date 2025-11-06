@@ -79,9 +79,9 @@ struct HomeView: View {
                 VStack(spacing: 0) {
                     // 헤더
                     headerView
-                    
+
                     Divider().background(Color.borderColor)
-                    
+
                     // 노트 그리드/리스트
                     contentView
                         .overlay {
@@ -180,15 +180,16 @@ struct HomeView: View {
                 Text("{$app_name}")
                     .font(.system(size: 28, weight: .semibold))
                     .foregroundStyle(Color.text1)
-                
+
                 Text(headerSubtitle)
                     .font(.system(size: 22, weight: .medium))
                     .foregroundStyle(Color.text2)
             }
-            
+
             Spacer()
-            
+
             HStack(spacing: 12) {
+                // 검색바를 정렬 버튼 바로 옆에 배치 (Liquid Glass)
                 searchBar
                 sortButton
                 ViewModeToggle(selection: $viewModel.selectedViewMode) { mode in
@@ -218,41 +219,53 @@ struct HomeView: View {
         }
     }
     
-    // MARK: - 🔵 정렬 버튼 (Liquid Glass)
     private var sortButton: some View {
-        Button {
-            showNoteSortMenu.toggle()
-        } label: {
-            Image(systemName: "line.3.horizontal")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(Color.text2)
-                .frame(width: 36, height: 36)
-                .background(.ultraThinMaterial, in: Circle())
-                .overlay(
-                    Circle()
-                        .strokeBorder(.white.opacity(0.2), lineWidth: 0.5)
-                )
-        }
-        .buttonStyle(.plain)
-        .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 2)
-        .popover(isPresented: $showNoteSortMenu, arrowEdge: .top) {
-            PopoverMenuContent(
-                selectedSort: $headerSort,
-                onEditNote: {
-                    showNoteSortMenu = false
+        Menu {
+            // 정렬 기준 선택 (Menu + Picker)
+            Picker("정렬 기준", selection: $headerSort) {
+                // HeaderSortOption은 기존 코드와 동일한 케이스명을 사용합니다.
+                Label("가나다 순(↑)", systemImage: "a.circle")
+                    .tag(HeaderSortOption.alphabeticalAsc)
+                Label("가나다 순(↓)", systemImage: "a.circle")
+                    .tag(HeaderSortOption.alphabeticalDesc)
+                Label("최근 열어본  항목(↑)", systemImage: "clock")
+                    .tag(HeaderSortOption.recentlyOpenedAsc)
+                Label("최근 열어본 항목(↓)", systemImage: "clock")
+                    .tag(HeaderSortOption.recentlyOpenedDesc)
+                Label("학습 진행률(↑)", systemImage: "progress.indicator")
+                    .tag(HeaderSortOption.progressAsc)
+                Label("학습 진행률(↓)", systemImage: "progress.indicator")
+                    .tag(HeaderSortOption.progressDesc)
+            }
+
+            Divider()
+
+            // 노트 이동하기
+            Button {
+                // TODO: 편집 액션 연결(시트/네비/알럿 등)
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "square.and.pencil")
+                    Text("노트 이동하기")
                 }
-            )
-            .frame(width: 255, height: 270)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
-            .overlay(
-                RoundedRectangle(cornerRadius: 14)
-                    .strokeBorder(.white.opacity(0.2), lineWidth: 0.5)
-            )
-            .shadow(color: .black.opacity(0.15), radius: 20, x: 0, y: 8)
+                .font(.system(size: 14, weight: .regular))
+                .foregroundStyle(Color.secondColor)   // ← 텍스트+아이콘 색상 적용
+                //텍스트 색상 적용 못 시킴 (Menu { ... } 안의 항목 텍스트 색은 iOS에서 시스템이 강제합니다.)
+            }
+            .tint(Color.secondColor)                   // ← 일부 환경에서 아이콘 색 반영 보조
+            .buttonStyle(.plain)
+        } label: {
+            GlassEffectContainer(spacing: 0) {
+                                    Image(systemName: "line.3.horizontal.decrease")
+                                        .font(.system(size: 16, weight: .semibold))
+                                        .frame(width: 36, height: 36)
+                                        .glassEffect()
+                                        .glassEffectUnion(id: "sort", namespace: glassNS)
+                                }
+                                .tint(Color.text2)
         }
-        .onChange(of: headerSort) { _ in
-            showNoteSortMenu = false
-        }
+        // 기존 버튼 그림자 느낌 유지
+        .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 2)
     }
     
     // MARK: - Content View
@@ -455,5 +468,3 @@ extension Notification.Name {
     static let showSettings = Notification.Name("ShowSettings")
     static let hideSettings = Notification.Name("HideSettings")
 }
-
-
