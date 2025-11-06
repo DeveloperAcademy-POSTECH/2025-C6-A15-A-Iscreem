@@ -153,8 +153,8 @@ Attach videos if you are available
 └── README.md
 ```
 
-## 📊 Full Architecture Map
 
+## 📊 Full Architecture Map
 
 ![All Swift Files](learningtool_all_swift_diagram.svg)
 
@@ -191,6 +191,8 @@ Attach videos if you are available
 ## Class Diagram
 
 ![Classes](learningtool_class_diagram.svg)
+
+
 
 ## 👥 Team
 
