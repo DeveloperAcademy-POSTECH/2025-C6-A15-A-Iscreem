@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1400" height="700" viewBox="0 0 1400 700" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .actor { font-family: -apple-system, system-ui, sans-serif; font-size: 12px; }
+    .lifeline { stroke: #999; stroke-dasharray: 4 4; stroke-width: 1; }
+    .msg { stroke: #333; stroke-width: 1.1; marker-end: url(#arrow); fill: none; }
+    .label { font-family: -apple-system, system-ui, sans-serif; font-size: 11px; fill: #111; }
+    .box { fill: #fdfdfd; stroke: #222; stroke-width: 1; rx: 4; ry: 4; }
+  </style>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#333"/>
+    </marker>
+  </defs>
+
+  <!-- Participants -->
+  <text x="80" y="30" class="actor">User</text>
+  <line x1="80" y1="40" x2="80" y2="660" class="lifeline"/>
+
+  <text x="260" y="30" class="actor">KeywordView / KeywordChip</text>
+  <line x1="260" y1="40" x2="260" y2="660" class="lifeline"/>
+
+  <text x="480" y="30" class="actor">StudyViewModel</text>
+  <line x1="480" y1="40" x2="480" y2="660" class="lifeline"/>
+
+  <text x="700" y="30" class="actor">QuestionView</text>
+  <line x1="700" y1="40" x2="700" y2="660" class="lifeline"/>
+
+  <text x="930" y="30" class="actor">QuestionViewModel</text>
+  <line x1="930" y1="40" x2="930" y2="660" class="lifeline"/>
+
+  <text x="1180" y="30" class="actor">GeminiAPIService</text>
+  <line x1="1180" y1="40" x2="1180" y2="660" class="lifeline"/>
+
+  <!-- Flow -->
+  <line x1="80" y1="90" x2="260" y2="90" class="msg"/>
+  <text x="100" y="82" class="label">키워드 버튼 탭</text>
+
+  <line x1="260" y1="130" x2="480" y2="130" class="msg"/>
+  <text x="280" y="122" class="label">selectKeyword(keyword)</text>
+
+  <rect x="450" y="140" width="120" height="56" class="box"/>
+  <text x="458" y="160" class="label">selectedKeyword = keyword</text>
+  <text x="458" y="176" class="label">shouldInsertKeyword = true</text>
+  <text x="458" y="192" class="label">shouldGenerateSuggestions = true</text>
+
+  <line x1="480" y1="220" x2="700" y2="220" class="msg"/>
+  <text x="500" y="212" class="label">onChange(..) 통해 바인딩 반영</text>
+
+  <line x1="700" y1="260" x2="930" y2="260" class="msg"/>
+  <text x="720" y="252" class="label">generateSuggestedQuestions()</text>
+
+  <line x1="930" y1="310" x2="1180" y2="310" class="msg"/>
+  <text x="950" y="302" class="label">sendMessage(추천질문 프롬프트)</text>
+
+  <line x1="1180" y1="360" x2="930" y2="360" class="msg"/>
+  <text x="960" y="352" class="label">LLM 응답(추천 질문 리스트)</text>
+
+  <rect x="900" y="370" width="140" height="40" class="box"/>
+  <text x="908" y="392" class="label">suggestedQuestions 업데이트</text>
+
+  <line x1="930" y1="430" x2="700" y2="430" class="msg"/>
+  <text x="720" y="422" class="label">SuggestionsSheetView 표시</text>
+
+  <line x1="80" y1="480" x2="700" y2="480" class="msg"/>
+  <text x="120" y="472" class="label">추천 질문 중 하나 탭</text>
+
+  <line x1="700" y1="520" x2="930" y2="520" class="msg"/>
+  <text x="720" y="512" class="label">currentMessage 설정 + sendMessage()</text>
+
+  <line x1="930" y1="560" x2="1180" y2="560" class="msg"/>
+  <text x="950" y="552" class="label">실제 질문 내용으로 Gemini 호출</text>
+
+  <line x1="1180" y1="600" x2="930" y2="600" class="msg"/>
+  <text x="960" y="592" class="label">답변 텍스트</text>
+
+  <line x1="930" y1="630" x2="700" y2="630" class="msg"/>
+  <text x="720" y="622" class="label">ChatAreaView(messages) 갱신</text>
+</svg>

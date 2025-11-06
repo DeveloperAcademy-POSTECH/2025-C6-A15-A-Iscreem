@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1600" height="900" viewBox="0 0 1600 900" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .clsbox { fill: #ffffff; stroke: #222222; stroke-width: 1.1; }
+    .clstitle { font-family: -apple-system, system-ui, sans-serif; font-size: 12px; font-weight: 700; fill: #111111; }
+    .clsprop { font-family: -apple-system, system-ui, sans-serif; font-size: 10px; fill: #333333; }
+    .rel { stroke: #444444; stroke-width: 1; marker-end: url(#arrow); fill: none; }
+    .label { font-family: -apple-system, system-ui, sans-serif; font-size: 9px; fill: #444444; }
+  </style>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#444444" />
+    </marker>
+  </defs>
+
+  <!-- LearningToolApp -->
+  <rect x="40" y="40" width="220" height="70" class="clsbox"/>
+  <text x="50" y="58" class="clstitle">LearningToolApp : App</text>
+  <line x1="40" y1="64" x2="260" y2="64" stroke="#222222" stroke-width="0.6"/>
+  <text x="50" y="80" class="clsprop">+captionAnalyzer: CaptionAnalyzer (StateObject)</text>
+  <text x="50" y="94" class="clsprop">+body: Scene (WindowGroup)</text>
+
+  <!-- StudyViewModel -->
+  <rect x="300" y="40" width="280" height="160" class="clsbox"/>
+  <text x="310" y="58" class="clstitle">StudyViewModel : ObservableObject</text>
+  <line x1="300" y1="64" x2="580" y2="64" stroke="#222222" stroke-width="0.6"/>
+  <text x="310" y="80" class="clsprop">+selectedTab: StudyTab</text>
+  <text x="310" y="94" class="clsprop">+currentNote: Note?</text>
+  <text x="310" y="108" class="clsprop">+selectedKeyword: String?</text>
+  <text x="310" y="122" class="clsprop">+shouldInsertKeyword: Bool</text>
+  <text x="310" y="136" class="clsprop">+shouldGenerateSuggestions: Bool</text>
+  <line x1="300" y1="144" x2="580" y2="144" stroke="#222222" stroke-width="0.6"/>
+  <text x="310" y="160" class="clsprop">+selectKeyword(_)</text>
+  <text x="310" y="174" class="clsprop">+keywordInserted()</text>
+  <text x="310" y="188" class="clsprop">+suggestionsGenerated()</text>
+
+  <!-- QuestionViewModel -->
+  <rect x="620" y="40" width="260" height="140" class="clsbox"/>
+  <text x="630" y="58" class="clstitle">QuestionViewModel : ObservableObject</text>
+  <line x1="620" y1="64" x2="880" y2="64" stroke="#222222" stroke-width="0.6"/>
+  <text x="630" y="80" class="clsprop">+messages: [ChatMessage]</text>
+  <text x="630" y="94" class="clsprop">+currentMessage: String</text>
+  <text x="630" y="108" class="clsprop">+isLoading: Bool</text>
+  <line x1="620" y1="116" x2="880" y2="116" stroke="#222222" stroke-width="0.6"/>
+  <text x="630" y="132" class="clsprop">+sendMessage()</text>
+  <text x="630" y="146" class="clsprop">+clearMessages()</text>
+
+  <!-- GeminiAPIService -->
+  <rect x="920" y="40" width="260" height="140" class="clsbox"/>
+  <text x="930" y="58" class="clstitle">GeminiAPIService</text>
+  <line x1="920" y1="64" x2="1180" y2="64" stroke="#222222" stroke-width="0.6"/>
+  <text x="930" y="80" class="clsprop">+shared: GeminiAPIService</text>
+  <text x="930" y="94" class="clsprop">+isAPIKeyConfigured() -> Bool</text>
+  <text x="930" y="108" class="clsprop">+saveAPIKey/deleteAPIKey/getAPIKey</text>
+  <text x="930" y="122" class="clsprop">+sendMessage(message, history) async -> String</text>
+
+  <!-- CaptionAnalyzer -->
+  <rect x="40" y="230" width="260" height="160" class="clsbox"/>
+  <text x="50" y="248" class="clstitle">CaptionAnalyzer : ObservableObject</text>
+  <line x1="40" y1="254" x2="300" y2="254" stroke="#222222" stroke-width="0.6"/>
+  <text x="50" y="270" class="clsprop">+vttCues: [VTTCue]</text>
+  <text x="50" y="284" class="clsprop">+chapters: [Chapter]</text>
+  <text x="50" y="298" class="clsprop">+displayKeywords: [String]</text>
+  <line x1="40" y1="306" x2="300" y2="306" stroke="#222222" stroke-width="0.6"/>
+  <text x="50" y="322" class="clsprop">+prefetchViaYouTubei(...)</text>
+  <text x="50" y="336" class="clsprop">+prefetchFromTracks(...)</text>
+  <text x="50" y="350" class="clsprop">+startAutoSummarizeIfNeeded()</text>
+
+  <!-- Summarizer protocol -->
+  <rect x="340" y="230" width="220" height="90" class="clsbox"/>
+  <text x="350" y="248" class="clstitle">«protocol» Summarizer</text>
+  <line x1="340" y1="254" x2="560" y2="254" stroke="#222222" stroke-width="0.6"/>
+  <text x="350" y="270" class="clsprop">+summarizeChunk(text,instruction)</text>
+  <text x="350" y="284" class="clsprop">+mergeSummaries(pieces)</text>
+
+  <!-- AppleFMSummarizer / HTTPSummarizer -->
+  <rect x="580" y="220" width="210" height="60" class="clsbox"/>
+  <text x="590" y="238" class="clstitle">AppleFMSummarizer</text>
+  <line x1="580" y1="244" x2="790" y2="244" stroke="#222222" stroke-width="0.6"/>
+  <text x="590" y="260" class="clsprop">implements Summarizer</text>
+
+  <rect x="820" y="220" width="210" height="60" class="clsbox"/>
+  <text x="830" y="238" class="clstitle">HTTPSummarizer</text>
+  <line x1="820" y1="244" x2="1030" y2="244" stroke="#222222" stroke-width="0.6"/>
+  <text x="830" y="260" class="clsprop">implements Summarizer</text>
+
+  <!-- KeywordExtractor -->
+  <rect x="580" y="310" width="240" height="70" class="clsbox"/>
+  <text x="590" y="328" class="clstitle">KeywordExtractor</text>
+  <line x1="580" y1="334" x2="820" y2="334" stroke="#222222" stroke-width="0.6"/>
+  <text x="590" y="350" class="clsprop">+extractChapterKeywords(...)</text>
+
+  <!-- VTTParser -->
+  <rect x="840" y="310" width="220" height="70" class="clsbox"/>
+  <text x="850" y="328" class="clstitle">VTTParser</text>
+  <line x1="840" y1="334" x2="1060" y2="334" stroke="#222222" stroke-width="0.6"/>
+  <text x="850" y="350" class="clsprop">+fetchFromBaseUrl(...)</text>
+
+  <!-- Views -->
+  <rect x="40" y="430" width="220" height="90" class="clsbox"/>
+  <text x="50" y="448" class="clstitle">StudyView : View</text>
+  <line x1="40" y1="454" x2="260" y2="454" stroke="#222222" stroke-width="0.6"/>
+  <text x="50" y="470" class="clsprop">+note: Note</text>
+  <text x="50" y="484" class="clsprop">+studyViewModel: StudyViewModel</text>
+
+  <rect x="280" y="430" width="220" height="80" class="clsbox"/>
+  <text x="290" y="448" class="clstitle">MediaView : View</text>
+  <line x1="280" y1="454" x2="500" y2="454" stroke="#222222" stroke-width="0.6"/>
+  <text x="290" y="470" class="clsprop">+note: Note?</text>
+  <text x="290" y="484" class="clsprop">+videoURL: String?</text>
+
+  <rect x="520" y="430" width="220" height="80" class="clsbox"/>
+  <text x="530" y="448" class="clstitle">KeywordView : View</text>
+  <line x1="520" y1="454" x2="740" y2="454" stroke="#222222" stroke-width="0.6"/>
+  <text x="530" y="470" class="clsprop">+analyzer: CaptionAnalyzer</text>
+  <text x="530" y="484" class="clsprop">+studyViewModel: StudyViewModel</text>
+
+  <rect x="760" y="430" width="200" height="60" class="clsbox"/>
+  <text x="770" y="448" class="clstitle">SummaryView : View</text>
+
+  <rect x="980" y="430" width="280" height="110" class="clsbox"/>
+  <text x="990" y="448" class="clstitle">QuestionView : View</text>
+  <line x1="980" y1="454" x2="1260" y2="454" stroke="#222222" stroke-width="0.6"/>
+  <text x="990" y="470" class="clsprop">+studyViewModel: StudyViewModel</text>
+  <text x="990" y="484" class="clsprop">+viewModel: QuestionViewModel</text>
+  <text x="990" y="498" class="clsprop">+isGlobalInputActive: Binding&lt;Bool&gt;</text>
+
+  <!-- Relationships (화살표 라벨은 핵심만) -->
+  <line x1="260" y1="75" x2="300" y2="75" class="rel"/>
+  <text x="265" y="67" class="label">→ StudyViewModel 사용</text>
+
+  <line x1="150" y1="110" x2="150" y2="230" class="rel"/>
+  <text x="70" y="180" class="label">envObject CaptionAnalyzer</text>
+
+  <line x1="440" y1="200" x2="440" y2="430" class="rel"/>
+  <text x="450" y="310" class="label">StudyView에서 참조</text>
+
+  <line x1="750" y1="180" x2="920" y2="110" class="rel"/>
+  <text x="760" y="120" class="label">QuestionViewModel → Gemini</text>
+
+  <line x1="300" y1="310" x2="340" y2="275" class="rel"/>
+  <text x="310" y="268" class="label">CaptionAnalyzer → Summarizer</text>
+
+  <line x1="340" y1="275" x2="580" y2="250" class="rel"/>
+  <text x="410" y="244" class="label">AppleFMSummarizer conforms</text>
+
+  <line x1="340" y1="285" x2="1030" y2="250" class="rel"/>
+  <text x="610" y="244" class="label">HTTPSummarizer conforms</text>
+
+  <line x1="300" y1="320" x2="580" y2="345" class="rel"/>
+  <text x="410" y="332" class="label">uses KeywordExtractor</text>
+
+  <line x1="300" y1="332" x2="840" y2="345" class="rel"/>
+  <text x="510" y="356" class="label">uses VTTParser</text>
+
+  <line x1="630" y1="510" x2="630" y2="380" class="rel"/>
+  <text x="640" y="445" class="label">KeywordView → displayKeywords</text>
+
+  <line x1="1120" y1="540" x2="1120" y2="180" class="rel"/>
+  <text x="1130" y="320" class="label">QuestionViewModel → GeminiAPIService</text>
+</svg>
