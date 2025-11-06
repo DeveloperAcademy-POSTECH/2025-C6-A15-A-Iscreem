@@ -153,6 +153,10 @@ Attach videos if you are available
 └── README.md
 ```
 
+## 📊 Full Architecture Map
+
+![All Swift Files](learningtool_all_swift_diagram.svg)
+
 
 ## :sparkles: Skills & Tech Stack
 
