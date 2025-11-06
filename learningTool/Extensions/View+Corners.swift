@@ -7,6 +7,7 @@
 //  특정 코너만 둥글게 처리하는 공용 유틸
 
 import SwiftUI
+import UIKit
 
 public extension View {
     /// 특정 코너만 둥글게 처리

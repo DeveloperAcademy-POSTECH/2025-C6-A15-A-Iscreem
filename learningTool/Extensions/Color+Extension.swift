@@ -9,30 +9,31 @@ import SwiftUI
 
 extension Color {
     /// Primary Color
-    static let primaryColor = Color(hex: "3A506B")
+    static let primaryColor = Color(#colorLiteral(red: 0.227451, green: 0.313725, blue: 0.419608, alpha: 1.0))
     
     /// Second Color
-    static let secondColor = Color(hex: "5BC0BE")
+    static let secondColor = Color(#colorLiteral(red: 0.356863, green: 0.752941, blue: 0.745098, alpha: 1.0))
     
     /// Accent Color
-    static let accentColor = Color(hex: "F4A261")
+    static let accentColor = Color(#colorLiteral(red: 0.956863, green: 0.635294, blue: 0.380392, alpha: 1.0))
     
     /// Background Colors
-    static let background1 = Color(hex: "F7F8FA")
-    static let background2 = Color(hex: "E9ECEF")
-    static let background3 = Color(hex: "1E1E1E")
+    static let background1 = Color(#colorLiteral(red: 0.968627, green: 0.972549, blue: 0.980392, alpha: 1.0))
+    static let background2 = Color(#colorLiteral(red: 0.913725, green: 0.925490, blue: 0.937254, alpha: 1.0))
+    static let background3 = Color(#colorLiteral(red: 0.117647, green: 0.117647, blue: 0.117647, alpha: 1.0))
     
     /// Text Colors
-    static let text1 = Color(hex: "1A1A1A")
-    static let text2 = Color(hex: "555555")
-    static let text3 = Color(hex: "9CA3AF")
+    static let text1 = Color(#colorLiteral(red: 0.101961, green: 0.101961, blue: 0.101961, alpha: 1.0))
+    static let text2 = Color(#colorLiteral(red: 0.333333, green: 0.333333, blue: 0.333333, alpha: 1.0))
+    static let text3 = Color(#colorLiteral(red: 0.611765, green: 0.639216, blue: 0.686275, alpha: 1.0))
     
     /// Status Colors
-    static let successColor = Color(hex: "4CAF50")
-    static let errorColor = Color(hex: "E57373")
-    static let borderColor = Color(hex: "D0D4D8")
-    static let HoverColor = Color(hex: "F4A261")
+    static let successColor = Color(#colorLiteral(red: 0.298039, green: 0.686275, blue: 0.313725, alpha: 1.0))
+    static let errorColor = Color(#colorLiteral(red: 0.898039, green: 0.450980, blue: 0.450980, alpha: 1.0))
+    static let borderColor = Color(#colorLiteral(red: 0.815686, green: 0.831373, blue: 0.847059, alpha: 1.0))
+    static let HoverColor = Color(#colorLiteral(red: 0.956863, green: 0.635294, blue: 0.380392, alpha: 1.0))
     
+    // Leave the hex initializer for backward compatibility
     init(hex: String) {
         let hexString = hex.trimmingCharacters(in: .whitespacesAndNewlines)
         let cleanHex = hexString.hasPrefix("#") ?

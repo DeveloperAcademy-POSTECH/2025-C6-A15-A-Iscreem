@@ -104,19 +104,29 @@ struct KeywordChip: View {
     let keyword: String
     let isSelected: Bool
     let onTap: () -> Void
-    
+
+    @State private var isHovering: Bool = false
+    @State private var isPressed: Bool = false
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
-        Button(action: onTap) {
+        let corner: CGFloat = 20
+        let baseStroke: CGFloat = isSelected ? 1.0 : 0.5
+        let textColor: Color = (isSelected || isHovering) ? .white : .text1
+        let baseBgOpacity: Double = colorScheme == .dark ? 0.20 : 0.60
+        let shadowOpacity: Double = (isSelected || isHovering || isPressed) ? 0.25 : 0.06
+
+        return Button(action: onTap) {
             Text(keyword)
                 .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(isSelected ? Color.white : Color.text1)
+                .foregroundStyle(textColor)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
-                .frame(maxWidth: .infinity)
+                .frame(minWidth: 120, maxWidth: .infinity, minHeight: 32)
                 .background(
                     ZStack {
+                        // Selected gradient underlay
                         if isSelected {
-                            // 선택된 상태: 그라데이션 + Glass
                             LinearGradient(
                                 colors: [
                                     Color.HoverColor,
@@ -127,33 +137,74 @@ struct KeywordChip: View {
                             )
                             Color.white.opacity(0.15)
                         } else {
-                            // 기본 상태: Liquid Glass
-                            Color.background1
-                                .background(.ultraThinMaterial)
+                            // Base tint under material for glass impression
+                            RoundedRectangle(cornerRadius: corner)
+                                .fill(Color.background1.opacity(baseBgOpacity))
+                        }
+
+                        // Official glass-like material layer
+                        RoundedRectangle(cornerRadius: corner)
+                            .fill(.ultraThinMaterial)
+
+                        // Subtle gloss highlight (top-left)
+                        RoundedRectangle(cornerRadius: corner)
+                            .fill(
+                                RadialGradient(
+                                    colors: [
+                                        Color.white.opacity(isHovering || isPressed ? 0.35 : 0.18),
+                                        .clear
+                                    ],
+                                    center: .topLeading,
+                                    startRadius: 0,
+                                    endRadius: 140
+                                )
+                            )
+                            .blendMode(.plusLighter)
+
+                        // Hover rim highlight
+                        if isHovering || isPressed {
+                            RoundedRectangle(cornerRadius: corner)
+                                .stroke(Color.white.opacity(0.25), lineWidth: 0.8)
+                                .blendMode(.overlay)
                         }
                     }
                 )
-                .clipShape(RoundedRectangle(cornerRadius: 20))
+                .clipShape(RoundedRectangle(cornerRadius: corner))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 20)
+                    RoundedRectangle(cornerRadius: corner)
                         .strokeBorder(
                             isSelected
                             ? Color.white.opacity(0.3)
                             : Color.white.opacity(0.15),
-                            lineWidth: isSelected ? 1 : 0.5
+                            lineWidth: baseStroke
                         )
                 )
                 .shadow(
-                    color: isSelected
-                    ? Color.secondColor.opacity(0.25)
-                    : .black.opacity(0.06),
+                    color: (isSelected ? Color.secondColor : .black).opacity(shadowOpacity),
                     radius: isSelected ? 10 : 6,
                     x: 0,
                     y: isSelected ? 4 : 2
                 )
+                .scaleEffect(isHovering || isPressed ? 1.02 : 1.0)
+                .contentShape(RoundedRectangle(cornerRadius: corner))
         }
         .buttonStyle(.plain)
-        .animation(.easeInOut(duration: 0.2), value: isSelected)
+        .onHover { hovering in
+            self.isHovering = hovering
+        }
+        .gesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { _ in
+                    if !isPressed { isPressed = true }
+                }
+                .onEnded { _ in
+                    isPressed = false
+                }
+        )
+        .hoverEffect(.highlight)
+        .animation(.easeInOut(duration: 0.18), value: isHovering)
+        .animation(.easeInOut(duration: 0.18), value: isPressed)
+        .animation(.easeInOut(duration: 0.18), value: isSelected)
     }
 }
 
