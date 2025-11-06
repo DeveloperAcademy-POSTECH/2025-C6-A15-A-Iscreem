@@ -1,4 +1,4 @@
-### ℹ️📋 [learningTool/AINO]
+![learningtool_class_diagram](https://github.com/user-attachments/assets/8f287da9-c308-496e-9889-3a55d6af99ae)![learningtool_sequence_keyword_qa](https://github.com/user-attachments/assets/1e2b110a-4067-4ce1-abf0-32292f0bb6b5)![learningtool_flowchart](https://github.com/user-attachments/assets/fb2962f8-c280-47f7-a8cb-f093d420f4f9)### ℹ️📋 [learningTool/AINO]
 ## [Logo/Cover Image]
 ![Main](https://github.com/user-attachments/assets/1ec39b2d-e1db-4db9-9c27-77a1559c7cf5)
 
@@ -38,9 +38,17 @@ Refs: Apple Newsroom availability notes.  [oai_citation:5‡Apple](https://www.a
 
 ## 📊 다이어그램
 
-Attach photos if you are available
-<img width="1582" height="2271" alt="analyzer_flow" src="https://github.com/user-attachments/assets/238ce3af-27cb-4030-8f53-83b29f9fa35b" />
-<img width="2016" height="1422" alt="async_sequence" src="https://github.com/user-attachments/assets/99cd58ab-af15-43d5-b17a-64f5c8b1f6a7" />
+## Architecture
+
+![Flow](learningtool_flowchart.svg)
+
+## Keyword → Q&A Flow
+
+![Sequence](learningtool_sequence_keyword_qa.svg)
+
+## Class Diagram
+
+![Classes](learningtool_class_diagram.svg)
 
 ## :framed_picture: Demo
 
