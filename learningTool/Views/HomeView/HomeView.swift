@@ -16,6 +16,9 @@ struct HomeView: View {
     @State var youtubeLink = ""
     @State var noteTitle = ""
     
+    @EnvironmentObject private var learningLogStore: LearningLogStore
+    @State private var showStudyHistory: Bool = false
+    
     @Environment(\.modelContext) var modelContext
     @Query(sort: [SortDescriptor(\Note.lastRead, order: .reverse)]) var notes: [Note]
     @Query var folders: [Folder]
@@ -98,8 +101,10 @@ struct HomeView: View {
             }
         }
         .overlay(alignment: .bottomTrailing) {
-            addButton
-                .ignoresSafeArea(.keyboard, edges: .bottom)
+            VStack(spacing: 20) {
+                historyButton
+                addButton
+            }
         }
         .background {
             LinearGradient(
@@ -161,6 +166,10 @@ struct HomeView: View {
                 selectedFolderName = "__ALL__"
                 headerSubtitle = "전체 보기"
             }
+        }
+        .sheet(isPresented: $showStudyHistory) {
+            StudyHistoryView()
+                .environmentObject(learningLogStore)
         }
     }
     
@@ -355,6 +364,33 @@ struct HomeView: View {
         .opacity(shouldShowAddButton ? 1 : 0)
         .allowsHitTesting(shouldShowAddButton)
         .animation(.easeInOut(duration: 0.2), value: shouldShowAddButton)
+    }
+    
+    // 학습 기록 버튼 (우측 하단 Add 버튼 위에 위치)
+    private var historyButton: some View {
+        Button {
+            showStudyHistory = true
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "chart.line.uptrend.xyaxis")
+                    .font(.system(size: 13, weight: .semibold))
+                Text("학습 기록")
+                    .font(.system(size: 13, weight: .semibold))
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(
+                Color.background2
+                    .opacity(0.96)
+            )
+            .overlay(
+                Capsule()
+                    .stroke(Color.white.opacity(0.28), lineWidth: 0.6)
+            )
+            .clipShape(Capsule())
+            .shadow(color: Color.black.opacity(0.08), radius: 6, x: 0, y: 3)
+        }
+        .buttonStyle(.plain)
     }
     
     // MARK: - Actions

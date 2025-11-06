@@ -11,11 +11,13 @@ import SwiftData
 @main
 struct LearningToolApp: App {
     @StateObject private var captionAnalyzer = CaptionAnalyzer()
+    @StateObject private var learningLogStore = LearningLogStore()
 
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environmentObject(captionAnalyzer)
+                .environmentObject(learningLogStore)
         }
         .modelContainer(for: [Folder.self, Note.self])
     }
