@@ -11,8 +11,10 @@ import WebKit
 struct YouTubeWebViewRepresentable: UIViewRepresentable {
     let host: YouTubeWebViewHost
 
-    init(captionAnalyzer: CaptionAnalyzer) {
-        self.host = YouTubeWebViewHost(captionAnalyzer: captionAnalyzer)
+    init(captionAnalyzer: CaptionAnalyzer, onPause: ((TimeInterval) -> Void)? = nil) {
+        let h = YouTubeWebViewHost(captionAnalyzer: captionAnalyzer)
+        h.onPause = onPause
+        self.host = h
     }
 
     func makeUIView(context: Context) -> WKWebView {
@@ -23,7 +25,6 @@ struct YouTubeWebViewRepresentable: UIViewRepresentable {
     }
 
     // Helper: 외부에서 로드 트리거
-    
     @MainActor
     func load(_ urlString: String) {
         host.load(urlString: urlString)
@@ -36,5 +37,11 @@ struct YouTubeWebViewRepresentable: UIViewRepresentable {
         host.load(urlString: urlString)
         // ✅ 그 다음 노트 바인딩(캐시 복원)
         host.bind(note: note)
+    }
+    
+    // ✅ Helper: 현재 재생 시간 질의
+    @MainActor
+    func getCurrentTime(completion: @escaping (Double?) -> Void) {
+        host.getCurrentTime(completion: completion)
     }
 }
