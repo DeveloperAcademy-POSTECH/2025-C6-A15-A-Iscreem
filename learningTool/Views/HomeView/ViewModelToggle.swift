@@ -38,7 +38,7 @@ struct ViewModeToggle: View {
         .background(.ultraThinMaterial, in: Capsule())               // 리퀴드 글래스 베이스
         .overlay(Capsule().stroke(Color.borderColor.opacity(0.5),    // 테두리
                                   lineWidth: 1))
-        .onChange(of: selection) { newValue in
+        .onChange(of: selection) { _, newValue in
             onChange?(newValue)
         }
         .accessibilityLabel("View mode")

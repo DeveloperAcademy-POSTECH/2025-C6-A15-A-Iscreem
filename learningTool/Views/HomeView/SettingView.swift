@@ -6,12 +6,26 @@ struct SettingsDetailView: View {
     @State private var isHelpPresented: Bool = false
     @State private var isFolderDeletePresented: Bool = false
     @State private var folderIDsPendingDelete = Set<PersistentIdentifier>()
-    @State private var selectedTheme: SettingView.ThemeOption = .system
-    @State private var selectedLanguage: SettingView.LanguageOption = .korean
+    
+    // AppStorage를 사용하여 테마 설정을 영구적으로 저장
+    @AppStorage("selectedTheme") private var selectedTheme: String = "system"
+    @AppStorage("selectedLanguage") private var selectedLanguage: String = "korean"
+    
+    // 리퀴드 글래스 설정 (기본값: true)
+    @AppStorage("useVibrancy") private var useVibrancy: Bool = true
     
     @Environment(\.modelContext) private var modelContext
     @Query private var folders: [Folder]
     @Query private var notes: [Note]
+    
+    // 테마를 ColorScheme으로 변환
+    private var colorScheme: ColorScheme? {
+        switch selectedTheme {
+        case "light": return .light
+        case "dark": return .dark
+        default: return nil
+        }
+    }
     
     var body: some View {
         VStack(spacing: 0) {
@@ -62,15 +76,7 @@ struct SettingsDetailView: View {
                             
                             Spacer()
                             
-                            HStack(spacing: 4) {
-                                ThemeButton(title: "시스템 설정 사용", isSelected: selectedTheme == .system) { selectedTheme = .system }
-                                ThemeButton(title: "라이트 모드",   isSelected: selectedTheme == .light)  { selectedTheme = .light }
-                                ThemeButton(title: "다크 모드",     isSelected: selectedTheme == .dark)   { selectedTheme = .dark }
-                            }
-                            .padding(4)
-                            .background(Color.background2)
-                            .cornerRadius(18)
-                            .frame(width: 370, height: 36)
+                            ThemeModePicker(selection: $selectedTheme, useVibrancy: $useVibrancy)
                         }
                         
                         // 언어 설정
@@ -79,21 +85,46 @@ struct SettingsDetailView: View {
                                 Text("언어")
                                     .font(.system(size: 16, weight: .medium))
                                     .foregroundStyle(Color.text1)
-                                Text("{%app_name}으로 학습할 언어를 설정해세요!")
+                                Text("SWAI로 학습할 언어를 설정하세요!")
                                     .font(.system(size: 14, weight: .regular))
                                     .foregroundStyle(Color.text3)
                             }
                             
                             Spacer()
                             
-                            HStack(spacing: 4) {
-                                LanguageButton(title: "한국어 (Korean)", isSelected: selectedLanguage == .korean)  { selectedLanguage = .korean }
-                                LanguageButton(title: "영어 (English)",  isSelected: selectedLanguage == .english) { selectedLanguage = .english }
+                            LanguageModePicker(selection: $selectedLanguage, useVibrancy: $useVibrancy)
+                        }
+                    }
+                    
+                    // 외관 설정 섹션
+                    VStack(alignment: .leading, spacing: 20) {
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("외관 설정")
+                                .font(.system(size: 20, weight: .semibold))
+                                .foregroundStyle(Color.text1)
+                            
+                            // 구분선
+                            Rectangle()
+                                .fill(Color.borderColor)
+                                .frame(height: 1)
+                        }
+                        
+                        // 리퀴드 글래스 (Vibrancy) 설정
+                        HStack(alignment: .top, spacing: 20) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("리퀴드 글래스 효과")
+                                    .font(.system(size: 16, weight: .medium))
+                                    .foregroundStyle(Color.text1)
+                                Text("반투명한 유리 같은 효과를 적용합니다.")
+                                    .font(.system(size: 14, weight: .regular))
+                                    .foregroundStyle(Color.text3)
                             }
-                            .padding(4)
-                            .background(Color.background2)
-                            .cornerRadius(18)
-                            .frame(width: 370, height: 36)
+                            
+                            Spacer()
+                            
+                            Toggle("", isOn: $useVibrancy)
+                                .labelsHidden()
+                                .toggleStyle(SwitchToggleStyle(tint: .blue))
                         }
                     }
                 }
@@ -122,7 +153,7 @@ struct SettingsDetailView: View {
                             Text("노트 초기화")
                                 .font(.system(size: 16, weight: .medium))
                                 .foregroundStyle(Color.text1)
-                            Text("{%app_name}에서 작성한 모든 노트가 초기화 됩니다.")
+                            Text("SWAI에서 작성한 모든 노트가 초기화 됩니다.")
                                 .font(.system(size: 14, weight: .regular))
                                 .foregroundStyle(Color.text3)
                         }
@@ -150,6 +181,7 @@ struct SettingsDetailView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(.systemBackground))
+        .preferredColorScheme(colorScheme) // 테마 적용
         .overlay {
             if isFolderDeletePresented {
                 FolderDeleteView(
@@ -178,9 +210,17 @@ struct SettingsDetailView: View {
 }
 
 struct SettingView: View {
-    enum ThemeOption { case system, light, dark }
-    enum LanguageOption { case korean, english }
     @State private var showResetConfirm: Bool = false
+    @AppStorage("selectedTheme") private var selectedTheme: String = "system"
+    
+    // 테마를 ColorScheme으로 변환
+    private var colorScheme: ColorScheme? {
+        switch selectedTheme {
+        case "light": return .light
+        case "dark": return .dark
+        default: return nil
+        }
+    }
     
     var body: some View {
         GeometryReader { proxy in
@@ -189,60 +229,116 @@ struct SettingView: View {
             let h = proxy.size.height - insets.top - insets.bottom
             
             NavigationSplitView {
-                SidebarView(onFolderSelected: { _ in }, isHelpPresented: .constant(false), requestDeleteConfirmation: { _ in })
-                    .frame(height: h)
-                    .navigationSplitViewColumnWidth(
-                        min: w * 0.25,
-                        ideal: w * 0.25,
-                        max: w * 0.25
-                    )
-                    .toolbar(.hidden, for: .navigationBar)
+                SidebarView(
+                    onFolderSelected: { _ in },
+                    isHelpPresented: .constant(false),
+                    requestDeleteConfirmation: { _ in }
+                )
+                .frame(height: h)
+                .navigationSplitViewColumnWidth(
+                    min: w * 0.25,
+                    ideal: w * 0.25,
+                    max: w * 0.25
+                )
+                .toolbar(.hidden, for: .navigationBar)
             } detail: {
                 SettingsDetailView(showResetConfirm: $showResetConfirm)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .preferredColorScheme(colorScheme) // 전체 앱에 테마 적용
+        }
+        .overlay {
+            if showResetConfirm {
+                Color.black.opacity(0.4)
+                    .ignoresSafeArea()
+                    .onTapGesture {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            showResetConfirm = false
+                        }
+                    }
+                
+                ResetConfirmAlertView(
+                    isPresented: $showResetConfirm,
+                    onConfirm: {
+                        // 실제 초기화 로직 구현 필요
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            showResetConfirm = false
+                        }
+                    }
+                )
+                .transition(.opacity.combined(with: .scale))
             }
         }
     }
 }
 
-// 테마 버튼 컴포넌트
-struct ThemeButton: View {
-    let title: String
-    let isSelected: Bool
-    let action: () -> Void
+// 테마 선택 Picker 컴포넌트
+struct ThemeModePicker: View {
+    @Binding var selection: String
+    @Binding var useVibrancy: Bool
     
     var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(Color.text1)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(isSelected ? Color.white : Color.clear)
-                .cornerRadius(14)
+        Picker("", selection: $selection) {
+            Text("시스템")
+                .tag("system")
+            Text("라이트")
+                .tag("light")
+            Text("다크")
+                .tag("dark")
         }
-        .buttonStyle(.plain)
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        .background(.clear)
+        .frame(width: 370, height: 36)
+        .background(.clear, in: Capsule())
+        .overlay(Capsule().stroke(Color.borderColor.opacity(0.5), lineWidth: 1))
+    }
+    
+    // Return a ShapeStyle so it matches the background(_:in:) overload.
+    private var vibrancyBackground: AnyShapeStyle {
+        if useVibrancy {
+            if #available(iOS 15.0, *) {
+                return AnyShapeStyle(.ultraThinMaterial)
+            } else {
+                return AnyShapeStyle(Color.background2)
+            }
+        } else {
+            return AnyShapeStyle(Color.background2)
+        }
     }
 }
 
-// 언어 버튼 컴포넌트
-struct LanguageButton: View {
-    let title: String
-    let isSelected: Bool
-    let action: () -> Void
+// 언어 선택 Picker 컴포넌트
+struct LanguageModePicker: View {
+    @Binding var selection: String
+    @Binding var useVibrancy: Bool
     
     var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(Color.text1)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(isSelected ? Color.white : Color.clear)
-                .cornerRadius(14)
+        Picker("", selection: $selection) {
+            Text("한국어")
+                .tag("korean")
+            Text("English")
+                .tag("english")
         }
-        .buttonStyle(.plain)
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        .frame(width: 370, height: 36)
+        .background(.clear, in: Capsule())
+        .overlay(Capsule().stroke(Color.borderColor.opacity(0.5), lineWidth: 1))
+    }
+    
+    private var vibrancyBackground: AnyShapeStyle {
+        if useVibrancy {
+            if #available(iOS 15.0, *) {
+                return AnyShapeStyle(.ultraThinMaterial)
+            } else {
+                return AnyShapeStyle(Color.background2)
+            }
+        } else {
+            return AnyShapeStyle(Color.background2)
+        }
     }
 }
-
 
 // MARK: - Reset Confirm Alert (Centered Card)
 struct ResetConfirmAlertView: View {
