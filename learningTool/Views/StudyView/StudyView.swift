@@ -81,7 +81,7 @@ private struct CollapsiblePane<Content: View>: View {
     @Binding var isCollapsed: Bool
     let height: CGFloat
     let content: () -> Content
-
+    
     var body: some View {
         content()
             .frame(maxWidth: .infinity)
@@ -111,12 +111,12 @@ struct StudyView: View {
     @StateObject private var questionVM = QuestionViewModel()
     @State private var showGlobalQuestionBar = false
     @FocusState private var globalQuestionFocus: Bool
-
+    
     // Interactive split & collapse states
     @State private var isTopCollapsed: Bool = false
     @State private var isBottomCollapsed: Bool = false
     @State private var isLeftBottomCollapsed: Bool = false
-
+    
     @State private var splitLR: CGFloat = 0.65        // left : right ratio
     @State private var leftTopRatio: CGFloat = 0.7     // left column top fraction
     @State private var rightTopRatio: CGFloat = 0.6    // right column top fraction
@@ -245,171 +245,171 @@ struct StudyView: View {
     @ViewBuilder
     private func iPadLayout(geometry: GeometryProxy) -> some View {
         HStack(spacing: 0) {
-                    let handleW: CGFloat = 10
-                    let handleH: CGFloat = 12
-                    let availW = geometry.size.width - handleW
-                    let leftW = max(0, availW * splitLR)
-                    let rightW = max(0, availW * (1 - splitLR))
-                    let bothCollapsed = isTopCollapsed && isBottomCollapsed
-
-                    if bothCollapsed {
-                        // Compute heights from the LEFT column so the top region spans full width
-                        let availableH = max(0, geometry.size.height - handleH)
-                        let leftCollapsed: CGFloat = 160
-                        let bottomLeftH: CGFloat = isLeftBottomCollapsed ? leftCollapsed : availableH * (1 - leftTopRatio)
-                        let topH: CGFloat = max(0, availableH - bottomLeftH)
-                        let collapsed: CGFloat = 80
-
-                        VStack(spacing: 0) {
-                            // TOP — full-width MediaView (좌측 상단이 실제로 전체 너비로 확장)
-                            MediaView(note: viewModel.currentNote, videoURL: resolvedVideoURL)
+            let handleW: CGFloat = 10
+            let handleH: CGFloat = 12
+            let availW = geometry.size.width - handleW
+            let leftW = max(0, availW * splitLR)
+            let rightW = max(0, availW * (1 - splitLR))
+            let bothCollapsed = isTopCollapsed && isBottomCollapsed
+            
+            if bothCollapsed {
+                // Compute heights from the LEFT column so the top region spans full width
+                let availableH = max(0, geometry.size.height - handleH)
+                let leftCollapsed: CGFloat = 160
+                let bottomLeftH: CGFloat = isLeftBottomCollapsed ? leftCollapsed : availableH * (1 - leftTopRatio)
+                let topH: CGFloat = max(0, availableH - bottomLeftH)
+                let collapsed: CGFloat = 80
+                
+                VStack(spacing: 0) {
+                    // TOP — full-width MediaView (좌측 상단이 실제로 전체 너비로 확장)
+                    MediaView(note: viewModel.currentNote, videoURL: resolvedVideoURL)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: topH)
+                    
+                    // Middle horizontal handle spanning full width (controls leftTopRatio)
+                    HorizontalSplitHandle(ratio: $leftTopRatio, totalHeight: availableH)
+                        .frame(height: handleH)
+                    
+                    // BOTTOM — left bottom stays at leftW, right collapsed stack stays at rightW
+                    HStack(spacing: 0) {
+                        // LEFT bottom (KeywordView)
+                        CollapsiblePane(isCollapsed: $isLeftBottomCollapsed, height: bottomLeftH) {
+                            KeywordView(analyzer: captionAnalyzer, studyViewModel: viewModel)
                                 .frame(maxWidth: .infinity)
-                                .frame(height: topH)
-
-                            // Middle horizontal handle spanning full width (controls leftTopRatio)
-                            HorizontalSplitHandle(ratio: $leftTopRatio, totalHeight: availableH)
-                                .frame(height: handleH)
-
-                            // BOTTOM — left bottom stays at leftW, right collapsed stack stays at rightW
-                            HStack(spacing: 0) {
-                                // LEFT bottom (KeywordView)
-                                CollapsiblePane(isCollapsed: $isLeftBottomCollapsed, height: bottomLeftH) {
-                                    KeywordView(analyzer: captionAnalyzer, studyViewModel: viewModel)
-                                        .frame(maxWidth: .infinity)
-                                }
-                                .frame(width: leftW, height: bottomLeftH)
-
-                                // Vertical handle between left and right
-                                VerticalSplitHandle(ratio: $splitLR, totalWidth: availW)
-                                    .frame(width: handleW)
-
-                                // RIGHT collapsed stack aligned to bottom-right
-                                VStack(spacing: 0) {
-                                    Spacer(minLength: 0)
-
-                                    CollapsiblePane(isCollapsed: $isTopCollapsed, height: collapsed) {
-                                        SummaryView()
-                                            .frame(maxWidth: .infinity)
-                                    }
-
-                                    CollapsiblePane(isCollapsed: $isBottomCollapsed, height: collapsed) {
-                                        QuestionView(
-                                            studyViewModel: viewModel,
-                                            viewModel: questionVM,
-                                            isGlobalInputActive: $showGlobalQuestionBar
-                                        )
-                                        .frame(maxWidth: .infinity)
-                                    }
-                                }
-                                .frame(width: rightW, height: bottomLeftH, alignment: .bottom)
-                            }
                         }
-                    } else {
-                        // Original two-column interactive layout (unchanged)
-                        // LEFT column: Media (top) | handle | Keyword (bottom, collapsible)
-                        VStack(spacing: 0) {
-                            GeometryReader { leftGeo in
-                                let total = leftGeo.size.height
-                                let leftCollapsed: CGFloat = 160
-                                let available = max(0, total - handleH)
-                                let bottomHeight: CGFloat = isLeftBottomCollapsed ? leftCollapsed : available * (1 - leftTopRatio)
-                                let topHeight: CGFloat = max(0, available - bottomHeight)
-
-                                VStack(spacing: 0) {
-                                    // MARK: MediaView (좌측 상단)
-                                    MediaView(note: viewModel.currentNote, videoURL: resolvedVideoURL)
-                                        .frame(maxWidth: .infinity)
-                                        .frame(height: topHeight)
-
-                                    // 가로 핸들 (좌측 상/하 경계)
-                                    HorizontalSplitHandle(ratio: $leftTopRatio, totalHeight: available)
-                                        .frame(height: handleH)
-
-                                    // MARK: KeywordView (좌측 하단, 접힘 지원)
-                                    CollapsiblePane(isCollapsed: $isLeftBottomCollapsed, height: bottomHeight) {
-                                        KeywordView(analyzer: captionAnalyzer, studyViewModel: viewModel)
-                                            .frame(maxWidth: .infinity)
-                                    }
-                                }
-                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                            }
-                        }
-                        .frame(width: leftW)
-
-                        // 세로 핸들 (좌/우 경계)
+                        .frame(width: leftW, height: bottomLeftH)
+                        
+                        // Vertical handle between left and right
                         VerticalSplitHandle(ratio: $splitLR, totalWidth: availW)
                             .frame(width: handleW)
-
-                        // RIGHT column: Summary (top, collapsible) | handle | Question (bottom, collapsible)
+                        
+                        // RIGHT collapsed stack aligned to bottom-right
                         VStack(spacing: 0) {
-                            GeometryReader { rightGeo in
-                                let total = rightGeo.size.height
-                                let collapsed: CGFloat = 80
-                                let bothCollapsed = isTopCollapsed && isBottomCollapsed
-                                let available = max(0, total - handleH)
-
-                                let topHeight: CGFloat = {
-                                    if bothCollapsed { return collapsed }
-                                    if isTopCollapsed { return collapsed }
-                                    if isBottomCollapsed { return available - collapsed }
-                                    return available * rightTopRatio
-                                }()
-
-                                let bottomHeight: CGFloat = {
-                                    if bothCollapsed { return collapsed }
-                                    return max(0, available - topHeight)
-                                }()
-
-                                VStack(spacing: 0) {
-                                    if bothCollapsed {
-                                        // 상단은 검정 사각형으로 채우고, 두 섹션은 하단에 접힘 상태로 배치
-                                        Rectangle()
-                                            .fill(Color.black)
-                                            .frame(maxHeight: .infinity)
-
-                                        CollapsiblePane(isCollapsed: $isTopCollapsed, height: collapsed) {
-                                            SummaryView()
-                                                .frame(maxWidth: .infinity)
-                                        }
-
-                                        // 가로 핸들 (우측 상/하 경계)
-                                        HorizontalSplitHandle(ratio: $rightTopRatio, totalHeight: available)
-                                            .frame(height: handleH)
-
-                                        CollapsiblePane(isCollapsed: $isBottomCollapsed, height: collapsed) {
-                                            QuestionView(
-                                                studyViewModel: viewModel,
-                                                viewModel: questionVM,
-                                                isGlobalInputActive: $showGlobalQuestionBar
-                                            )
-                                            .frame(maxWidth: .infinity)
-                                        }
-                                    } else {
-                                        CollapsiblePane(isCollapsed: $isTopCollapsed, height: topHeight) {
-                                            SummaryView()
-                                                .frame(maxWidth: .infinity)
-                                        }
-
-                                        // 가로 핸들 (우측 상/하 경계)
-                                        HorizontalSplitHandle(ratio: $rightTopRatio, totalHeight: available)
-                                            .frame(height: handleH)
-
-                                        CollapsiblePane(isCollapsed: $isBottomCollapsed, height: bottomHeight) {
-                                            QuestionView(
-                                                studyViewModel: viewModel,
-                                                viewModel: questionVM,
-                                                isGlobalInputActive: $showGlobalQuestionBar
-                                            )
-                                            .frame(maxWidth: .infinity)
-                                        }
-                                    }
-                                }
-                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                            Spacer(minLength: 0)
+                            
+                            CollapsiblePane(isCollapsed: $isTopCollapsed, height: collapsed) {
+                                SummaryView()
+                                    .frame(maxWidth: .infinity)
+                            }
+                            
+                            CollapsiblePane(isCollapsed: $isBottomCollapsed, height: collapsed) {
+                                QuestionView(
+                                    studyViewModel: viewModel,
+                                    viewModel: questionVM,
+                                    isGlobalInputActive: $showGlobalQuestionBar
+                                )
+                                .frame(maxWidth: .infinity)
                             }
                         }
-                        .frame(width: rightW)
+                        .frame(width: rightW, height: bottomLeftH, alignment: .bottom)
                     }
                 }
+            } else {
+                // Original two-column interactive layout (unchanged)
+                // LEFT column: Media (top) | handle | Keyword (bottom, collapsible)
+                VStack(spacing: 0) {
+                    GeometryReader { leftGeo in
+                        let total = leftGeo.size.height
+                        let leftCollapsed: CGFloat = 160
+                        let available = max(0, total - handleH)
+                        let bottomHeight: CGFloat = isLeftBottomCollapsed ? leftCollapsed : available * (1 - leftTopRatio)
+                        let topHeight: CGFloat = max(0, available - bottomHeight)
+                        
+                        VStack(spacing: 0) {
+                            // MARK: MediaView (좌측 상단)
+                            MediaView(note: viewModel.currentNote, videoURL: resolvedVideoURL)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: topHeight)
+                            
+                            // 가로 핸들 (좌측 상/하 경계)
+                            HorizontalSplitHandle(ratio: $leftTopRatio, totalHeight: available)
+                                .frame(height: handleH)
+                            
+                            // MARK: KeywordView (좌측 하단, 접힘 지원)
+                            CollapsiblePane(isCollapsed: $isLeftBottomCollapsed, height: bottomHeight) {
+                                KeywordView(analyzer: captionAnalyzer, studyViewModel: viewModel)
+                                    .frame(maxWidth: .infinity)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                    }
+                }
+                .frame(width: leftW)
+                
+                // 세로 핸들 (좌/우 경계)
+                VerticalSplitHandle(ratio: $splitLR, totalWidth: availW)
+                    .frame(width: handleW)
+                
+                // RIGHT column: Summary (top, collapsible) | handle | Question (bottom, collapsible)
+                VStack(spacing: 0) {
+                    GeometryReader { rightGeo in
+                        let total = rightGeo.size.height
+                        let collapsed: CGFloat = 80
+                        let bothCollapsed = isTopCollapsed && isBottomCollapsed
+                        let available = max(0, total - handleH)
+                        
+                        let topHeight: CGFloat = {
+                            if bothCollapsed { return collapsed }
+                            if isTopCollapsed { return collapsed }
+                            if isBottomCollapsed { return available - collapsed }
+                            return available * rightTopRatio
+                        }()
+                        
+                        let bottomHeight: CGFloat = {
+                            if bothCollapsed { return collapsed }
+                            return max(0, available - topHeight)
+                        }()
+                        
+                        VStack(spacing: 0) {
+                            if bothCollapsed {
+                                // 상단은 검정 사각형으로 채우고, 두 섹션은 하단에 접힘 상태로 배치
+                                Rectangle()
+                                    .fill(Color.black)
+                                    .frame(maxHeight: .infinity)
+                                
+                                CollapsiblePane(isCollapsed: $isTopCollapsed, height: collapsed) {
+                                    SummaryView()
+                                        .frame(maxWidth: .infinity)
+                                }
+                                
+                                // 가로 핸들 (우측 상/하 경계)
+                                HorizontalSplitHandle(ratio: $rightTopRatio, totalHeight: available)
+                                    .frame(height: handleH)
+                                
+                                CollapsiblePane(isCollapsed: $isBottomCollapsed, height: collapsed) {
+                                    QuestionView(
+                                        studyViewModel: viewModel,
+                                        viewModel: questionVM,
+                                        isGlobalInputActive: $showGlobalQuestionBar
+                                    )
+                                    .frame(maxWidth: .infinity)
+                                }
+                            } else {
+                                CollapsiblePane(isCollapsed: $isTopCollapsed, height: topHeight) {
+                                    SummaryView()
+                                        .frame(maxWidth: .infinity)
+                                }
+                                
+                                // 가로 핸들 (우측 상/하 경계)
+                                HorizontalSplitHandle(ratio: $rightTopRatio, totalHeight: available)
+                                    .frame(height: handleH)
+                                
+                                CollapsiblePane(isCollapsed: $isBottomCollapsed, height: bottomHeight) {
+                                    QuestionView(
+                                        studyViewModel: viewModel,
+                                        viewModel: questionVM,
+                                        isGlobalInputActive: $showGlobalQuestionBar
+                                    )
+                                    .frame(maxWidth: .infinity)
+                                }
+                            }
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                    }
+                }
+                .frame(width: rightW)
+            }
+        }
     }
     
     // MARK: - iPhone Layout

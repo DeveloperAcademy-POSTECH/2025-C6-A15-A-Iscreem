@@ -36,6 +36,11 @@ final class YouTubeWebViewHost: NSObject, ObservableObject {
         let userScript = WKUserScript(source: script, injectionTime: .atDocumentEnd, forMainFrameOnly: true)
         ucc.addUserScript(userScript)
 
+        // 레이아웃/인터랙션 제한을 위한 CSS/JS 주입
+        let lockdownScript = YouTubeWebViewHost.lockdownStyleAndInteractionScript()
+        let lockdownUserScript = WKUserScript(source: lockdownScript, injectionTime: .atDocumentStart, forMainFrameOnly: true)
+        ucc.addUserScript(lockdownUserScript)
+
         self.webView = WKWebView(frame: .zero, configuration: config)
         super.init()
         // JS → Native 브릿지 채널 (super.init() 이후에 self 사용)
@@ -43,21 +48,38 @@ final class YouTubeWebViewHost: NSObject, ObservableObject {
         ucc.add(WeakScriptMessageHandler(self), name: "tracks")
         self.webView.navigationDelegate = self
         self.webView.uiDelegate = self
-        self.webView.scrollView.bounces = true
-        self.webView.allowsBackForwardNavigationGestures = false
         self.webView.backgroundColor = .clear
         self.webView.isOpaque = false
+
+        // 스크롤/줌/바운스/인디케이터 비활성화
+        let sv = self.webView.scrollView
+        sv.isScrollEnabled = false
+        sv.bounces = false
+        sv.alwaysBounceVertical = false
+        sv.alwaysBounceHorizontal = false
+        sv.showsVerticalScrollIndicator = false
+        sv.showsHorizontalScrollIndicator = false
+        sv.contentInsetAdjustmentBehavior = .never
+        sv.decelerationRate = .fast
+        sv.pinchGestureRecognizer?.isEnabled = false
+
+        // 제스처 중 롱프레스/패닝에 의한 화면 이동 차단 (플레이어 내부 제스처는 HTML 내부에서 처리되므로 영향 없음)
+        sv.gestureRecognizers?.forEach { gr in
+            if gr is UILongPressGestureRecognizer || gr is UIPanGestureRecognizer {
+                gr.isEnabled = false
+            }
+        }
     }
 
     // MARK: - Public
     func load(urlString: String) {
         guard let url = URL(string: urlString) else { return }
         // ✅ reset을 동기 메인에서 즉시 수행 (지연 Task 제거)
-            if Thread.isMainThread {
-                self.captionAnalyzer?.resetForNewVideo()
-            } else {
-                DispatchQueue.main.async { self.captionAnalyzer?.resetForNewVideo() }
-            }
+        if Thread.isMainThread {
+            self.captionAnalyzer?.resetForNewVideo()
+        } else {
+            DispatchQueue.main.async { self.captionAnalyzer?.resetForNewVideo() }
+        }
         var req = URLRequest(url: url)
         req.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1", forHTTPHeaderField: "User-Agent")
         log.info("WKNav allow → \(url.host ?? "-")")
@@ -143,6 +165,74 @@ final class YouTubeWebViewHost: NSObject, ObservableObject {
         })();
         """
     }
+
+    // MARK: - Lockdown CSS/JS
+    private static func lockdownStyleAndInteractionScript() -> String {
+        // 1) 스타일: 여백 제거, 오버플로우 숨김, 플레이어만 전체 채우기
+        // 2) 선택/롱프레스/텍스트 호출 비활성화
+        // 3) 스크롤/터치 무시(플레이어 외 영역)
+        // 4) viewport 고정(확대/축소 방지)
+        let css = """
+        html, body {
+          margin: 0 !important;
+          padding: 0 !important;
+          overflow: hidden !important;
+          height: 100% !important;
+          background-color: #000 !important;
+          -webkit-user-select: none !important;
+          -webkit-touch-callout: none !important;
+        }
+        /* 유튜브 페이지에서 플레이어 이외의 UI 숨김 */
+        #masthead-container, #masthead, #header, #guide, #guide-content,
+        ytd-mini-guide-renderer, #footer, ytd-comments, ytd-merch-shelf-renderer,
+        ytd-watch-metadata, ytd-watch-flexy #below, ytd-watch-flexy #secondary,
+        ytd-watch-flexy ytd-video-secondary-info-renderer,
+        ytd-watch-flexy ytd-video-primary-info-renderer { display: none !important; }
+        ytd-app, ytd-page-manager, ytd-watch-flexy { height: 100% !important; }
+        /* 플레이어를 화면 전체로 고정 */
+        ytd-watch-flexy #player, #player-container, .html5-video-player {
+          position: fixed !important;
+          inset: 0 !important;
+          width: 100% !important;
+          height: 100% !important;
+          max-width: 100% !important;
+          max-height: 100% !important;
+        }
+        * { -webkit-user-drag: none !important; }
+        """
+
+        let js = """
+        (function() {
+          try {
+            // viewport 강제
+            var vp = document.querySelector('meta[name=viewport]');
+            if (!vp) {
+              vp = document.createElement('meta');
+              vp.name = 'viewport';
+              document.head.appendChild(vp);
+            }
+            vp.setAttribute('content', 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no');
+          } catch (e) {}
+
+          try {
+            // 스타일 주입
+            var style = document.createElement('style');
+            style.type = 'text/css';
+            style.appendChild(document.createTextNode(`\(css.replacingOccurrences(of: "`", with: "\\`"))`));
+            document.documentElement.appendChild(style);
+          } catch (e) {}
+
+          // 스크롤 방지
+          try {
+            window.addEventListener('scroll', function(){ window.scrollTo(0,0); }, {passive:false});
+            document.addEventListener('touchmove', function(e){ e.preventDefault(); }, {passive:false});
+            document.addEventListener('gesturestart', function(e){ e.preventDefault(); }, {passive:false});
+          } catch (e) {}
+        })();
+        """
+
+        return js
+    }
 }
 
 // MARK: - WKScriptMessage handling (weak bridge)
@@ -189,6 +279,13 @@ private final class WeakScriptMessageHandler: NSObject, WKScriptMessageHandler {
 extension YouTubeWebViewHost: WKNavigationDelegate, WKUIDelegate {
     func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction,
                  decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+        // 초기 로드 외 링크 탭 등으로 인한 화면 이동 차단
+        if action.navigationType == .linkActivated || action.navigationType == .formSubmitted {
+            log.error("WKNav cancel (link/form blocked)")
+            decisionHandler(.cancel)
+            return
+        }
+        // 유튜브 도메인만 허용(서브리소스 포함)
         if let host = action.request.url?.host?.lowercased(),
            host.contains("youtube.com") || host.contains("youtu.be") {
             decisionHandler(.allow); return
