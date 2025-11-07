@@ -76,35 +76,7 @@ struct SettingsDetailView: View {
                             
                             Spacer()
                             
-                            HStack(spacing: 4) {
-                                ThemeButton(
-                                    title: "시스템 설정 사용",
-                                    isSelected: selectedTheme == "system",
-                                    useVibrancy: useVibrancy
-                                ) {
-                                    selectedTheme = "system"
-                                }
-                                ThemeButton(
-                                    title: "라이트 모드",
-                                    isSelected: selectedTheme == "light",
-                                    useVibrancy: useVibrancy
-                                ) {
-                                    selectedTheme = "light"
-                                }
-                                ThemeButton(
-                                    title: "다크 모드",
-                                    isSelected: selectedTheme == "dark",
-                                    useVibrancy: useVibrancy
-                                ) {
-                                    selectedTheme = "dark"
-                                }
-                            }
-                            .padding(4)
-                            .background {
-                                vibrancyBackground(useVibrancy: useVibrancy)
-                            }
-                            .cornerRadius(18)
-                            .frame(width: 370, height: 36)
+                            ThemeModePicker(selection: $selectedTheme, useVibrancy: $useVibrancy)
                         }
                         
                         // 언어 설정
@@ -120,28 +92,7 @@ struct SettingsDetailView: View {
                             
                             Spacer()
                             
-                            HStack(spacing: 4) {
-                                LanguageButton(
-                                    title: "한국어 (Korean)",
-                                    isSelected: selectedLanguage == "korean",
-                                    useVibrancy: useVibrancy
-                                ) {
-                                    selectedLanguage = "korean"
-                                }
-                                LanguageButton(
-                                    title: "영어 (English)",
-                                    isSelected: selectedLanguage == "english",
-                                    useVibrancy: useVibrancy
-                                ) {
-                                    selectedLanguage = "english"
-                                }
-                            }
-                            .padding(4)
-                            .background {
-                                vibrancyBackground(useVibrancy: useVibrancy)
-                            }
-                            .cornerRadius(18)
-                            .frame(width: 370, height: 36)
+                            LanguageModePicker(selection: $selectedLanguage, useVibrancy: $useVibrancy)
                         }
                     }
                     
@@ -256,24 +207,6 @@ struct SettingsDetailView: View {
             }
         }
     }
-    
-    // 리퀴드 글래스 배경 생성 헬퍼 함수
-    @ViewBuilder
-    private func vibrancyBackground(useVibrancy: Bool) -> some View {
-        if useVibrancy {
-            // iOS 15+ Vibrancy effect
-            if #available(iOS 15.0, *) {
-                RoundedRectangle(cornerRadius: 18)
-                    .fill(.ultraThinMaterial)
-            } else {
-                RoundedRectangle(cornerRadius: 18)
-                    .fill(Color.background2)
-            }
-        } else {
-            RoundedRectangle(cornerRadius: 18)
-                .fill(Color.background2)
-        }
-    }
 }
 
 struct SettingView: View {
@@ -339,81 +272,71 @@ struct SettingView: View {
     }
 }
 
-// 테마 버튼 컴포넌트 - 리퀴드 글래스 효과 적용
-struct ThemeButton: View {
-    let title: String
-    let isSelected: Bool
-    let useVibrancy: Bool
-    let action: () -> Void
+// 테마 선택 Picker 컴포넌트
+struct ThemeModePicker: View {
+    @Binding var selection: String
+    @Binding var useVibrancy: Bool
     
     var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(Color.text1)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background {
-                    if isSelected {
-                        if useVibrancy {
-                            if #available(iOS 15.0, *) {
-                                RoundedRectangle(cornerRadius: 14)
-                                    .fill(.regularMaterial)
-                                    .shadow(color: .black.opacity(0.08), radius: 3, x: 0, y: 1)
-                            } else {
-                                RoundedRectangle(cornerRadius: 14)
-                                    .fill(Color.white.opacity(0.9))
-                                    .shadow(color: .black.opacity(0.08), radius: 3, x: 0, y: 1)
-                            }
-                        } else {
-                            RoundedRectangle(cornerRadius: 14)
-                                .fill(Color.white.opacity(0.9))
-                                .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
-                        }
-                    }
-                }
-                .cornerRadius(14)
-                .animation(.easeInOut(duration: 0.2), value: isSelected)
+        Picker("", selection: $selection) {
+            Text("시스템")
+                .tag("system")
+            Text("라이트")
+                .tag("light")
+            Text("다크")
+                .tag("dark")
         }
-        .buttonStyle(.plain)
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        .background(.clear)
+        .frame(width: 370, height: 36)
+        .background(.clear, in: Capsule())
+        .overlay(Capsule().stroke(Color.borderColor.opacity(0.5), lineWidth: 1))
+    }
+    
+    // Return a ShapeStyle so it matches the background(_:in:) overload.
+    private var vibrancyBackground: AnyShapeStyle {
+        if useVibrancy {
+            if #available(iOS 15.0, *) {
+                return AnyShapeStyle(.ultraThinMaterial)
+            } else {
+                return AnyShapeStyle(Color.background2)
+            }
+        } else {
+            return AnyShapeStyle(Color.background2)
+        }
     }
 }
 
-// 언어 버튼 컴포넌트 - 리퀴드 글래스 효과 적용
-struct LanguageButton: View {
-    let title: String
-    let isSelected: Bool
-    let useVibrancy: Bool
-    let action: () -> Void
+// 언어 선택 Picker 컴포넌트
+struct LanguageModePicker: View {
+    @Binding var selection: String
+    @Binding var useVibrancy: Bool
     
     var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(Color.text1)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background {
-                    if isSelected {
-                        if useVibrancy {
-                            if #available(iOS 15.0, *) {
-                                RoundedRectangle(cornerRadius: 14)
-                                    .fill(.regularMaterial)
-                                    .shadow(color: .black.opacity(0.08), radius: 3, x: 0, y: 1)
-                            } else {
-                                RoundedRectangle(cornerRadius: 14)
-                                    .fill(Color.white.opacity(0.9))
-                                    .shadow(color: .black.opacity(0.08), radius: 3, x: 0, y: 1)
-                            }
-                        } else {
-                            RoundedRectangle(cornerRadius: 14)
-                                .fill(Color.white.opacity(0.9))
-                                .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
-                        }
-                    }
-                }
-                .cornerRadius(14)
-                .animation(.easeInOut(duration: 0.2), value: isSelected)
+        Picker("", selection: $selection) {
+            Text("한국어")
+                .tag("korean")
+            Text("English")
+                .tag("english")
         }
-        .buttonStyle(.plain)
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        .frame(width: 370, height: 36)
+        .background(.clear, in: Capsule())
+        .overlay(Capsule().stroke(Color.borderColor.opacity(0.5), lineWidth: 1))
+    }
+    
+    private var vibrancyBackground: AnyShapeStyle {
+        if useVibrancy {
+            if #available(iOS 15.0, *) {
+                return AnyShapeStyle(.ultraThinMaterial)
+            } else {
+                return AnyShapeStyle(Color.background2)
+            }
+        } else {
+            return AnyShapeStyle(Color.background2)
+        }
     }
 }
 
