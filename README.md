@@ -46,6 +46,10 @@ Attach videos if you are available
        width="920" autoplay loop muted playsinline></video>
 
 
+https://github.com/user-attachments/assets/e98da29a-7157-47d5-a971-de8b2e455354
+
+
+
 ## :pushpin: Features
 
 - 영상 강의(유튜브 한정) 노트 저장
