@@ -177,6 +177,23 @@ https://github.com/user-attachments/assets/e98da29a-7157-47d5-a971-de8b2e455354
 ![All Swift Files](learningtool_all_swift_diagram.svg)
 
 
+
+## 📊 다이어그램
+
+## Architecture
+
+![Flow](learningtool_flowchart.svg)
+
+## Keyword → Q&A Flow
+
+![Sequence](learningtool_sequence_keyword_qa.svg)
+
+## Class Diagram
+
+![Classes](learningtool_class_diagram.svg)
+
+
+
 ## :sparkles: Skills & Tech Stack
 
 	•	언어/런타임: Swift 5.x, Swift Concurrency(async/await, Task, @MainActor)
@@ -196,19 +213,6 @@ https://github.com/user-attachments/assets/e98da29a-7157-47d5-a971-de8b2e455354
 
 
 
-## 📊 다이어그램
-
-## Architecture
-
-![Flow](learningtool_flowchart.svg)
-
-## Keyword → Q&A Flow
-
-![Sequence](learningtool_sequence_keyword_qa.svg)
-
-## Class Diagram
-
-![Classes](learningtool_class_diagram.svg)
 
 ## 👥 Team
 
