@@ -10,6 +10,7 @@ import SwiftUI
 struct KeywordView: View {
     @ObservedObject var analyzer: CaptionAnalyzer
     @ObservedObject var studyViewModel: StudyViewModel
+    @EnvironmentObject private var learningLogStore: LearningLogStore
     
     // 키워드 한 번에 하나만 클릭
     @State private var selectedKeyword: String? = nil
@@ -59,10 +60,23 @@ struct KeywordView: View {
                                 isSelected: selectedKeyword == keyword,
                                 onTap: {
                                     if selectedKeyword == keyword {
+                                        // 같은 키워드를 다시 탭하면 선택만 해제 (로그는 유지)
                                         selectedKeyword = nil
                                     } else {
+                                        // 새 키워드 선택
                                         selectedKeyword = keyword
                                         studyViewModel.selectKeyword(keyword)
+
+                                        // 🔹 학습 로그: 키워드 사용 기록
+                                        if let note = studyViewModel.currentNote {
+                                            learningLogStore.recordKeywordUse(
+                                                folderName: note.folder?.name,
+                                                noteTitle: note.title,
+                                                noteIdentifier: String(describing: note.id),
+                                                videoURL: note.videoURL,
+                                                keyword: keyword
+                                            )
+                                        }
                                     }
                                 }
                             )
