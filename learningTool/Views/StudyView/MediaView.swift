@@ -10,6 +10,8 @@ import OSLog
 
 struct MediaView: View {
     @EnvironmentObject private var captionAnalyzer: CaptionAnalyzer
+    @EnvironmentObject private var learningLogStore: LearningLogStore
+    
     /// 현재 재생/요약 세션에 바인딩할 노트 (캐시 재활용/저장 목적)
     let note: Note?
     /// Note에서 내려받는 YouTube 링크 (없으면 플레이스홀더 유지)
@@ -66,6 +68,19 @@ struct MediaView: View {
                 DispatchQueue.main.async {
                     loadIfNeeded(u)
                 }
+            }
+        }
+        .onDisappear {
+            // 🔹 노트/영상 뷰에서 이탈할 때 학습 세션 기록
+            if let note = note {
+                learningLogStore.recordProgress(
+                    folderName: note.folder?.name,
+                    noteTitle: note.title,
+                    noteIdentifier: String(describing: note.id),
+                    videoURL: note.videoURL ?? videoURL,
+                    position: nil,
+                    snippet: nil
+                )
             }
         }
     }

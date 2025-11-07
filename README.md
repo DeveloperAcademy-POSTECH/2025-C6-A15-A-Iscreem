@@ -35,13 +35,6 @@ Refs: Apple Newsroom availability notes.  [oai_citation:5‡Apple](https://www.a
 
 
 
-
-## 📊 다이어그램
-
-Attach photos if you are available
-<img width="1582" height="2271" alt="analyzer_flow" src="https://github.com/user-attachments/assets/238ce3af-27cb-4030-8f53-83b29f9fa35b" />
-<img width="2016" height="1422" alt="async_sequence" src="https://github.com/user-attachments/assets/99cd58ab-af15-43d5-b17a-64f5c8b1f6a7" />
-
 ## :framed_picture: Demo
 
 Attach videos if you are available
@@ -160,6 +153,11 @@ Attach videos if you are available
 └── README.md
 ```
 
+## 📊 Full Architecture Map
+
+
+![All Swift Files](learningtool_all_swift_diagram.svg)
+
 
 ## :sparkles: Skills & Tech Stack
 
@@ -178,6 +176,21 @@ Attach videos if you are available
 ![SwiftData](https://img.shields.io/badge/SwiftData-Persistence-0C7BDC)
 ![WebKit](https://img.shields.io/badge/WebKit-WKWebView-1F8A70)
 
+
+
+## 📊 다이어그램
+
+## Architecture
+
+![Flow](learningtool_flowchart.svg)
+
+## Keyword → Q&A Flow
+
+![Sequence](learningtool_sequence_keyword_qa.svg)
+
+## Class Diagram
+
+![Classes](learningtool_class_diagram.svg)
 
 ## 👥 Team
 

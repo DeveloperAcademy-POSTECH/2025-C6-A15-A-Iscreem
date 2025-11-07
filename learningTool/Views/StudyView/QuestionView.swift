@@ -17,7 +17,9 @@ struct QuestionView: View {
     @State private var showingSuggestions = false
     @State private var suggestedQuestions: [String] = []
     @State private var isLoadingSuggestions = false
-    // FocusState<Bool>.Binding → Binding<Bool> 브리지 (ChatAreaView용)
+    
+    @EnvironmentObject private var learningLogStore: LearningLogStore
+    
     private var isFocusedBinding: Binding<Bool> {
         Binding(
             get: { isTextFieldFocused },
@@ -150,6 +152,28 @@ struct QuestionView: View {
                 }
                 // 생성 완료 표시
                 studyViewModel.suggestionsGenerated()
+            }
+        }
+        .onChange(of: viewModel.messages.count) { oldValue, newValue in
+            guard
+                newValue > oldValue,
+                viewModel.messages.count >= 2,
+                let note = studyViewModel.currentNote
+            else { return }
+            
+            let last = viewModel.messages[viewModel.messages.count - 1]
+            let prev = viewModel.messages[viewModel.messages.count - 2]
+            
+            // 🔹 직전이 사용자 질문, 마지막이 AI 응답일 때만 Q&A로 기록
+            if prev.isUser && !last.isUser {
+                learningLogStore.recordQAPair(
+                    folderName: note.folder?.name,
+                    noteTitle: note.title,
+                    noteIdentifier: String(describing: note.id),
+                    videoURL: note.videoURL,
+                    question: prev.text,
+                    answer: last.text
+                )
             }
         }
     }
