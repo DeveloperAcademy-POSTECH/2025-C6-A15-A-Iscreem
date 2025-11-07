@@ -215,3 +215,89 @@ final class LearningLogStore: ObservableObject {
             .map { ($0.key, $0.value) }
     }
 }
+
+#if DEBUG
+extension LearningLogStore {
+    @MainActor
+    static func previewStore() -> LearningLogStore {
+        let store = LearningLogStore()
+        let now = Date()
+        let cal = Calendar.current
+
+        let day0 = now
+        let day1 = cal.date(byAdding: .day, value: -1, to: now) ?? now
+        let day3 = cal.date(byAdding: .day, value: -3, to: now) ?? now
+
+        let qa1 = StudyQAPair(
+            question: "이 강의의 핵심 개념을 한 줄로 정리해줘.",
+            answer: "계층형 네트워크 구조와 패킷 교환 원리를 이해하는 것이 핵심입니다."
+        )
+
+        let qa2 = StudyQAPair(
+            question: "TCP와 UDP 차이점을 인터뷰 답변용으로 정리해줘.",
+            answer: "TCP는 연결 지향·신뢰성과 순서를 보장하고, UDP는 비연결·저지연 스트리밍에 적합하다고 설명하면 됩니다."
+        )
+
+        let qa3 = StudyQAPair(
+            question: "이 노트에서 꼭 외워야 할 키워드는?",
+            answer: "OSI 7계층, MTU, 혼잡 제어, 슬라이딩 윈도우, 지연 시간."
+        )
+
+        store.sessions = [
+            // 오늘: 네트워크 노트 + Q&A + 키워드 + 진행도
+            StudySession(
+                date: day0,
+                folderName: "네트워크",
+                noteTitle: "데이터통신 제1장 개요",
+                noteIdentifier: "note-001",
+                videoURL: "https://youtu.be/example1",
+                lastPosition: 842,
+                lastTextSnippet: "패킷 교환 방식은 회선 교환보다 회선 효율을 높일 수 있습니다.",
+                keywords: ["패킷 교환", "회선 교환", "LAN", "WAN", "프로토콜"],
+                qaPairs: [qa1, qa2]
+            ),
+
+            // 오늘: iOS 노트 (키워드만)
+            StudySession(
+                date: day0,
+                folderName: "iOS",
+                noteTitle: "SwiftUI 기초 총정리",
+                noteIdentifier: "note-002",
+                videoURL: "https://youtu.be/example2",
+                lastPosition: 1260,
+                lastTextSnippet: "State와 Binding을 통해 단방향 데이터 플로우를 유지합니다.",
+                keywords: ["SwiftUI", "State", "Binding", "MVVM"],
+                qaPairs: []
+            ),
+
+            // 1일 전: 자료구조 노트 + Q&A
+            StudySession(
+                date: day1,
+                folderName: "자료구조",
+                noteTitle: "알고리즘 시간복잡도",
+                noteIdentifier: "note-003",
+                videoURL: "https://youtu.be/example3",
+                lastPosition: 560,
+                lastTextSnippet: "빅오 표기법은 최악의 경우를 기준으로 복잡도를 나타냅니다.",
+                keywords: ["빅오", "시간복잡도", "선형 시간", "로그 시간"],
+                qaPairs: [qa3]
+            ),
+
+            // 3일 전: 네트워크 심화 (키워드만)
+            StudySession(
+                date: day3,
+                folderName: "네트워크",
+                noteTitle: "TCP 심화",
+                noteIdentifier: "note-004",
+                videoURL: "https://youtu.be/example4",
+                lastPosition: nil,
+                lastTextSnippet: nil,
+                keywords: ["TCP", "혼잡 제어", "슬라이딩 윈도우"],
+                qaPairs: []
+            )
+        ]
+
+        return store
+    }
+}
+#endif

@@ -15,7 +15,8 @@ struct LearningToolApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+//            ContentView()
+            HomeView.AppRootView()
                 .environmentObject(captionAnalyzer)
                 .environmentObject(learningLogStore)
         }

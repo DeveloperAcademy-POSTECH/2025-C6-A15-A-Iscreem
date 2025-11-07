@@ -357,3 +357,9 @@ private struct FlexibleView<Data: RandomAccessCollection, Content: View>: View w
         }
     }
 }
+#if DEBUG
+#Preview(traits: .landscapeLeft) {
+    StudyHistoryView()
+        .environmentObject(LearningLogStore.previewStore())
+}
+#endif

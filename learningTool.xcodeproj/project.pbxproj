@@ -33,7 +33,6 @@
 		68B08B742EB083F50067AD9E /* CaptionAnalyzerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68B08B4A2EB083F50067AD9E /* CaptionAnalyzerViewModel.swift */; };
 		68B08B752EB083F50067AD9E /* HTTPSummarizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68B08B4B2EB083F50067AD9E /* HTTPSummarizer.swift */; };
 		68B08B762EB083F50067AD9E /* Summarizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68B08B4C2EB083F50067AD9E /* Summarizer.swift */; };
-		68B08B772EB083F50067AD9E /* ContentViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68B08B4E2EB083F50067AD9E /* ContentViewModel.swift */; };
 		68B08B782EB083F50067AD9E /* HomeViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68B08B4F2EB083F50067AD9E /* HomeViewModel.swift */; };
 		68B08B792EB083F50067AD9E /* QuestionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68B08B502EB083F50067AD9E /* QuestionViewModel.swift */; };
 		68B08B7A2EB083F50067AD9E /* SidebarViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68B08B512EB083F50067AD9E /* SidebarViewModel.swift */; };
@@ -47,7 +46,6 @@
 		68B08B822EB083F50067AD9E /* QuestionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68B08B5B2EB083F50067AD9E /* QuestionView.swift */; };
 		68B08B832EB083F50067AD9E /* StudyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68B08B5C2EB083F50067AD9E /* StudyView.swift */; };
 		68B08B842EB083F50067AD9E /* SummaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68B08B5D2EB083F50067AD9E /* SummaryView.swift */; };
-		68B08B852EB083F50067AD9E /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68B08B5F2EB083F50067AD9E /* ContentView.swift */; };
 		68B08B862EB083F50067AD9E /* YouTubeThumbnail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68B08B612EB083F50067AD9E /* YouTubeThumbnail.swift */; };
 		68B08B872EB083F50067AD9E /* YouTubeWebViewHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68B08B622EB083F50067AD9E /* YouTubeWebViewHost.swift */; };
 		68B08B882EB083F50067AD9E /* YouTubeWebViewRepresentable..swift in Sources */ = {isa = PBXBuildFile; fileRef = 68B08B632EB083F50067AD9E /* YouTubeWebViewRepresentable..swift */; };
@@ -89,7 +87,6 @@
 		68B08B4A2EB083F50067AD9E /* CaptionAnalyzerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptionAnalyzerViewModel.swift; sourceTree = "<group>"; };
 		68B08B4B2EB083F50067AD9E /* HTTPSummarizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPSummarizer.swift; sourceTree = "<group>"; };
 		68B08B4C2EB083F50067AD9E /* Summarizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Summarizer.swift; sourceTree = "<group>"; };
-		68B08B4E2EB083F50067AD9E /* ContentViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentViewModel.swift; sourceTree = "<group>"; };
 		68B08B4F2EB083F50067AD9E /* HomeViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeViewModel.swift; sourceTree = "<group>"; };
 		68B08B502EB083F50067AD9E /* QuestionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestionViewModel.swift; sourceTree = "<group>"; };
 		68B08B512EB083F50067AD9E /* SidebarViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarViewModel.swift; sourceTree = "<group>"; };
@@ -103,7 +100,6 @@
 		68B08B5B2EB083F50067AD9E /* QuestionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestionView.swift; sourceTree = "<group>"; };
 		68B08B5C2EB083F50067AD9E /* StudyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyView.swift; sourceTree = "<group>"; };
 		68B08B5D2EB083F50067AD9E /* SummaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SummaryView.swift; sourceTree = "<group>"; };
-		68B08B5F2EB083F50067AD9E /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		68B08B612EB083F50067AD9E /* YouTubeThumbnail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubeThumbnail.swift; sourceTree = "<group>"; };
 		68B08B622EB083F50067AD9E /* YouTubeWebViewHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubeWebViewHost.swift; sourceTree = "<group>"; };
 		68B08B632EB083F50067AD9E /* YouTubeWebViewRepresentable..swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubeWebViewRepresentable..swift; sourceTree = "<group>"; };
@@ -207,7 +203,6 @@
 		68B08B532EB083F50067AD9E /* ViewModels */ = {
 			isa = PBXGroup;
 			children = (
-				68B08B4E2EB083F50067AD9E /* ContentViewModel.swift */,
 				68B08B4D2EB083F50067AD9E /* CaptionAnalyzer */,
 				68B08B4F2EB083F50067AD9E /* HomeViewModel.swift */,
 				68B08B512EB083F50067AD9E /* SidebarViewModel.swift */,
@@ -256,7 +251,6 @@
 		68B08B602EB083F50067AD9E /* Views */ = {
 			isa = PBXGroup;
 			children = (
-				68B08B5F2EB083F50067AD9E /* ContentView.swift */,
 				68B08B582EB083F50067AD9E /* HomeView */,
 				68B08B5E2EB083F50067AD9E /* StudyView */,
 				687CE88A2EBCDBEB004BF7C2 /* StudyHistoryView */,
@@ -405,7 +399,6 @@
 				685FD1E12EB4949E00132910 /* ViewModelToggle.swift in Sources */,
 				68B08B762EB083F50067AD9E /* Summarizer.swift in Sources */,
 				68AE7A1C2EB2874D008FF275 /* ChatAreaView.swift in Sources */,
-				68B08B772EB083F50067AD9E /* ContentViewModel.swift in Sources */,
 				68B08B782EB083F50067AD9E /* HomeViewModel.swift in Sources */,
 				68B08B792EB083F50067AD9E /* QuestionViewModel.swift in Sources */,
 				68AE7A162EB285E8008FF275 /* View+Corners.swift in Sources */,
@@ -425,7 +418,6 @@
 				68B08B832EB083F50067AD9E /* StudyView.swift in Sources */,
 				68B08B842EB083F50067AD9E /* SummaryView.swift in Sources */,
 				687CE8892EBCDBD0004BF7C2 /* StudyHistoryView.swift in Sources */,
-				68B08B852EB083F50067AD9E /* ContentView.swift in Sources */,
 				687CE8872EBCDB29004BF7C2 /* LearningLogStore.swift in Sources */,
 				C989B1AF2EB7608F00FD3752 /* ListMode.swift in Sources */,
 				C989B1AD2EB7607D00FD3752 /* GridMode.swift in Sources */,
