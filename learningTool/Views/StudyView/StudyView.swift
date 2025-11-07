@@ -106,6 +106,7 @@ struct StudyView: View {
     @State private var showingAPISettings = false
     
     @EnvironmentObject private var captionAnalyzer: CaptionAnalyzer
+    @EnvironmentObject private var learningLogStore: LearningLogStore
     @Query private var notes: [Note]
     // ▼ 전역 질문 입력 바 상태 (키보드 상단 바)
     @StateObject private var questionVM = QuestionViewModel()
@@ -142,7 +143,12 @@ struct StudyView: View {
             HStack {
                 Button(action: {
                     viewModel.closeButtonTapped()
-                    onDismiss?()
+                    // ▶︎ 뒤로가기 직전에 현재 재생 위치 저장 요청
+                    NotificationCenter.default.post(name: .persistPlaybackPosition, object: viewModel.currentNote)
+                    // JS 질의가 완료될 수 있도록 아주 짧게 지연 후 닫기
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                        onDismiss?()
+                    }
                 }) {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 20))
@@ -155,12 +161,12 @@ struct StudyView: View {
                 VStack(spacing: 2) {
                     Text(
                         viewModel.currentNote?.title
-                        ?? "데이터통신 제1장"
+                        ?? "노트의 제목"
                     )
                     .font(.system(size: 18, weight: .semibold))
                     .foregroundStyle(Color.text1)
                     
-                    Text("26:52/58:59")
+                    Text(headerProgressText)
                         .font(.system(size: 13))
                         .foregroundStyle(Color.text3)
                 }
@@ -238,6 +244,48 @@ struct StudyView: View {
         }
         .sheet(isPresented: $showingAPISettings) {
             APISettingsView()
+        }
+    }
+    
+    // MARK: - Header Helpers
+    private var headerProgressText: String {
+        // 1) 학습 로그에 저장된 마지막 재생 위치 우선
+        let last = lastPositionFromLogs() ?? viewModel.currentNote?.lastPositionSeconds
+        // 2) 전체 시간: 자막 큐가 준비된 경우, 가장 큰 end 값을 사용
+        let total = captionAnalyzer.vttCues.map(\.end).max()
+        let leftText = formatTime(last)
+        let rightText = formatTime(total)
+        return "마지막 학습 시간: \(leftText) / 전체 학습 시간: \(rightText)"
+    }
+    
+    private func lastPositionFromLogs() -> Double? {
+        guard let note = viewModel.currentNote else { return nil }
+        let nid = String(describing: note.id)
+        let url = note.videoURL ?? resolvedVideoURL
+        // LearningLogStore의 매칭 정책과 동일: 식별자 우선, 없으면 제목+URL
+        if let s = learningLogStore.sessions.first(where: { sess in
+            if let sid = sess.noteIdentifier, sid == nid { return true }
+            if sess.noteTitle == note.title {
+                if let v1 = sess.videoURL, let v2 = url, v1 == v2 { return true }
+                if url == nil { return true }
+            }
+            return false
+        }) {
+            return s.lastPosition
+        }
+        return nil
+    }
+    
+    private func formatTime(_ seconds: Double?) -> String {
+        guard let s = seconds, s > 0 else { return "—" }
+        let total = Int(s.rounded())
+        let h = total / 3600
+        let m = (total % 3600) / 60
+        let sec = total % 60
+        if h > 0 {
+            return String(format: "%d:%02d:%02d", h, m, sec)
+        } else {
+            return String(format: "%d:%02d", m, sec)
         }
     }
     

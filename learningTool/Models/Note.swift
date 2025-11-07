@@ -24,6 +24,9 @@ final class Note {
     @Relationship var folder: Folder?
     var videoURL: String?
 
+    // ✅ 마지막 시청 위치(초)
+    var lastPositionSeconds: Double?
+
     // ✅ 요약/키워드/챕터 캐시
     var cachedFinalSummary: String?
     var cachedSummaryLines: [String] = []
@@ -48,6 +51,7 @@ final class Note {
         folder: Folder? = nil,
         createdAt: Date = .now,
         videoURL: String? = nil,
+        lastPositionSeconds: Double? = nil,
         cachedFinalSummary: String? = nil,
         cachedSummaryLines: [String] = [],
         cachedKeywords: [String] = [],
@@ -59,9 +63,11 @@ final class Note {
         self.folder = folder
         self.createdAt = createdAt
         self.videoURL = videoURL
+        self.lastPositionSeconds = lastPositionSeconds
         self.cachedFinalSummary = cachedFinalSummary
         self.cachedSummaryLines = cachedSummaryLines
         self.cachedKeywords = cachedKeywords
         self.cachedChaptersBlob = try? JSONEncoder().encode(cachedChapters)
     }
 }
+

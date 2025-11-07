@@ -20,6 +20,9 @@ final class YouTubeWebViewHost: NSObject, ObservableObject {
     fileprivate var didProcessCfg = false
     fileprivate var didProcessTracks = false
 
+    // 🔹 재생 상태 콜백(일시정지/종료 시 현재 시간 전달)
+    var onPause: ((Double) -> Void)?
+
     init(captionAnalyzer: CaptionAnalyzer?) {
         self.captionAnalyzer = captionAnalyzer
 
@@ -41,11 +44,17 @@ final class YouTubeWebViewHost: NSObject, ObservableObject {
         let lockdownUserScript = WKUserScript(source: lockdownScript, injectionTime: .atDocumentStart, forMainFrameOnly: true)
         ucc.addUserScript(lockdownUserScript)
 
+        // 🔹 HTML5 <video> pause/ended 이벤트 리스너 주입
+        let playbackScript = YouTubeWebViewHost.playbackListenerScript()
+        let playbackUserScript = WKUserScript(source: playbackScript, injectionTime: .atDocumentEnd, forMainFrameOnly: true)
+        ucc.addUserScript(playbackUserScript)
+
         self.webView = WKWebView(frame: .zero, configuration: config)
         super.init()
         // JS → Native 브릿지 채널 (super.init() 이후에 self 사용)
         ucc.add(WeakScriptMessageHandler(self), name: "ytcfg")
         ucc.add(WeakScriptMessageHandler(self), name: "tracks")
+        ucc.add(WeakScriptMessageHandler(self), name: "playback")
         self.webView.navigationDelegate = self
         self.webView.uiDelegate = self
         self.webView.backgroundColor = .clear
@@ -93,6 +102,26 @@ final class YouTubeWebViewHost: NSObject, ObservableObject {
     @MainActor
     func bind(note: Note) {
         self.captionAnalyzer?.bind(note: note)
+    }
+    
+    // ✅ 현재 재생 시간을 JS로 질의
+    @MainActor
+    func getCurrentTime(completion: @escaping (Double?) -> Void) {
+        let js = "(function(){var v=document.querySelector('video'); if(!v) return null; return v.currentTime || 0; })();"
+        webView.evaluateJavaScript(js) { result, error in
+            if let error = error {
+                self.log.error("getCurrentTime JS error: \(error.localizedDescription, privacy: .public)")
+                completion(nil)
+                return
+            }
+            if let t = result as? Double {
+                completion(t)
+            } else if let n = result as? NSNumber {
+                completion(n.doubleValue)
+            } else {
+                completion(nil)
+            }
+        }
     }
 
     // MARK: - JS Bootstrap
@@ -233,6 +262,48 @@ final class YouTubeWebViewHost: NSObject, ObservableObject {
 
         return js
     }
+
+    // MARK: - Playback listener (pause/ended → post currentTime)
+    private static func playbackListenerScript() -> String {
+        return """
+        (function() {
+          if (window._ytlex_playback_wired) return;
+          window._ytlex_playback_wired = true;
+
+          function post(payload) {
+            try { window.webkit.messageHandlers.playback.postMessage(payload); } catch (e) {}
+          }
+
+          function findVideo() {
+            try {
+              var v = document.querySelector('video');
+              return v || null;
+            } catch (e) { return null; }
+          }
+
+          function wire() {
+            var v = findVideo();
+            if (!v) { setTimeout(wire, 400); return; }
+            if (v._ytlex_wired) return;
+            v._ytlex_wired = true;
+
+            function send(ev) {
+              post({ event: ev.type, currentTime: v.currentTime || 0, paused: !!v.paused });
+            }
+            ['pause','ended'].forEach(function(name) {
+              try { v.addEventListener(name, send, { passive: true }); } catch(e) {}
+            });
+          }
+
+          // 초기 시도 + DOM 변경 감시(플레이어 교체 대응)
+          wire();
+          try {
+            var mo = new MutationObserver(function(){ wire(); });
+            mo.observe(document.documentElement, { childList: true, subtree: true });
+          } catch (e) {}
+        })();
+        """
+    }
 }
 
 // MARK: - WKScriptMessage handling (weak bridge)
@@ -271,6 +342,14 @@ private final class WeakScriptMessageHandler: NSObject, WKScriptMessageHandler {
             host.didProcessTracks = true
             host.log.info("JS tracks → \(arr.count)")
             Task { await host.captionAnalyzer?.prefetchFromTracks(arr) }
+        } else if message.name == "playback" {
+            guard let d = message.body as? [String: Any] else { return }
+            let ev = (d["event"] as? String) ?? ""
+            let t = (d["currentTime"] as? Double) ?? 0.0
+            host.log.info("playback event=\(ev, privacy: .public) t=\(t, privacy: .public)")
+            if ev == "pause" || ev == "ended" {
+                host.onPause?(t)
+            }
         }
     }
 }

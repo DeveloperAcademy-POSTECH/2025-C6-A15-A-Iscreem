@@ -68,8 +68,15 @@ struct StudySession: Identifiable, Codable, Hashable {
 
 @MainActor
 final class LearningLogStore: ObservableObject {
-    /// 모든 학습 세션 (일단 인메모리. 나중에 SwiftData/파일 저장 연동 가능)
-    @Published private(set) var sessions: [StudySession] = []
+    /// 모든 학습 세션 (JSON로 디스크에 저장/복원)
+    @Published private(set) var sessions: [StudySession] = [] {
+        didSet { persist() }
+    }
+
+    // MARK: - Init (load from disk)
+    init() {
+        load()
+    }
 
     // MARK: - Helper: 세션 찾기/생성
 
@@ -137,6 +144,7 @@ final class LearningLogStore: ObservableObject {
         )
         sessions[idx].lastPosition = position
         sessions[idx].lastTextSnippet = snippet
+        persist()
     }
 
     /// 키워드 사용 기록 (한 번 이상 선택된 키워드 모으기)
@@ -158,6 +166,7 @@ final class LearningLogStore: ObservableObject {
         )
         if !sessions[idx].keywords.contains(trimmed) {
             sessions[idx].keywords.append(trimmed)
+            persist()
         }
     }
 
@@ -168,6 +177,7 @@ final class LearningLogStore: ObservableObject {
         guard let idx = sessions.firstIndex(where: { $0.id == sessionID }) else { return }
         if !sessions[idx].keywords.contains(trimmed) {
             sessions[idx].keywords.append(trimmed)
+            persist()
         }
     }
 
@@ -175,6 +185,7 @@ final class LearningLogStore: ObservableObject {
     func removeKeyword(_ keyword: String, from sessionID: UUID) {
         guard let idx = sessions.firstIndex(where: { $0.id == sessionID }) else { return }
         sessions[idx].keywords.removeAll { $0 == keyword }
+        persist()
     }
 
     /// Q&A 기록 (QuestionView에서 호출)
@@ -198,6 +209,7 @@ final class LearningLogStore: ObservableObject {
         )
         let pair = StudyQAPair(question: q, answer: a)
         sessions[idx].qaPairs.append(pair)
+        persist()
     }
 
     // MARK: - Aggregation (ML/요약용)
@@ -216,37 +228,57 @@ final class LearningLogStore: ObservableObject {
     }
 }
 
+// MARK: - Persistence (JSON on disk)
+extension LearningLogStore {
+    private var storageURL: URL {
+        let fm = FileManager.default
+        let base = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+            ?? fm.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let dir = base.appendingPathComponent("learningTool", isDirectory: true)
+        if !fm.fileExists(atPath: dir.path) {
+            try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
+        }
+        return dir.appendingPathComponent("LearningLogSessions.json")
+    }
+
+    private func persist() {
+        // JSON으로 저장
+        do {
+            let encoder = JSONEncoder()
+            encoder.dateEncodingStrategy = .iso8601
+            let data = try encoder.encode(sessions)
+            try data.write(to: storageURL, options: [.atomic])
+        } catch {
+            print("⚠️ LearningLogStore persist failed: \(error)")
+        }
+    }
+
+    private func load() {
+        let fm = FileManager.default
+        guard fm.fileExists(atPath: storageURL.path) else { return }
+        do {
+            let data = try Data(contentsOf: storageURL)
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            let loaded = try decoder.decode([StudySession].self, from: data)
+            self.sessions = loaded
+        } catch {
+            print("⚠️ LearningLogStore load failed: \(error)")
+            self.sessions = []
+        }
+    }
+}
+
 #if DEBUG
 extension LearningLogStore {
     @MainActor
     static func previewStore() -> LearningLogStore {
         let store = LearningLogStore()
-        let now = Date()
-        let cal = Calendar.current
-
-        let day0 = now
-        let day1 = cal.date(byAdding: .day, value: -1, to: now) ?? now
-        let day3 = cal.date(byAdding: .day, value: -3, to: now) ?? now
-
-        let qa1 = StudyQAPair(
-            question: "이 강의의 핵심 개념을 한 줄로 정리해줘.",
-            answer: "계층형 네트워크 구조와 패킷 교환 원리를 이해하는 것이 핵심입니다."
-        )
-
-        let qa2 = StudyQAPair(
-            question: "TCP와 UDP 차이점을 인터뷰 답변용으로 정리해줘.",
-            answer: "TCP는 연결 지향·신뢰성과 순서를 보장하고, UDP는 비연결·저지연 스트리밍에 적합하다고 설명하면 됩니다."
-        )
-
-        let qa3 = StudyQAPair(
-            question: "이 노트에서 꼭 외워야 할 키워드는?",
-            answer: "OSI 7계층, MTU, 혼잡 제어, 슬라이딩 윈도우, 지연 시간."
-        )
-
+        // 미리보기에서는 더미 데이터를 주입 (디스크 저장은 하지 않음)
+        store.objectWillChange.send()
         store.sessions = [
-            // 오늘: 네트워크 노트 + Q&A + 키워드 + 진행도
             StudySession(
-                date: day0,
+                date: Date(),
                 folderName: "네트워크",
                 noteTitle: "데이터통신 제1장 개요",
                 noteIdentifier: "note-001",
@@ -254,49 +286,18 @@ extension LearningLogStore {
                 lastPosition: 842,
                 lastTextSnippet: "패킷 교환 방식은 회선 교환보다 회선 효율을 높일 수 있습니다.",
                 keywords: ["패킷 교환", "회선 교환", "LAN", "WAN", "프로토콜"],
-                qaPairs: [qa1, qa2]
-            ),
-
-            // 오늘: iOS 노트 (키워드만)
-            StudySession(
-                date: day0,
-                folderName: "iOS",
-                noteTitle: "SwiftUI 기초 총정리",
-                noteIdentifier: "note-002",
-                videoURL: "https://youtu.be/example2",
-                lastPosition: 1260,
-                lastTextSnippet: "State와 Binding을 통해 단방향 데이터 플로우를 유지합니다.",
-                keywords: ["SwiftUI", "State", "Binding", "MVVM"],
-                qaPairs: []
-            ),
-
-            // 1일 전: 자료구조 노트 + Q&A
-            StudySession(
-                date: day1,
-                folderName: "자료구조",
-                noteTitle: "알고리즘 시간복잡도",
-                noteIdentifier: "note-003",
-                videoURL: "https://youtu.be/example3",
-                lastPosition: 560,
-                lastTextSnippet: "빅오 표기법은 최악의 경우를 기준으로 복잡도를 나타냅니다.",
-                keywords: ["빅오", "시간복잡도", "선형 시간", "로그 시간"],
-                qaPairs: [qa3]
-            ),
-
-            // 3일 전: 네트워크 심화 (키워드만)
-            StudySession(
-                date: day3,
-                folderName: "네트워크",
-                noteTitle: "TCP 심화",
-                noteIdentifier: "note-004",
-                videoURL: "https://youtu.be/example4",
-                lastPosition: nil,
-                lastTextSnippet: nil,
-                keywords: ["TCP", "혼잡 제어", "슬라이딩 윈도우"],
-                qaPairs: []
+                qaPairs: [
+                    StudyQAPair(
+                        question: "이 강의의 핵심 개념을 한 줄로 정리해줘.",
+                        answer: "계층형 네트워크 구조와 패킷 교환 원리를 이해하는 것이 핵심입니다."
+                    ),
+                    StudyQAPair(
+                        question: "TCP와 UDP 차이점을 인터뷰 답변용으로 정리해줘.",
+                        answer: "TCP는 연결 지향·신뢰성과 순서를 보장하고, UDP는 비연결·저지연 스트리밍에 적합하다고 설명하면 됩니다."
+                    )
+                ]
             )
         ]
-
         return store
     }
 }
