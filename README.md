@@ -66,8 +66,12 @@ Attach videos if you are available
 │   │   ├── AccentColor.colorset
 │   │   │   └── Contents.json
 │   │   ├── AppIcon.appiconset
-│   │   │   └── Contents.json
-│   │   └── Contents.json
+│   │   │   ├── Contents.json
+│   │   │   ├── Main_1024.jpg
+│   │   │   ├── tinted_amber.png
+│   │   │   └── tinted_teal.png
+│   │   ├── Contents.json
+│   │   └── GlassBackdrop.imageset
 │   ├── Components
 │   │   ├── HeaderComponents.swift
 │   │   ├── HelpView.swift
@@ -83,6 +87,7 @@ Attach videos if you are available
 │   ├── Models
 │   │   ├── ChatMessage.swift
 │   │   ├── Folder.swift
+│   │   ├── LearningLogStore.swift
 │   │   └── Note.swift
 │   ├── Services
 │   │   └── GeminiAPIService.swift
@@ -91,14 +96,15 @@ Attach videos if you are available
 │   │   │   ├── AppleFMSummarizer.swift
 │   │   │   ├── CaptionAnalyzerViewModel.swift
 │   │   │   ├── HTTPSummarizer.swift
-│   │   │   └── Summarizer.swift
-│   │   ├── ContentViewModel.swift
+│   │   │   ├── KeywordExtractor.swift
+│   │   │   ├── SummaizerEngine.swift
+│   │   │   ├── Summarizer.swift
+│   │   │   └── VTTParser.swift
 │   │   ├── HomeViewModel.swift
 │   │   ├── QuestionViewModel.swift
 │   │   ├── SidebarViewModel.swift
 │   │   └── StudyViewModel.swift
 │   ├── Views
-│   │   ├── ContentView.swift
 │   │   ├── HomeView
 │   │   │   ├── CreateNoteView.swift
 │   │   │   ├── FolderDeleteView.swift
@@ -113,9 +119,12 @@ Attach videos if you are available
 │   │   │   │   ├── KoreanSearchUtils.swift
 │   │   │   │   └── NoteFormattingUtils.swift
 │   │   │   └── ViewModelToggle.swift
+│   │   ├── StudyHistoryView
+│   │   │   └── StudyHistoryView.swift
 │   │   └── StudyView
 │   │       ├── ChatAreaView.swift
 │   │       ├── ChatBubble.swift
+│   │       ├── ChatBubbleView.swift
 │   │       ├── KeywordView.swift
 │   │       ├── MediaView.swift
 │   │       ├── QuestionHeaderBar.swift
@@ -128,6 +137,10 @@ Attach videos if you are available
 │       ├── YouTubeThumbnail.swift
 │       ├── YouTubeWebViewHost.swift
 │       └── YouTubeWebViewRepresentable..swift
+├── learningtool_all_swift_diagram.svg
+├── learningtool_class_diagram.svg
+├── learningtool_flowchart.svg
+├── learningtool_sequence_keyword_qa.svg
 ├── learningTool.xcodeproj
 │   ├── project.pbxproj
 │   ├── project.xcworkspace
@@ -151,6 +164,7 @@ Attach videos if you are available
 │               └── xcschememanagement.plist
 ├── LICENSE
 └── README.md
+
 ```
 
 ## 📊 Full Architecture Map
