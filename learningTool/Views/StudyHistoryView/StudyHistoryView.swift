@@ -152,63 +152,30 @@ struct StudyHistoryView: View {
         .padding(.top, 16)
     }
 
-    // 최신 텍스트 스냅샷(요약) 유틸리티:
-    // 1) LearningLogStore의 메모리 맵
+    // MARK: - Helpers: Chapters up to current
+
+    // “마지막 재생 시간에 해당하는 챕터까지”의 챕터 요약/키워드를 배열로 반환
+    // 1) LearningLogStore의 메모리 맵(chapterSummariesUpToCurrentByNoteID)
     // 2) Note.cachedChaptersUpToCurrent
-    // 3) Note.cachedChapters
-    private func lastTextSnippet(for s: StudySession) -> String? {
-        // 1) 메모리 맵에서 조회
+    private func chaptersUpToCurrent(for s: StudySession) -> [CachedChapter] {
         if
             let nid = s.noteIdentifier,
             let chapters = learningLogStore.chapterSummariesUpToCurrentByNoteID[nid],
             !chapters.isEmpty
         {
-            if let first = chapters.last?.bullets.first?.trimmingCharacters(in: .whitespacesAndNewlines),
-               !first.isEmpty {
-                return first
-            }
-            let joined = chapters.last!.bullets
-                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                .filter { !$0.isEmpty }
-                .joined(separator: " ")
-            if !joined.isEmpty { return joined }
+            return chapters
         }
-
-        // 2) SwiftData의 Note 캐시에서 조회 (UpToCurrent 우선)
         if let nid = s.noteIdentifier,
            let note = notes.first(where: { String(describing: $0.id) == nid }) {
             let upTo = note.cachedChaptersUpToCurrent
-            if !upTo.isEmpty {
-                if let first = upTo.last?.bullets.first?.trimmingCharacters(in: .whitespacesAndNewlines),
-                   !first.isEmpty {
-                    return first
-                }
-                let joined = upTo.last!.bullets
-                    .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                    .filter { !$0.isEmpty }
-                    .joined(separator: " ")
-                if !joined.isEmpty { return joined }
-            }
-            // 3) 일반 캐시로 폴백
-            let any = note.cachedChapters
-            if !any.isEmpty {
-                if let first = any.last?.bullets.first?.trimmingCharacters(in: .whitespacesAndNewlines),
-                   !first.isEmpty {
-                    return first
-                }
-                let joined = any.last!.bullets
-                    .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                    .filter { !$0.isEmpty }
-                    .joined(separator: " ")
-                if !joined.isEmpty { return joined }
-            }
+            if !upTo.isEmpty { return upTo }
         }
-        return nil
+        return []
     }
 
     @ViewBuilder
     private func sessionCard(for s: StudySession) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             // 폴더 / 노트 타이틀
             HStack(spacing: 6) {
                 if let folder = s.folderName, !folder.isEmpty {
@@ -237,15 +204,68 @@ struct StudyHistoryView: View {
                     .foregroundStyle(Color.text3)
             }
 
-            // 마지막 텍스트 스냅샷
-            if let snippet = lastTextSnippet(for: s), !snippet.isEmpty {
-                Text("\"\(snippet)\"")
-                    .font(.system(size: 11))
-                    .foregroundStyle(Color.text2)
-                    .lineLimit(2)
+            // 챕터별 요약(현재 시점까지)
+            let chapters = chaptersUpToCurrent(for: s)
+            if !chapters.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(Array(chapters.enumerated()), id: \.offset) { idx, ch in
+                        VStack(alignment: .leading, spacing: 4) {
+                            // 챕터 제목
+                            HStack(spacing: 6) {
+                                Text("챕터 \(idx + 1)")
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundStyle(Color.primaryColor)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(Color.background2)
+                                    .cornerRadius(6)
+
+                                Text(ch.title.isEmpty ? "제목" : ch.title)
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundStyle(Color.text1)
+                                    .lineLimit(1)
+                            }
+
+                            // 불릿(최대 4줄)
+                            VStack(alignment: .leading, spacing: 2) {
+                                ForEach(Array(ch.bullets.prefix(4)), id: \.self) { line in
+                                    Text("• " + line)
+                                        .font(.system(size: 11))
+                                        .foregroundStyle(Color.text2)
+                                        .lineLimit(2)
+                                }
+                            }
+
+                            // 챕터 키워드(있으면)
+                            if !ch.keywords.isEmpty {
+                                HStack(spacing: 6) {
+                                    ForEach(Array(ch.keywords.prefix(6)), id: \.self) { kw in
+                                        Text(kw)
+                                            .font(.system(size: 10))
+                                            .foregroundStyle(Color.text2)
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 3)
+                                            .background(Color.background2)
+                                            .cornerRadius(8)
+                                    }
+                                    if ch.keywords.count > 6 {
+                                        Text("+\(ch.keywords.count - 6)")
+                                            .font(.system(size: 10))
+                                            .foregroundStyle(Color.text3)
+                                    }
+                                }
+                            }
+                        }
+                        .padding(.vertical, 4)
+                        if idx < chapters.count - 1 {
+                            Divider().background(Color.borderColor.opacity(0.5))
+                        }
+                    }
+                }
+                .padding(.top, 4)
             }
 
-            // 해당 세션에서 선택된 키워드
+            // 해당 세션에서 선택된 키워드(세션 레벨)
             if !s.keywords.isEmpty {
                 HStack(spacing: 6) {
                     ForEach(Array(s.keywords.prefix(6)), id: \.self) { kw in
