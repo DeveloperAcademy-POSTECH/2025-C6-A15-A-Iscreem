@@ -56,5 +56,11 @@ struct YouTubeWebViewRepresentable: UIViewRepresentable {
     func stop() {
         host.stop()
     }
+    
+    // ✅ Helper: 이어보기 시킹
+    @MainActor
+    func seek(to seconds: Double, autoPlay: Bool = true) {
+        host.seek(to: seconds, autoPlay: autoPlay)
+    }
 }
 

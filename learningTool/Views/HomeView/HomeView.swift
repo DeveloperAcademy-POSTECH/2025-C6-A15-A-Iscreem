@@ -171,11 +171,17 @@ struct HomeView: View {
                 selectedFolderName = "__ALL__"
                 headerSubtitle = "전체 보기"
             }
-            // 초기 진입 시 한 번 정리(혹시 남은 고아 세션)
+            // 1) 세션 생성(없으면)
+            _ = learningLogStore.bootstrapSessionsIfNeeded(currentNotes: notes)
+            // 2) 세션 보강(빈 필드 채우기)
+            _ = learningLogStore.enrichSessionsFromNotes(currentNotes: notes)
+            // 3) 고아 세션 정리(노트에 없는 세션 제거)
             _ = learningLogStore.reconcileWithNotes(currentNotes: notes)
         }
         .onChange(of: notes) { _, newValue in
-            // 🔵 어떤 경로로 노트가 삭제/변경되었든 고아 세션 자동 정리
+            // 노트 변경 시에도 동일한 순서로 동기화
+            _ = learningLogStore.bootstrapSessionsIfNeeded(currentNotes: newValue)
+            _ = learningLogStore.enrichSessionsFromNotes(currentNotes: newValue)
             _ = learningLogStore.reconcileWithNotes(currentNotes: newValue)
         }
         .sheet(isPresented: $showStudyHistory) {
