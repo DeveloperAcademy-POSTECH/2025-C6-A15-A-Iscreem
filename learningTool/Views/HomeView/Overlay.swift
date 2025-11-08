@@ -191,45 +191,13 @@ struct CreateNoteOverlay: View {
                     }
                 }
             
-            VStack(alignment: .trailing, spacing: 20) {
-                CreateNoteView(youtubeLink: $youtubeLink, noteTitle: $noteTitle)
-                
-                // 🔵 노트 생성 버튼 (Liquid Glass + Gradient)
-                Button(action: createNoteTapped) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "arrow.right")
-                            .font(.system(size: 14, weight: .semibold))
-                        Text("노트 생성")
-                            .font(.system(size: 15, weight: .semibold))
-                    }
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 28)
-                    .padding(.vertical, 12)
-                    .background(
-                        ZStack {
-                            // Gradient background
-                            LinearGradient(
-                                colors: [
-                                    Color.secondColor,
-                                    Color.secondColor.opacity(0.85)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                            // Glass overlay
-                            Color.white.opacity(0.1)
-                        }
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 20))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 20)
-                            .strokeBorder(.white.opacity(0.3), lineWidth: 1)
-                    )
-                }
-                .buttonStyle(.plain)
-                .disabled(!isFormValid)
-                .opacity(isFormValid ? 1.0 : 0.5)
-            }
+            // CreateNoteView 내부로 버튼을 이동
+            CreateNoteView(
+                youtubeLink: $youtubeLink,
+                noteTitle: $noteTitle,
+                isFormValid: isFormValid,
+                onCreate: createNoteTapped
+            )
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: isKeyboardVisible ? .bottom : .center)
             .padding(.horizontal, 24)
             .padding(.bottom, isKeyboardVisible ? (keyboardHeight + 24) : 0)
@@ -296,3 +264,4 @@ struct RenameNoteSheet: View {
         .background(.ultraThinMaterial)
     }
 }
+

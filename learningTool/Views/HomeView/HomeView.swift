@@ -89,9 +89,6 @@ struct HomeView: View {
                                 emptyStateView
                             }
                         }
-                        .overlay(alignment: .bottomTrailing) {
-                            addButton
-                        }
                 }
                 if isShowingSettings {
                     SettingsDetailView(showResetConfirm: $showResetConfirm)
@@ -367,28 +364,46 @@ struct HomeView: View {
     
     // 🔵 추가 버튼 (Gradient + Floating)
     private var addButton: some View {
-        Button {
-            viewModel.addButtonTapped()
-            withAnimation(.easeInOut(duration: 0.2)) { showCreateNote = true }
-        } label: {
-            Image(systemName: "plus")
-                .font(.system(size: 30, weight: .semibold))
-                .foregroundStyle(.white)
-                .frame(width: 60, height: 60)
-                .background(
-                    LinearGradient(
-                        colors: [Color.secondColor, Color.secondColor.opacity(0.85)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    in: Circle()
-                )
-                .overlay(
-                    Circle()
-                        .strokeBorder(.white.opacity(0.3), lineWidth: 1)
-                )
+        Group {
+            if #available(iOS 26.0, *) {
+                Button {
+                    viewModel.addButtonTapped()
+                    withAnimation(.easeInOut(duration: 0.2)) { showCreateNote = true }
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 22, weight: .semibold))
+                        .frame(width: 44, height: 44)
+                }
+                .buttonStyle(.glass)
+                .buttonBorderShape(.circle)
+                .tint(Color.secondColor)
+                .controlSize(.large)
+            } /*else {
+                // Fallback: 기존 그라디언트 원형 버튼 유지
+                Button {
+                    viewModel.addButtonTapped()
+                    withAnimation(.easeInOut(duration: 0.2)) { showCreateNote = true }
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 30, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 60, height: 60)
+                        .background(
+                            LinearGradient(
+                                colors: [Color.secondColor, Color.secondColor.opacity(0.85)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            in: Circle()
+                        )
+                        .overlay(
+                            Circle()
+                                .strokeBorder(.white.opacity(0.3), lineWidth: 1)
+                        )
+                }
+                .buttonStyle(.plain)
+            }*/
         }
-        .buttonStyle(.plain)
         .padding(32)
         // Hide when Settings is open, show again on Home (전체 보기)
         .opacity(shouldShowAddButton ? 1 : 0)
@@ -499,3 +514,4 @@ extension Notification.Name {
     static let showSettings = Notification.Name("ShowSettings")
     static let hideSettings = Notification.Name("HideSettings")
 }
+
