@@ -397,7 +397,7 @@ struct SidebarView: View {
             }
         }
         .frame(width: 204, height: 145)
-        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .sidebarMenuGlassCompat()
         .presentationCompactAdaptation(.popover)
     }
 
@@ -503,5 +503,24 @@ struct SidebarView: View {
             Color.background1.ignoresSafeArea()
         }
         .navigationSplitViewStyle(.balanced)
+    }
+}
+
+// MARK: - Sidebar Glass Effect Compatibility
+extension View {
+    /// iOS 26.0 이상에서는 시스템 glassEffect를 사용하고,
+    /// 그 미만(iOS 18+ 등)에서는 불투명 카드 + 그림자 스타일로 대체
+    @ViewBuilder
+    func sidebarMenuGlassCompat() -> some View {
+        if #available(iOS 26.0, *) {
+            self.glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        } else {
+            self
+                .background(
+                    Color.background2.opacity(0.98),
+                    in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+                )
+                .shadow(color: Color.black.opacity(0.12), radius: 8, x: 0, y: 4)
+        }
     }
 }

@@ -226,7 +226,7 @@ struct HomeView: View {
             .frame(minWidth: 220, maxWidth: 320)
             .frame(height: 36)
             .glassEffect()
-            .glassEffectUnion(id: "search", namespace: glassNS)
+            .glassEffectUnionCompat(id: "search", namespace: glassNS)
         }
     }
     
@@ -267,13 +267,13 @@ struct HomeView: View {
             .buttonStyle(.plain)
         } label: {
             GlassEffectContainer(spacing: 0) {
-                                    Image(systemName: "line.3.horizontal.decrease")
-                                        .font(.system(size: 16, weight: .semibold))
-                                        .frame(width: 36, height: 36)
-                                        .glassEffect()
-                                        .glassEffectUnion(id: "sort", namespace: glassNS)
-                                }
-                                .tint(Color.text2)
+                Image(systemName: "line.3.horizontal.decrease")
+                    .font(.system(size: 16, weight: .semibold))
+                    .frame(width: 36, height: 36)
+                    .glassEffect()
+                    .glassEffectUnionCompat(id: "sort", namespace: glassNS)
+            }
+            .tint(Color.text2)
         }
         // 기존 버튼 그림자 느낌 유지
         .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 2)
@@ -471,6 +471,20 @@ extension HomeView {
                 }
             }
                             .keyboardOverlay()
+        }
+    }
+}
+
+// MARK: - Glass Effect Compatibility (iOS 18+ fallback)
+extension View {
+    /// iOS 26.0 이상에서는 glassEffectUnion을 적용하고,
+    /// 그 미만(iOS 18+ 등)에서는 기본 스타일을 유지하는 래퍼
+    @ViewBuilder
+    func glassEffectUnionCompat(id: String, namespace: Namespace.ID) -> some View {
+        if #available(iOS 26.0, *) {
+            self.glassEffectUnion(id: id, namespace: namespace)
+        } else {
+            self
         }
     }
 }

@@ -240,8 +240,7 @@ final class CaptionAnalyzer: ObservableObject {
         guard autoSummarizeEnabled,
               case .ready = vttStatus,
               !vttCues.isEmpty,
-              summaryStatus == .idle,
-              summarizer != nil else { return }
+              summaryStatus == .idle else { return }
         log.info("startAutoSummarizeIfNeeded → firing (autoSummarizeEnabled=\(self.autoSummarizeEnabled), cues=\(self.vttCues.count))")
         Task { await summarizeFromCues(self.vttCues) }
     }
@@ -257,69 +256,68 @@ final class CaptionAnalyzer: ObservableObject {
             self.chapterTexts = [:]
             self.summaryDebug = SummaryDebug(runId: runId, processed: 0, total: 0, lastUpdate: Date())
         }
-        
+
         if sid != self.sessionId { return }
-        
-        guard let summarizer = self.summarizer else {
-            await MainActor.run {
-                self.summaryStatus = .failed("요약 모델 자산이 없습니다. (iOS 26+ 지원 기기·언어·지역 필요)")
-            }
-            return
-        }
-        
-        // SummarizerEngine에 위임
-        await summarizerEngine.processCues(
-            cues: cues,
-            sessionId: sid,
-            summarizer: summarizer,
-            runId: runId,
-            onChaptersBuilt: { [weak self] chapters, chapterTexts in
-                guard let self else { return }
-                await MainActor.run {
-                    self.chapters = chapters
-                    self.chapterTexts = chapterTexts
-                }
-            },
-            onChapterTitleUpdate: { [weak self] id, title in
-                guard let self else { return }
-                self.setChapterTitle(id: id, title: title)
-            },
-            onChapterGistUpdate: { [weak self] id, gist in
-                guard let self else { return }
-                self.setChapterGist(id: id, gist: gist)
-            },
-            onChapterBulletsUpdate: { [weak self] id, bullets in
-                guard let self else { return }
-                await MainActor.run {
-                    self.setChapterBullets(id: id, bullets: bullets)
-                }
-            },
-            onSummaryProgress: { [weak self] processed, total in
-                guard let self else { return }
-                await MainActor.run {
-                    self.summaryDebug.processed = processed
-                    self.summaryDebug.total = total
-                    self.summaryDebug.lastUpdate = Date()
-                }
-            },
-            onSummaryTextUpdate: { [weak self] text in
-                guard let self else { return }
-                await MainActor.run {
-                    withAnimation(.none) { self.summaryText = text }
-                }
-            },
-            onComplete: { [weak self] summaryLines in
-                guard let self else { return }
-                await MainActor.run {
-                    withAnimation(.none) {
-                        self.summaryText = summaryLines.joined(separator: "\n")
-                        self.summaryStatus = .ready
+
+        if let summarizer = self.summarizer {
+            // iOS 26+ (Apple Intelligence / FoundationModels 사용 가능 경로)
+            await summarizerEngine.processCues(
+                cues: cues,
+                sessionId: sid,
+                summarizer: summarizer,
+                runId: runId,
+                onChaptersBuilt: { [weak self] chapters, chapterTexts in
+                    guard let self else { return }
+                    await MainActor.run {
+                        self.chapters = chapters
+                        self.chapterTexts = chapterTexts
                     }
-                    self.summaryDebug.lastUpdate = Date()
+                },
+                onChapterTitleUpdate: { [weak self] id, title in
+                    guard let self else { return }
+                    self.setChapterTitle(id: id, title: title)
+                },
+                onChapterGistUpdate: { [weak self] id, gist in
+                    guard let self else { return }
+                    self.setChapterGist(id: id, gist: gist)
+                },
+                onChapterBulletsUpdate: { [weak self] id, bullets in
+                    guard let self else { return }
+                    await MainActor.run {
+                        self.setChapterBullets(id: id, bullets: bullets)
+                    }
+                },
+                onSummaryProgress: { [weak self] processed, total in
+                    guard let self else { return }
+                    await MainActor.run {
+                        self.summaryDebug.processed = processed
+                        self.summaryDebug.total = total
+                        self.summaryDebug.lastUpdate = Date()
+                    }
+                },
+                onSummaryTextUpdate: { [weak self] text in
+                    guard let self else { return }
+                    await MainActor.run {
+                        withAnimation(.none) { self.summaryText = text }
+                    }
+                },
+                onComplete: { [weak self] summaryLines in
+                    guard let self else { return }
+                    await MainActor.run {
+                        withAnimation(.none) {
+                            self.summaryText = summaryLines.joined(separator: "\n")
+                            self.summaryStatus = .ready
+                        }
+                        self.summaryDebug.lastUpdate = Date()
+                    }
+                    self.mergeFinalAsync(pieces: summaryLines, runTag: runId.uuidString.prefix(8), summarizer: summarizer, sessionId: sid)
                 }
-                self.mergeFinalAsync(pieces: summaryLines, runTag: runId.uuidString.prefix(8), summarizer: summarizer, sessionId: sid)
-            }
-        )
+            )
+        } else {
+            // iOS 18+ ~ 25.x: Summarizer(Apple Intelligence)가 없는 경우 휴리스틱 기반 Fallback
+            log.info("summarizeFromCues() fallback → using heuristic summarization (no Summarizer available)")
+            await fallbackSummarizeFromCues(cues, sid: sid, runId: runId)
+        }
     }
     
     private func mergeFinalAsync(pieces: [String], runTag: Substring, summarizer: Summarizer, sessionId sid: UUID) {
@@ -583,6 +581,99 @@ final class CaptionAnalyzer: ObservableObject {
                 self.log.error("tracks(error) \(error.localizedDescription, privacy: .public)")
                 self.vttStatus = .failed(error.localizedDescription)
             }
+        }
+    }
+    // MARK: - Fallback Summarization (iOS 18+ without Apple Intelligence)
+    /// Summarizer(AppleFMSummarizer 등)를 사용할 수 없는 환경에서
+    /// 자막 텍스트만으로 간단한 챕터/요약/키워드 정보를 생성하여
+    /// iOS 18+ 사용자에게도 유사한 UX를 제공한다.
+    private func fallbackSummarizeFromCues(_ cues: [VTTCue], sid: UUID, runId: UUID) async {
+        let fullText = cues
+            .map { $0.text }
+            .joined(separator: " ")
+            .replacingOccurrences(of: "\n", with: " ")
+
+        guard !fullText.isEmpty else {
+            await MainActor.run {
+                guard sid == self.sessionId else { return }
+                self.summaryStatus = .failed("요약할 자막 데이터가 없습니다.")
+            }
+            return
+        }
+
+        // 자막 길이에 따라 2~6개 사이의 챕터로 단순 분할
+        let estimatedChapterCount = max(2, min(6, max(1, fullText.count / 800)))
+        let chapterCount = min(estimatedChapterCount, max(1, cues.count))
+        let chunkSize = max(1, cues.count / chapterCount)
+
+        var chapters: [Chapter] = []
+        var bulletsMap: [UUID: [String]] = [:]
+
+        let sentenceDelimiters = CharacterSet(charactersIn: ".?!。！？")
+        let sentences = fullText
+            .components(separatedBy: sentenceDelimiters)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+
+        for (index, startIndex) in stride(from: 0, to: cues.count, by: chunkSize).enumerated() {
+            let endIndex = min(startIndex + chunkSize, cues.count)
+            let slice = cues[startIndex..<endIndex]
+            guard let first = slice.first, let last = slice.last else { continue }
+
+            let sliceText = slice
+                .map { $0.text }
+                .joined(separator: " ")
+
+            let sliceSentences = sliceText
+                .components(separatedBy: sentenceDelimiters)
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+
+            let titleBase = sliceSentences.first ?? "챕터 \(index + 1)"
+            let title = String(titleBase.prefix(40))
+            let gist = sliceSentences.prefix(2).joined(separator: " / ")
+            let bullets = Array(sliceSentences.prefix(4))
+
+            let chapter = Chapter(
+                start: first.start,
+                end: last.end,
+                title: title.isEmpty ? "챕터 \(index + 1)" : title,
+                gist: gist.isEmpty ? title : gist
+            )
+
+            chapters.append(chapter)
+            bulletsMap[chapter.id] = bullets
+        }
+
+        let summarySentences = Array(sentences.prefix(10))
+        let simpleSummary = summarySentences.joined(separator: " ")
+
+        // 키워드는 KeywordExtractor의 빈도 기반 로직 사용
+        let keywords = self.keywordExtractor.extractKeywords(from: fullText, topN: 10)
+
+        await MainActor.run {
+            guard sid == self.sessionId else { return }
+
+            self.chapters = chapters
+            self.chapterBullets = bulletsMap
+            self.chapterTexts = [:] // 휴리스틱 경로에서는 원문 맵을 사용하지 않음
+            self.summaryText = simpleSummary.isEmpty ? fullText : simpleSummary
+            self.finalSummary = self.summaryText
+            self.summaryStatus = .ready
+
+            self.extractedKeywords = keywords
+            self.displayKeywords = keywords
+            self.accumulatedKeywords = keywords
+
+            self.summaryDebug = SummaryDebug(
+                runId: runId,
+                processed: summarySentences.count,
+                total: sentences.count,
+                lastUpdate: Date()
+            )
+
+            self.persistCacheToBoundNoteIfPossible()
+            self.log.info("fallbackSummarizeFromCues() done; chapters=\(chapters.count), keywords=\(keywords.count)")
         }
     }
 }
