@@ -50,6 +50,7 @@
 		68B08B872EB083F50067AD9E /* YouTubeWebViewHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68B08B622EB083F50067AD9E /* YouTubeWebViewHost.swift */; };
 		68B08B882EB083F50067AD9E /* YouTubeWebViewRepresentable..swift in Sources */ = {isa = PBXBuildFile; fileRef = 68B08B632EB083F50067AD9E /* YouTubeWebViewRepresentable..swift */; };
 		68B08B892EB083F50067AD9E /* LearningToolApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68B08B662EB083F50067AD9E /* LearningToolApp.swift */; };
+		68DAA7F02EBF1FB7008DE2C1 /* UIEffects.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68DAA7EF2EBF1FB6008DE2C1 /* UIEffects.swift */; };
 		6AA7E3132EB87F6D00E17BF6 /* ChatBubbleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AA7E3122EB87F6D00E17BF6 /* ChatBubbleView.swift */; };
 		6AC9C8622EB09A780050A812 /* FolderDeleteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AC9C8612EB09A780050A812 /* FolderDeleteView.swift */; };
 		C934CC2B2EBA1D7B00902FF0 /* SummaizerEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = C934CC2A2EBA1D7B00902FF0 /* SummaizerEngine.swift */; };
@@ -105,6 +106,7 @@
 		68B08B632EB083F50067AD9E /* YouTubeWebViewRepresentable..swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubeWebViewRepresentable..swift; sourceTree = "<group>"; };
 		68B08B652EB083F50067AD9E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		68B08B662EB083F50067AD9E /* LearningToolApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LearningToolApp.swift; sourceTree = "<group>"; };
+		68DAA7EF2EBF1FB6008DE2C1 /* UIEffects.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIEffects.swift; sourceTree = "<group>"; };
 		6A6F29482EA351BC006AF158 /* learningTool.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = learningTool.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6AA7E3122EB87F6D00E17BF6 /* ChatBubbleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatBubbleView.swift; sourceTree = "<group>"; };
 		6AC9C8612EB09A780050A812 /* FolderDeleteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderDeleteView.swift; sourceTree = "<group>"; };
@@ -244,6 +246,7 @@
 				6AA7E3122EB87F6D00E17BF6 /* ChatBubbleView.swift */,
 				68AE7A132EB27874008FF275 /* QuestionInputBar.swift */,
 				68AE7A1D2EB28783008FF275 /* SuggestionsSheetView.swift */,
+				68DAA7EF2EBF1FB6008DE2C1 /* UIEffects.swift */,
 			);
 			path = StudyView;
 			sourceTree = "<group>";
@@ -405,6 +408,7 @@
 				684152A72EB47D0D00075A8F /* HeaderComponents.swift in Sources */,
 				C989B1B12EB760A800FD3752 /* Helpers.swift in Sources */,
 				68B08B7A2EB083F50067AD9E /* SidebarViewModel.swift in Sources */,
+				68DAA7F02EBF1FB7008DE2C1 /* UIEffects.swift in Sources */,
 				68AE7A1A2EB2870E008FF275 /* QuestionHeaderBar.swift in Sources */,
 				68B08B7B2EB083F50067AD9E /* StudyViewModel.swift in Sources */,
 				68B08B7C2EB083F50067AD9E /* CreateNoteView.swift in Sources */,
