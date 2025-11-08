@@ -126,6 +126,10 @@ struct ResetConfirmOverlay: View {
     
     var body: some View {
         GeometryReader { geo in
+            // 화면 크기에 따라 카드 크기를 계산: 작은 기기에서는 비율로 줄이고, 큰 화면에서는 상한으로 제한
+            let cardWidth = min(420, geo.size.width * 0.70)
+            let cardHeight = min(380, geo.size.height * 0.60)
+            
             ZStack {
                 Color.black.opacity(0.35)
                     .ignoresSafeArea()
@@ -153,10 +157,7 @@ struct ResetConfirmOverlay: View {
                         }
                     }
                 )
-                .frame(
-                    width: min(420, geo.size.width * 0.70),
-                    height: 340
-                )
+                .frame(width: cardWidth, height: cardHeight)
                 .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
                 .overlay(
                     RoundedRectangle(cornerRadius: 20)
