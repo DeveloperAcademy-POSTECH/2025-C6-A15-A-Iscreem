@@ -9,96 +9,6 @@
 import SwiftUI
 import SwiftData
 
-private struct VerticalSplitHandle: View {
-    @Binding var ratio: CGFloat
-    var totalWidth: CGFloat
-    var minFraction: CGFloat = 0.2
-    var maxFraction: CGFloat = 0.8
-    @State private var startRatio: CGFloat = 0
-    @State private var began: Bool = false
-    var body: some View {
-        Rectangle()
-            .fill(Color.secondary.opacity(0.12))
-            .overlay {
-                VStack(spacing: 3) {
-                    Capsule().fill(Color.secondary.opacity(0.6)).frame(width: 3, height: 18)
-                    Capsule().fill(Color.secondary.opacity(0.6)).frame(width: 3, height: 18)
-                }
-            }
-            .gesture(
-                DragGesture(minimumDistance: 0)
-                    .onChanged { g in
-                        if !began {
-                            began = true
-                            startRatio = ratio
-                        }
-                        let dx = g.translation.width / max(1, totalWidth)
-                        let new = startRatio + dx
-                        ratio = min(max(minFraction, new), maxFraction)
-                    }
-                    .onEnded { _ in
-                        began = false
-                    }
-            )
-    }
-}
-
-private struct HorizontalSplitHandle: View {
-    @Binding var ratio: CGFloat // top fraction 0...1
-    var totalHeight: CGFloat
-    var minFraction: CGFloat = 0.2
-    var maxFraction: CGFloat = 0.8
-    @State private var startRatio: CGFloat = 0
-    @State private var began: Bool = false
-    var body: some View {
-        Rectangle()
-            .fill(Color.secondary.opacity(0.12))
-            .overlay {
-                HStack(spacing: 6) {
-                    Capsule().fill(Color.secondary.opacity(0.6)).frame(width: 18, height: 3)
-                    Capsule().fill(Color.secondary.opacity(0.6)).frame(width: 18, height: 3)
-                }
-            }
-            .gesture(
-                DragGesture(minimumDistance: 0)
-                    .onChanged { g in
-                        if !began {
-                            began = true
-                            startRatio = ratio
-                        }
-                        let dy = g.translation.height / max(1, totalHeight)
-                        let new = startRatio + dy
-                        ratio = min(max(minFraction, new), maxFraction)
-                    }
-                    .onEnded { _ in
-                        began = false
-                    }
-            )
-    }
-}
-
-private struct CollapsiblePane<Content: View>: View {
-    @Binding var isCollapsed: Bool
-    let height: CGFloat
-    let content: () -> Content
-    
-    var body: some View {
-        content()
-            .frame(maxWidth: .infinity)
-            .overlay(alignment: .topTrailing) {
-                Button(action: { isCollapsed.toggle() }) {
-                    Image(systemName: isCollapsed ? "plus" : "minus")
-                        .foregroundStyle(Color.text1)
-                }
-                .buttonStyle(.plain)
-                .padding(8)
-                .contentShape(Rectangle())
-                .zIndex(10)
-            }
-            .frame(height: height)
-    }
-}
-
 struct StudyView: View {
     @StateObject private var viewModel: StudyViewModel
     @Environment(\.modelContext) private var modelContext
@@ -113,24 +23,29 @@ struct StudyView: View {
     @State private var showGlobalQuestionBar = false
     @FocusState private var globalQuestionFocus: Bool
     
-    // Interactive split & collapse states
-    @State private var isTopCollapsed: Bool = false
-    @State private var isBottomCollapsed: Bool = false
-    @State private var isLeftBottomCollapsed: Bool = false
-    
-    @State private var splitLR: CGFloat = 0.65        // left : right ratio
-    @State private var leftTopRatio: CGFloat = 0.7     // left column top fraction
-    @State private var rightTopRatio: CGFloat = 0.6    // right column top fraction
-    
-    // iPhone 전용 collapse 상태
-    @State private var isPhoneSummaryCollapsed: Bool = false
-    @State private var isPhoneQuestionCollapsed: Bool = false
-    
     // 디바이스 타입 감지
     private var isIPad: Bool {
         UIDevice.current.userInterfaceIdiom == .pad
     }
     
+    // iPad 고정 비율
+    private let mainWidthRatio: CGFloat = 0.65          // 메인 영역(좌측)
+    private let rightSidebarWidthRatio: CGFloat = 0.35  // 우측 사이드바(기본 펼침)
+    private let mainTopMediaHeightRatio: CGFloat = 0.6  // 메인 내부: Media(상) 비율
+    private let mainBottomQuestionHeightRatio: CGFloat = 0.4 // 메인 내부: Question(하) 비율
+    
+    // iPhone 고정 높이
+    private let phoneSummaryHeight: CGFloat = 250
+    private let phoneQuestionHeight: CGFloat = 300
+    
+    // 사이드바 탭 (키워드/요약 전환)
+    private enum SidebarTab: String, CaseIterable {
+        case keywords = "키워드"
+        case summary = "요약"
+    }
+    @State private var sidebarTab: SidebarTab = .keywords
+    // 사이드바 접힘 상태
+    @State private var isSidebarCollapsed: Bool = false
     
     init(note: Note? = nil, onDismiss: (() -> Void)? = nil) {
         _viewModel = StateObject(wrappedValue: StudyViewModel(note: note))
@@ -139,12 +54,14 @@ struct StudyView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            /// 헤더
+            // MARK: 헤더 (유지)
             HStack {
                 Button(action: {
                     viewModel.closeButtonTapped()
-                    // ▶︎ 뒤로가기 직전에 현재 재생 위치 저장 요청
+                    // ▶︎ 1) 뒤로가기 직전에 현재 재생 위치 저장 요청
                     NotificationCenter.default.post(name: .persistPlaybackPosition, object: viewModel.currentNote)
+                    // ▶︎ 2) 즉시 일시정지/정지 요청 (재생 중지)
+                    NotificationCenter.default.post(name: .pausePlaybackRequested, object: nil)
                     // JS 질의가 완료될 수 있도록 아주 짧게 지연 후 닫기
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                         onDismiss?()
@@ -191,10 +108,8 @@ struct StudyView: View {
             /// 메인 콘텐츠 (디바이스별 레이아웃)
             GeometryReader { geometry in
                 if isIPad {
-                    // iPad: 기존 2열 레이아웃
                     iPadLayout(geometry: geometry)
                 } else {
-                    // iPhone: 단일 컬럼 세로 레이아웃
                     iPhoneLayout(geometry: geometry)
                 }
             }
@@ -292,175 +207,129 @@ struct StudyView: View {
     // MARK: - iPad Layout
     @ViewBuilder
     private func iPadLayout(geometry: GeometryProxy) -> some View {
+        let totalW = geometry.size.width
+        let totalH = geometry.size.height
+        
+        let sideW = isSidebarCollapsed ? 0 : totalW * rightSidebarWidthRatio
+        let mainW = totalW - sideW
+        
+        // 사이드바 상단 바의 레이아웃 기준(세로 패딩 + 컨트롤 높이)
+        let sidebarTopBarVPad: CGFloat = 8
+        let sidebarControlHeight: CGFloat = 32
+        
         HStack(spacing: 0) {
-            let handleW: CGFloat = 10
-            let handleH: CGFloat = 12
-            let availW = geometry.size.width - handleW
-            let leftW = max(0, availW * splitLR)
-            let rightW = max(0, availW * (1 - splitLR))
-            let bothCollapsed = isTopCollapsed && isBottomCollapsed
-            
-            if bothCollapsed {
-                // Compute heights from the LEFT column so the top region spans full width
-                let availableH = max(0, geometry.size.height - handleH)
-                let leftCollapsed: CGFloat = 160
-                let bottomLeftH: CGFloat = isLeftBottomCollapsed ? leftCollapsed : availableH * (1 - leftTopRatio)
-                let topH: CGFloat = max(0, availableH - bottomLeftH)
-                let collapsed: CGFloat = 80
+            // MAIN (좌측)
+            VStack(spacing: 0) {
+                let mediaH = totalH * mainTopMediaHeightRatio
+                let questionH = max(0, totalH - mediaH)
                 
-                VStack(spacing: 0) {
-                    // TOP — full-width MediaView (좌측 상단이 실제로 전체 너비로 확장)
+                // 사이드바가 접혀도 임베드(플레이어) 너비는
+                // "사이드바 펼침 시의 메인 영역 너비"를 유지
+                let embedBaseWidthWhenSidebarOpen = totalW * mainWidthRatio
+                let embedWidth = isSidebarCollapsed ? embedBaseWidthWhenSidebarOpen : mainW
+                
+                // MediaView를 고정 임베드 너비로 중앙 배치
+                ZStack {
                     MediaView(note: viewModel.currentNote, videoURL: resolvedVideoURL)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: topH)
-                    
-                    // Middle horizontal handle spanning full width (controls leftTopRatio)
-                    HorizontalSplitHandle(ratio: $leftTopRatio, totalHeight: availableH)
-                        .frame(height: handleH)
-                    
-                    // BOTTOM — left bottom stays at leftW, right collapsed stack stays at rightW
-                    HStack(spacing: 0) {
-                        // LEFT bottom (KeywordView)
-                        CollapsiblePane(isCollapsed: $isLeftBottomCollapsed, height: bottomLeftH) {
-                            KeywordView(analyzer: captionAnalyzer, studyViewModel: viewModel)
-                                .frame(maxWidth: .infinity)
-                        }
-                        .frame(width: leftW, height: bottomLeftH)
-                        
-                        // Vertical handle between left and right
-                        VerticalSplitHandle(ratio: $splitLR, totalWidth: availW)
-                            .frame(width: handleW)
-                        
-                        // RIGHT collapsed stack aligned to bottom-right
-                        VStack(spacing: 0) {
-                            Spacer(minLength: 0)
-                            
-                            CollapsiblePane(isCollapsed: $isTopCollapsed, height: collapsed) {
-                                SummaryView()
-                                    .frame(maxWidth: .infinity)
-                            }
-                            
-                            CollapsiblePane(isCollapsed: $isBottomCollapsed, height: collapsed) {
-                                QuestionView(
-                                    studyViewModel: viewModel,
-                                    viewModel: questionVM,
-                                    isGlobalInputActive: $showGlobalQuestionBar
-                                )
-                                .frame(maxWidth: .infinity)
-                            }
-                        }
-                        .frame(width: rightW, height: bottomLeftH, alignment: .bottom)
-                    }
+                        .frame(width: embedWidth, height: mediaH)
+                        .clipped() // 임베드 영역 밖 컨텐츠 숨김(보강)
                 }
-            } else {
-                // Original two-column interactive layout (unchanged)
-                // LEFT column: Media (top) | handle | Keyword (bottom, collapsible)
-                VStack(spacing: 0) {
-                    GeometryReader { leftGeo in
-                        let total = leftGeo.size.height
-                        let leftCollapsed: CGFloat = 160
-                        let available = max(0, total - handleH)
-                        let bottomHeight: CGFloat = isLeftBottomCollapsed ? leftCollapsed : available * (1 - leftTopRatio)
-                        let topHeight: CGFloat = max(0, available - bottomHeight)
-                        
-                        VStack(spacing: 0) {
-                            // MARK: MediaView (좌측 상단)
-                            MediaView(note: viewModel.currentNote, videoURL: resolvedVideoURL)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: topHeight)
-                            
-                            // 가로 핸들 (좌측 상/하 경계)
-                            HorizontalSplitHandle(ratio: $leftTopRatio, totalHeight: available)
-                                .frame(height: handleH)
-                            
-                            // MARK: KeywordView (좌측 하단, 접힘 지원)
-                            CollapsiblePane(isCollapsed: $isLeftBottomCollapsed, height: bottomHeight) {
-                                KeywordView(analyzer: captionAnalyzer, studyViewModel: viewModel)
-                                    .frame(maxWidth: .infinity)
-                            }
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                    }
-                }
-                .frame(width: leftW)
+                .frame(width: mainW, height: mediaH, alignment: .center)
+                .frame(maxWidth: .infinity, alignment: .top)
                 
-                // 세로 핸들 (좌/우 경계)
-                VerticalSplitHandle(ratio: $splitLR, totalWidth: availW)
-                    .frame(width: handleW)
-                
-                // RIGHT column: Summary (top, collapsible) | handle | Question (bottom, collapsible)
+                QuestionView(
+                    studyViewModel: viewModel,
+                    viewModel: questionVM,
+                    isGlobalInputActive: $showGlobalQuestionBar
+                )
+                .frame(width: mainW, height: questionH)
+                .frame(maxWidth: .infinity, alignment: .bottom)
+            }
+            .frame(width: mainW, height: totalH)
+            
+            // RIGHT SIDEBAR (우측) — Segmented + Collapse 버튼
+            if sideW > 0 {
                 VStack(spacing: 0) {
-                    GeometryReader { rightGeo in
-                        let total = rightGeo.size.height
-                        let collapsed: CGFloat = 80
-                        let bothCollapsed = isTopCollapsed && isBottomCollapsed
-                        let available = max(0, total - handleH)
-                        
-                        let topHeight: CGFloat = {
-                            if bothCollapsed { return collapsed }
-                            if isTopCollapsed { return collapsed }
-                            if isBottomCollapsed { return available - collapsed }
-                            return available * rightTopRatio
-                        }()
-                        
-                        let bottomHeight: CGFloat = {
-                            if bothCollapsed { return collapsed }
-                            return max(0, available - topHeight)
-                        }()
-                        
-                        VStack(spacing: 0) {
-                            if bothCollapsed {
-                                // 상단은 검정 사각형으로 채우고, 두 섹션은 하단에 접힘 상태로 배치
-                                Rectangle()
-                                    .fill(Color.black)
-                                    .frame(maxHeight: .infinity)
-                                
-                                CollapsiblePane(isCollapsed: $isTopCollapsed, height: collapsed) {
-                                    SummaryView()
-                                        .frame(maxWidth: .infinity)
-                                }
-                                
-                                // 가로 핸들 (우측 상/하 경계)
-                                HorizontalSplitHandle(ratio: $rightTopRatio, totalHeight: available)
-                                    .frame(height: handleH)
-                                
-                                CollapsiblePane(isCollapsed: $isBottomCollapsed, height: collapsed) {
-                                    QuestionView(
-                                        studyViewModel: viewModel,
-                                        viewModel: questionVM,
-                                        isGlobalInputActive: $showGlobalQuestionBar
-                                    )
-                                    .frame(maxWidth: .infinity)
-                                }
-                            } else {
-                                CollapsiblePane(isCollapsed: $isTopCollapsed, height: topHeight) {
-                                    SummaryView()
-                                        .frame(maxWidth: .infinity)
-                                }
-                                
-                                // 가로 핸들 (우측 상/하 경계)
-                                HorizontalSplitHandle(ratio: $rightTopRatio, totalHeight: available)
-                                    .frame(height: handleH)
-                                
-                                CollapsiblePane(isCollapsed: $isBottomCollapsed, height: bottomHeight) {
-                                    QuestionView(
-                                        studyViewModel: viewModel,
-                                        viewModel: questionVM,
-                                        isGlobalInputActive: $showGlobalQuestionBar
-                                    )
-                                    .frame(maxWidth: .infinity)
-                                }
-                            }
+                    // 상단 바: Segmented(요약, 키워드) + 접기 버튼
+                    HStack(spacing: 8) {
+                        Picker("", selection: $sidebarTab) {
+                            // 요구: "요약", "키워드" 순서
+                            Text(SidebarTab.summary.rawValue).tag(SidebarTab.summary)
+                            Text(SidebarTab.keywords.rawValue).tag(SidebarTab.keywords)
                         }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                        .pickerStyle(.segmented)
+                        
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                isSidebarCollapsed = true
+                            }
+                        } label: {
+                            Image(systemName: "sidebar.right")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(Color.text2)
+                                .frame(width: 32, height: sidebarControlHeight)
+                                .background(Color.background2)
+                                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, sidebarTopBarVPad)
+                    
+                    Divider().background(Color.borderColor)
+                    
+                    // Content
+                    switch sidebarTab {
+                    case .keywords:
+                        KeywordView(analyzer: captionAnalyzer, studyViewModel: viewModel)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .background(Color.background1)
+                    case .summary:
+                        SummaryView()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .background(Color.background1)
                     }
                 }
-                .frame(width: rightW)
+                .frame(width: sideW, height: totalH)
+                .background(Color.background1)
+                .transition(.move(edge: .trailing).combined(with: .opacity))
             }
         }
+        .frame(width: totalW, height: totalH)
+        // 접힌 상태에서 펼치기 버튼(우측 상단, 사이드바 상단바 높이에 맞춤)
+        .overlay(alignment: .topTrailing) {
+            if isSidebarCollapsed {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        isSidebarCollapsed = false
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "sidebar.left")
+                            .font(.system(size: 14, weight: .semibold))
+                        Text("사이드바 열기")
+                            .font(.system(size: 12, weight: .semibold))
+                    }
+                    .foregroundStyle(Color.text2)
+                    .padding(.horizontal, 10)
+                    .frame(height: sidebarControlHeight) // 숨김 버튼과 동일 높이
+                    .background(Color.background1)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10).stroke(Color.borderColor, lineWidth: 1)
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .shadow(color: .black.opacity(0.06), radius: 8, x: 0, y: 2)
+                }
+                .buttonStyle(.plain)
+                .padding(.trailing, 10)
+                .padding(.top, sidebarTopBarVPad) // 상단 바의 세로 패딩과 동일 높이에서 표시
+                .transition(.move(edge: .trailing).combined(with: .opacity))
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: isSidebarCollapsed)
     }
     
-    // MARK: - iPhone Layout
+    // MARK: - iPhone Layout (기존 단일 컬럼 유지)
     @ViewBuilder
     private func iPhoneLayout(geometry: GeometryProxy) -> some View {
         let totalHeight = geometry.size.height
@@ -480,10 +349,6 @@ struct StudyView: View {
             }
         }()
         
-        let collapsedHeight: CGFloat = 80
-        let summaryExpandedHeight: CGFloat = 250
-        let questionExpandedHeight: CGFloat = 300
-        
         ScrollView {
             VStack(spacing: 0) {
                 // MARK: MediaView (상단)
@@ -496,36 +361,24 @@ struct StudyView: View {
                     .frame(minHeight: 200)
                     .frame(maxWidth: .infinity)
                 
-                // MARK: SummaryView (하단 1, 접기 가능)
-                CollapsiblePane(
-                    isCollapsed: $isPhoneSummaryCollapsed,
-                    height: isPhoneSummaryCollapsed ? collapsedHeight : summaryExpandedHeight
-                ) {
-                    SummaryView()
-                        .frame(maxWidth: .infinity)
-                }
-                .frame(maxWidth: .infinity)
-                
-                // MARK: QuestionView (하단 2, 접기 가능)
-                CollapsiblePane(
-                    isCollapsed: $isPhoneQuestionCollapsed,
-                    height: isPhoneQuestionCollapsed ? collapsedHeight : questionExpandedHeight
-                ) {
-                    QuestionView(
-                        studyViewModel: viewModel,
-                        viewModel: questionVM,
-                        isGlobalInputActive: $showGlobalQuestionBar
-                    )
+                // MARK: SummaryView (하단 1)
+                SummaryView()
                     .frame(maxWidth: .infinity)
-                }
+                    .frame(height: phoneSummaryHeight)
+                
+                // MARK: QuestionView (하단 2)
+                QuestionView(
+                    studyViewModel: viewModel,
+                    viewModel: questionVM,
+                    isGlobalInputActive: $showGlobalQuestionBar
+                )
                 .frame(maxWidth: .infinity)
+                .frame(height: phoneQuestionHeight)
             }
         }
     }
     
     // MARK: - Helpers
-    // 현재 노트의 유튜브 링크를 우선 사용하고,
-    // 없으면 같은 제목의 노트를 SwiftData에서 찾아 링크를 사용합니다.
     private var resolvedVideoURL: String? {
         // 1) 현재 전달받은 노트의 비디오 링크 우선
         if let url = viewModel.currentNote?.videoURL, !url.isEmpty {
