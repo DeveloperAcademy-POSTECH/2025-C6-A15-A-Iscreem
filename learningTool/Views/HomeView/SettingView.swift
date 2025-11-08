@@ -294,7 +294,8 @@ struct ThemeModePicker: View {
         .pickerStyle(.segmented)
         .labelsHidden()
         .background(.clear)
-        .frame(width: 370, height: 36)
+        // 고정폭(370) 제거 → 기기 폭에 따라 자연스럽게 확장/축소
+        .frame(minWidth: 200, idealWidth: 320, maxWidth: 460)
         .background(.clear, in: Capsule())
         .overlay(Capsule().stroke(Color.borderColor.opacity(0.5), lineWidth: 1))
     }
@@ -327,7 +328,8 @@ struct LanguageModePicker: View {
         }
         .pickerStyle(.segmented)
         .labelsHidden()
-        .frame(width: 370, height: 36)
+        // 고정폭(370) 제거 → 기기 폭에 따라 자연스럽게 확장/축소
+        .frame(minWidth: 200, idealWidth: 320, maxWidth: 460)
         .background(.clear, in: Capsule())
         .overlay(Capsule().stroke(Color.borderColor.opacity(0.5), lineWidth: 1))
     }
@@ -354,84 +356,90 @@ struct ResetConfirmAlertView: View {
     private let requiredText = "초기화를 진행 하겠습니다."
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Title & description
-            VStack(alignment: .leading, spacing: 12) {
-                Text("모든 노트가 초기화 됩니다!")
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(Color.text1)
-                
-                Text("이 작업은 실행 이후 복구할 수 없습니다.")
-                    .font(.system(size: 14))
-                    .foregroundStyle(Color.text2)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 20)
-            .padding(.top, 22)
+        GeometryReader { geo in
+            // 화면 크기에 따라 카드 크기 계산 (상한을 두어 과도한 확대 방지)
+            let cardWidth = min(420, geo.size.width * 0.9)
+            let cardHeight = min(380, geo.size.height * 0.6)
             
-            Spacer(minLength: 8)
-            
-            // Input area
-            VStack(alignment: .leading, spacing: 0) {
-                Text(requiredText)
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(Color.text1)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                
-                Divider().background(Color.borderColor).padding(.vertical, 10)
-                
-                TextField("위 문장을 입력하세요.", text: $confirmationText, axis: .horizontal)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled(true)
-                    .font(.system(size: 15))
-                    .foregroundStyle(Color.text1)
-                    .padding(.vertical, 8)
-            }
-            .padding(16)
-            .background(Color.background2)
-            .cornerRadius(14)
-            .padding(.horizontal, 20)
-            
-            Spacer(minLength: 8)
-            
-            // Buttons
-            HStack(spacing: 12) {
-                Button {
-                    withAnimation(.easeInOut(duration: 0.2)) { isPresented = false }
-                } label: {
-                    Text("취소")
-                        .font(.system(size: 15, weight: .semibold))
+            VStack(spacing: 0) {
+                // Title & description
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("모든 노트가 초기화 됩니다!")
+                        .font(.system(size: 18, weight: .bold))
                         .foregroundStyle(Color.text1)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(Color.gray.opacity(0.2))
-                        .cornerRadius(14)
+                    
+                    Text("이 작업은 실행 이후 복구할 수 없습니다.")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Color.text2)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                .buttonStyle(.plain)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 20)
+                .padding(.top, 22)
                 
-                Button {
-                    onConfirm?()
-                } label: {
-                    Text("초기화")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(isValid ? Color.errorColor : Color.text3.opacity(0.5))
-                        .cornerRadius(14)
+                Spacer(minLength: 8)
+                
+                // Input area
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(requiredText)
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(Color.text1)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    
+                    Divider().background(Color.borderColor).padding(.vertical, 10)
+                    
+                    TextField("위 문장을 입력하세요.", text: $confirmationText, axis: .horizontal)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled(true)
+                        .font(.system(size: 15))
+                        .foregroundStyle(Color.text1)
+                        .padding(.vertical, 8)
                 }
-                .buttonStyle(.plain)
-                .disabled(!isValid)
+                .padding(16)
+                .background(Color.background2)
+                .cornerRadius(14)
+                .padding(.horizontal, 20)
+                
+                Spacer(minLength: 8)
+                
+                // Buttons
+                HStack(spacing: 12) {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) { isPresented = false }
+                    } label: {
+                        Text("취소")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(Color.text1)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color.gray.opacity(0.2))
+                            .cornerRadius(14)
+                    }
+                    .buttonStyle(.plain)
+                    
+                    Button {
+                        onConfirm?()
+                    } label: {
+                        Text("초기화")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(isValid ? Color.errorColor : Color.text3.opacity(0.5))
+                            .cornerRadius(14)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!isValid)
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 16)
             }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 16)
+            .frame(width: cardWidth, height: cardHeight)
+            .background(Color(.systemBackground))
+            .cornerRadius(20)
+            .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.borderColor, lineWidth: 1))
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .frame(width: 360, height: 330)
-        .background(Color(.systemBackground))
-        .cornerRadius(20)
-        .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.borderColor, lineWidth: 1))
     }
     
     private var isValid: Bool {

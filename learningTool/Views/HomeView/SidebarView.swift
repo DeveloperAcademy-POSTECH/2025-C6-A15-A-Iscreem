@@ -146,7 +146,8 @@ struct SidebarView: View {
                     }
                 }
                 .padding(.horizontal, 20)
-                .padding(.top, 50)
+                // 고정 50 → 안전영역을 고려한 top 패딩
+                .safeAreaPadding(.top, 12)
                 .padding(.bottom, 16)
                 .contentShape(Rectangle())
 
@@ -348,7 +349,8 @@ struct SidebarView: View {
             }
             .buttonStyle(.plain)
         }
-        .padding(.bottom, 30)
+        // 고정 30 → 안전영역 포함 하단 패딩
+        .safeAreaPadding(.bottom, 16)
         .ignoresSafeArea(.keyboard, edges: .bottom)
         .padding(.horizontal, 12)
         .contentShape(Rectangle())
@@ -396,7 +398,8 @@ struct SidebarView: View {
                 }
             }
         }
-        .frame(width: 204, height: 145)
+        // 고정 프레임 제거 → 자연스러운 컨텐츠 적응 + 폭 상/하한만 둠
+        .frame(minWidth: 180, idealWidth: 220, maxWidth: 280)
         .sidebarMenuGlassCompat()
         .presentationCompactAdaptation(.popover)
     }
