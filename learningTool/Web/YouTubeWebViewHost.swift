@@ -78,10 +78,6 @@ final class YouTubeWebViewHost: NSObject, ObservableObject {
                 gr.isEnabled = false
             }
         }
-
-        // ✅ 웹뷰 자체도 프레임 바깥으로는 그리지 않도록 보강
-        self.webView.clipsToBounds = true
-        self.webView.layer.masksToBounds = true
     }
 
     // MARK: - Public
@@ -125,30 +121,6 @@ final class YouTubeWebViewHost: NSObject, ObservableObject {
             } else {
                 completion(nil)
             }
-        }
-    }
-    
-    // ✅ 즉시 일시정지
-    @MainActor
-    func pause() {
-        let js = "(function(){try{var v=document.querySelector('video'); if(v){ v.pause(); return true;} }catch(e){} return false; })();"
-        webView.evaluateJavaScript(js) { _, error in
-            if let error = error {
-                self.log.error("pause JS error: \(error.localizedDescription, privacy: .public)")
-            } else {
-                self.log.info("pause executed")
-            }
-        }
-    }
-    
-    // ✅ 즉시 정지(언로드) — 남은 재생을 완전히 끊기 위해 about:blank 로드
-    @MainActor
-    func stop() {
-        pause()
-        if let blank = URL(string: "about:blank") {
-            let req = URLRequest(url: blank)
-            webView.load(req)
-            log.info("webView stop → about:blank loaded")
         }
     }
 

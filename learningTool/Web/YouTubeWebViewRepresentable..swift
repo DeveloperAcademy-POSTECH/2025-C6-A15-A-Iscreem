@@ -44,17 +44,4 @@ struct YouTubeWebViewRepresentable: UIViewRepresentable {
     func getCurrentTime(completion: @escaping (Double?) -> Void) {
         host.getCurrentTime(completion: completion)
     }
-    
-    // ✅ Helper: 즉시 일시정지
-    @MainActor
-    func pause() {
-        host.pause()
-    }
-    
-    // ✅ Helper: 즉시 정지(언로드)
-    @MainActor
-    func stop() {
-        host.stop()
-    }
 }
-
