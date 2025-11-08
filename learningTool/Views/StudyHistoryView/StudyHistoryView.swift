@@ -150,6 +150,28 @@ struct StudyHistoryView: View {
         .padding(.top, 16)
     }
 
+    // 최신 텍스트 스냅샷(요약) 유틸리티:
+    // LearningLogStore가 관리하는 noteIdentifier 기반 "현재 챕터까지" 스냅샷에서
+    // 마지막 챕터의 첫 번째 불릿을 우선 사용, 없으면 불릿들을 합쳐서 사용.
+    private func lastTextSnippet(for s: StudySession) -> String? {
+        guard
+            let nid = s.noteIdentifier,
+            let chapters = learningLogStore.chapterSummariesUpToCurrentByNoteID[nid],
+            !chapters.isEmpty
+        else {
+            return nil
+        }
+        let last = chapters.last!
+        if let first = last.bullets.first, !first.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return first
+        }
+        let joined = last.bullets
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+        return joined.isEmpty ? nil : joined
+    }
+
     @ViewBuilder
     private func sessionCard(for s: StudySession) -> some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -182,7 +204,7 @@ struct StudyHistoryView: View {
             }
 
             // 마지막 텍스트 스냅샷
-            if let snippet = s.lastTextSnippet, !snippet.isEmpty {
+            if let snippet = lastTextSnippet(for: s), !snippet.isEmpty {
                 Text("\"\(snippet)\"")
                     .font(.system(size: 11))
                     .foregroundStyle(Color.text2)
@@ -363,3 +385,4 @@ private struct FlexibleView<Data: RandomAccessCollection, Content: View>: View w
         .environmentObject(LearningLogStore.previewStore())
 }
 #endif
+

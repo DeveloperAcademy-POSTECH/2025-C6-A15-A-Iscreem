@@ -33,6 +33,9 @@ final class Note {
     var cachedKeywords: [String] = []
     var cachedChaptersBlob: Data?
     
+    /// “00:00 ~ 현재 챕터까지”의 챕터별 요약 스냅샷 저장용
+    var cachedChaptersUpToCurrentBlob: Data?
+
     /// 직렬화된 blob을 투명하게 다루기 위한 편의 접근자
     var cachedChapters: [CachedChapter] {
         get {
@@ -41,6 +44,17 @@ final class Note {
         }
         set {
             cachedChaptersBlob = try? JSONEncoder().encode(newValue)
+        }
+    }
+    
+    /// “현재 챕터까지”의 스냅샷 접근자
+    var cachedChaptersUpToCurrent: [CachedChapter] {
+        get {
+            guard let d = cachedChaptersUpToCurrentBlob else { return [] }
+            return (try? JSONDecoder().decode([CachedChapter].self, from: d)) ?? []
+        }
+        set {
+            cachedChaptersUpToCurrentBlob = try? JSONEncoder().encode(newValue)
         }
     }
     
@@ -55,7 +69,8 @@ final class Note {
         cachedFinalSummary: String? = nil,
         cachedSummaryLines: [String] = [],
         cachedKeywords: [String] = [],
-        cachedChapters: [CachedChapter] = []
+        cachedChapters: [CachedChapter] = [],
+        cachedChaptersUpToCurrent: [CachedChapter] = []
     ) {
         self.title = title
         self.lastRead = lastRead
@@ -68,6 +83,7 @@ final class Note {
         self.cachedSummaryLines = cachedSummaryLines
         self.cachedKeywords = cachedKeywords
         self.cachedChaptersBlob = try? JSONEncoder().encode(cachedChapters)
+        self.cachedChaptersUpToCurrentBlob = try? JSONEncoder().encode(cachedChaptersUpToCurrent)
     }
 }
 

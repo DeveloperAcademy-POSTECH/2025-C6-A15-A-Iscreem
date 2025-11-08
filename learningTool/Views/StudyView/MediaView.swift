@@ -132,17 +132,14 @@ struct MediaView: View {
                 try? modelContext.save()
             }
         }
-        // 2) 현재 자막에서 스니펫 추출(선택)
-        let snippet = snippet(at: t)
-        // 3) 학습 로그에 기록(진행된 경우만)
+        // 2) 학습 로그에 기록(진행된 경우만)
         if let n = note {
             learningLogStore.recordProgress(
                 folderName: n.folder?.name,
                 noteTitle: n.title,
                 noteIdentifier: String(describing: n.id),
                 videoURL: n.videoURL ?? videoURL,
-                position: t,
-                snippet: snippet
+                position: t
             )
         }
     }
@@ -162,31 +159,15 @@ struct MediaView: View {
                 try? modelContext.save()
             }
             if let n = note {
-                let snippet = snippet(at: t)
                 learningLogStore.recordProgress(
                     folderName: n.folder?.name,
                     noteTitle: n.title,
                     noteIdentifier: String(describing: n.id),
                     videoURL: n.videoURL ?? videoURL,
-                    position: t,
-                    snippet: snippet
+                    position: t
                 )
             }
         }
-    }
-
-    private func snippet(at t: TimeInterval) -> String? {
-        let cues = captionAnalyzer.vttCues
-        guard !cues.isEmpty else { return nil }
-        // 해당 시간에 걸친 cue 또는 가장 가까운 이전 cue 선택
-        if let exact = cues.first(where: { t >= $0.start && t <= $0.end }) {
-            return exact.text
-        }
-        // 앞쪽에서 가장 가까운 것
-        let prev = cues
-            .filter { $0.start <= t }
-            .max(by: { $0.start < $1.start })
-        return prev?.text
     }
 
     // MARK: - Helpers
