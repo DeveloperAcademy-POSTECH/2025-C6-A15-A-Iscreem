@@ -366,6 +366,7 @@ struct HomeView: View {
     private var addButton: some View {
         Group {
             if #available(iOS 26.0, *) {
+                // iOS 26.0 이상: 시스템 glass 버튼 스타일 사용
                 Button {
                     viewModel.addButtonTapped()
                     withAnimation(.easeInOut(duration: 0.2)) { showCreateNote = true }
@@ -378,8 +379,8 @@ struct HomeView: View {
                 .buttonBorderShape(.circle)
                 .tint(Color.secondColor)
                 .controlSize(.large)
-            } /*else {
-                // Fallback: 기존 그라디언트 원형 버튼 유지
+            } else {
+                // iOS 18+ ~ 25.x: 기존 그라디언트 원형 플로팅 버튼 사용
                 Button {
                     viewModel.addButtonTapped()
                     withAnimation(.easeInOut(duration: 0.2)) { showCreateNote = true }
@@ -402,7 +403,7 @@ struct HomeView: View {
                         )
                 }
                 .buttonStyle(.plain)
-            }*/
+            }
         }
         .padding(32)
         // Hide when Settings is open, show again on Home (전체 보기)
