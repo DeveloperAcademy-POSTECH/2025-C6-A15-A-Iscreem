@@ -122,6 +122,7 @@ struct ResetConfirmOverlay: View {
     @Binding var showResetConfirm: Bool
     let notes: [Note]
     let modelContext: ModelContext
+    @EnvironmentObject private var learningLogStore: LearningLogStore
     
     var body: some View {
         GeometryReader { geo in
@@ -136,6 +137,7 @@ struct ResetConfirmOverlay: View {
                 ResetConfirmAlertView(
                     isPresented: $showResetConfirm,
                     onConfirm: {
+                        // 모든 노트 삭제
                         for note in notes {
                             modelContext.delete(note)
                         }
@@ -144,6 +146,8 @@ struct ResetConfirmOverlay: View {
                         } catch {
                             print("⚠️ Failed to delete all notes: \(error)")
                         }
+                        // 🔴 학습 로그도 함께 초기화
+                        learningLogStore.resetAllSessions()
                         withAnimation(.easeInOut(duration: 0.2)) {
                             showResetConfirm = false
                         }
