@@ -138,8 +138,11 @@ struct HomeView: View {
             isFormValid: isFormValid,
             createNoteTapped: createNoteTapped,
             onFolderDeleteConfirmed: {
+                // 🔴 폴더 삭제 시 학습 기록도 함께 제거
                 for id in folderIDsPendingDelete {
                     if let target = folders.first(where: { $0.persistentModelID == id }) {
+                        // 폴더명 기반 일괄 삭제(고속)
+                        learningLogStore.deleteSessions(in: target)
                         modelContext.delete(target)
                     }
                 }
@@ -148,6 +151,8 @@ struct HomeView: View {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     isFolderDeletePresented = false
                 }
+                // 보수적 안전망: 현재 남아있는 노트로 재동기화
+                _ = learningLogStore.reconcileWithNotes(currentNotes: notes)
             }
         )
         .onReceive(NotificationCenter.default.publisher(for: .showSettings)) { _ in
@@ -166,6 +171,12 @@ struct HomeView: View {
                 selectedFolderName = "__ALL__"
                 headerSubtitle = "전체 보기"
             }
+            // 초기 진입 시 한 번 정리(혹시 남은 고아 세션)
+            _ = learningLogStore.reconcileWithNotes(currentNotes: notes)
+        }
+        .onChange(of: notes) { _, newValue in
+            // 🔵 어떤 경로로 노트가 삭제/변경되었든 고아 세션 자동 정리
+            _ = learningLogStore.reconcileWithNotes(currentNotes: newValue)
         }
         .sheet(isPresented: $showStudyHistory) {
             StudyHistoryView()

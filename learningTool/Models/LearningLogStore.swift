@@ -78,6 +78,24 @@ final class LearningLogStore: ObservableObject {
         load()
     }
 
+    // MARK: - Matching rule (Note ↔ Session)
+    /// 동일 노트 판정 규칙: 식별자 우선, 없으면 (제목 + URL 일치) 또는 (제목만 일치하면서 URL 미지정)
+    private func isSameNote(session s: StudySession,
+                            noteTitle: String,
+                            noteIdentifier: String?,
+                            videoURL: String?) -> Bool {
+        if let nid = noteIdentifier, let sid = s.noteIdentifier, nid == sid {
+            return true
+        }
+        if s.noteTitle == noteTitle {
+            if let v1 = s.videoURL, let v2 = videoURL, v1 == v2 {
+                return true
+            }
+            if videoURL == nil { return true }
+        }
+        return false
+    }
+
     // MARK: - Helper: 세션 찾기/생성
 
     private func indexForSession(
@@ -125,7 +143,7 @@ final class LearningLogStore: ObservableObject {
         return sessions.count - 1
     }
 
-    // MARK: - Public API (뷰/로직에서 호출)
+    // MARK: - Public API (기록)
 
     /// 재생 위치 & 해당 시점 텍스트 기록
     func recordProgress(
@@ -212,6 +230,59 @@ final class LearningLogStore: ObservableObject {
         persist()
     }
 
+    // MARK: - 삭제 API (노트/폴더/전체 초기화)
+
+    /// 특정 노트의 학습 로그 세션을 삭제 (식별자 우선, 없으면 제목+URL 규칙)
+    /// - Returns: 삭제된 세션 개수
+    @discardableResult
+    func deleteSessionsForNote(noteTitle: String, noteIdentifier: String? = nil, videoURL: String? = nil) -> Int {
+        let before = sessions.count
+        sessions.removeAll { s in
+            return isSameNote(session: s, noteTitle: noteTitle, noteIdentifier: noteIdentifier, videoURL: videoURL)
+        }
+        let removed = before - sessions.count
+        if removed > 0 { persist() }
+        return removed
+    }
+
+    /// 여러 노트에 대한 학습 로그를 일괄 삭제
+    /// - Parameter notes: (title, identifier, url) 튜플 배열
+    /// - Returns: 삭제된 총 세션 개수
+    @discardableResult
+    func deleteSessionsForNotes(_ notes: [(title: String, identifier: String?, url: String?)]) -> Int {
+        var toDelete = Set<UUID>() // session IDs
+        for s in sessions {
+            for n in notes {
+                if isSameNote(session: s, noteTitle: n.title, noteIdentifier: n.identifier, videoURL: n.url) {
+                    toDelete.insert(s.id)
+                    break
+                }
+            }
+        }
+        let before = sessions.count
+        sessions.removeAll { toDelete.contains($0.id) }
+        let removed = before - sessions.count
+        if removed > 0 { persist() }
+        return removed
+    }
+
+    /// 특정 폴더의 학습 로그를 삭제 (폴더 내 모든 노트의 세션)
+    /// - Returns: 삭제된 세션 개수
+    @discardableResult
+    func deleteSessionsInFolder(folderName: String) -> Int {
+        let before = sessions.count
+        sessions.removeAll { ($0.folderName ?? "") == folderName }
+        let removed = before - sessions.count
+        if removed > 0 { persist() }
+        return removed
+    }
+
+    /// 모든 학습 로그를 초기화
+    func resetAllSessions() {
+        sessions.removeAll()
+        persist()
+    }
+
     // MARK: - Aggregation (ML/요약용)
 
     /// 전체 세션에서 최소 1회 이상 등장한 키워드 모음 (빈도순)
@@ -268,6 +339,74 @@ extension LearningLogStore {
         }
     }
 }
+
+#if canImport(SwiftData)
+import SwiftData
+
+// MARK: - SwiftData 편의 API (Note/Folder와 직접 연동)
+extension LearningLogStore {
+    /// 단일 노트 삭제 시 호출
+    @discardableResult
+    func deleteSessions(for note: Note) -> Int {
+        deleteSessionsForNote(
+            noteTitle: note.title,
+            noteIdentifier: String(describing: note.id),
+            videoURL: note.videoURL
+        )
+    }
+
+    /// 다중 노트 삭제 시 호출
+    @discardableResult
+    func deleteSessions(for notes: [Note]) -> Int {
+        let tuples = notes.map {
+            (title: $0.title, identifier: String(describing: $0.id), url: $0.videoURL)
+        }
+        return deleteSessionsForNotes(tuples)
+    }
+
+    /// 폴더 삭제(혹은 폴더 내 전체 삭제) 시 호출
+    @discardableResult
+    func deleteSessions(in folder: Folder) -> Int {
+        deleteSessionsInFolder(folderName: folder.name)
+    }
+
+    /// 현재 SwiftData에 남아있는 노트 목록과 동기화하여,
+    /// 더 이상 존재하지 않는 노트의 세션(고아 세션)을 정리
+    /// - Returns: 제거된 세션 수
+    @discardableResult
+    func reconcileWithNotes(currentNotes: [Note]) -> Int {
+        // 1) 남아있는 노트의 식별자/제목+URL 집합 구성
+        let identifiers = Set(currentNotes.map { String(describing: $0.id) })
+        // 제목+URL 키 (URL 없으면 제목만)
+        let titleURLKeys: Set<String> = Set(currentNotes.map { note in
+            if let url = note.videoURL, !url.isEmpty {
+                return "T:\(note.title)|U:\(url)"
+            } else {
+                return "T:\(note.title)|U:nil"
+            }
+        })
+
+        let before = sessions.count
+        sessions.removeAll { s in
+            // 식별자가 남아있다면 보존
+            if let sid = s.noteIdentifier, identifiers.contains(sid) { return false }
+            // 식별자가 없거나 매칭 실패 → 제목+URL 키로 재확인
+            let key: String = {
+                if let url = s.videoURL, !url.isEmpty {
+                    return "T:\(s.noteTitle)|U:\(url)"
+                } else {
+                    return "T:\(s.noteTitle)|U:nil"
+                }
+            }()
+            // 현재 노트 집합에 없는 세션은 제거
+            return !titleURLKeys.contains(key)
+        }
+        let removed = before - sessions.count
+        if removed > 0 { persist() }
+        return removed
+    }
+}
+#endif
 
 #if DEBUG
 extension LearningLogStore {

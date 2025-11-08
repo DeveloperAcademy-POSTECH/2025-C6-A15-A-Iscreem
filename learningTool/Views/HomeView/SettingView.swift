@@ -17,6 +17,7 @@ struct SettingsDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var folders: [Folder]
     @Query private var notes: [Note]
+    @EnvironmentObject private var learningLogStore: LearningLogStore
     
     // 테마를 ColorScheme으로 변환
     private var colorScheme: ColorScheme? {
@@ -186,8 +187,10 @@ struct SettingsDetailView: View {
             if isFolderDeletePresented {
                 FolderDeleteView(
                     onDelete: {
+                        // 🔴 설정 화면에서 폴더 삭제 시에도 학습 로그 동시 정리
                         for id in folderIDsPendingDelete {
                             if let target = folders.first(where: { $0.persistentModelID == id }) {
+                                learningLogStore.deleteSessions(in: target)
                                 modelContext.delete(target)
                             }
                         }
@@ -196,6 +199,8 @@ struct SettingsDetailView: View {
                         withAnimation(.easeInOut(duration: 0.2)) {
                             isFolderDeletePresented = false
                         }
+                        // 보수적 안전망
+                        _ = learningLogStore.reconcileWithNotes(currentNotes: notes)
                     },
                     onCancel: {
                         withAnimation(.easeInOut(duration: 0.2)) {
