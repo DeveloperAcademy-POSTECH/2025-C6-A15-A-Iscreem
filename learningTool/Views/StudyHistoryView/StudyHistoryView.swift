@@ -6,9 +6,11 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct StudyHistoryView: View {
     @EnvironmentObject private var learningLogStore: LearningLogStore
+    @Query private var notes: [Note]
 
     private let dateFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -151,25 +153,57 @@ struct StudyHistoryView: View {
     }
 
     // 최신 텍스트 스냅샷(요약) 유틸리티:
-    // LearningLogStore가 관리하는 noteIdentifier 기반 "현재 챕터까지" 스냅샷에서
-    // 마지막 챕터의 첫 번째 불릿을 우선 사용, 없으면 불릿들을 합쳐서 사용.
+    // 1) LearningLogStore의 메모리 맵
+    // 2) Note.cachedChaptersUpToCurrent
+    // 3) Note.cachedChapters
     private func lastTextSnippet(for s: StudySession) -> String? {
-        guard
+        // 1) 메모리 맵에서 조회
+        if
             let nid = s.noteIdentifier,
             let chapters = learningLogStore.chapterSummariesUpToCurrentByNoteID[nid],
             !chapters.isEmpty
-        else {
-            return nil
+        {
+            if let first = chapters.last?.bullets.first?.trimmingCharacters(in: .whitespacesAndNewlines),
+               !first.isEmpty {
+                return first
+            }
+            let joined = chapters.last!.bullets
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+                .joined(separator: " ")
+            if !joined.isEmpty { return joined }
         }
-        let last = chapters.last!
-        if let first = last.bullets.first, !first.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return first
+
+        // 2) SwiftData의 Note 캐시에서 조회 (UpToCurrent 우선)
+        if let nid = s.noteIdentifier,
+           let note = notes.first(where: { String(describing: $0.id) == nid }) {
+            let upTo = note.cachedChaptersUpToCurrent
+            if !upTo.isEmpty {
+                if let first = upTo.last?.bullets.first?.trimmingCharacters(in: .whitespacesAndNewlines),
+                   !first.isEmpty {
+                    return first
+                }
+                let joined = upTo.last!.bullets
+                    .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                    .filter { !$0.isEmpty }
+                    .joined(separator: " ")
+                if !joined.isEmpty { return joined }
+            }
+            // 3) 일반 캐시로 폴백
+            let any = note.cachedChapters
+            if !any.isEmpty {
+                if let first = any.last?.bullets.first?.trimmingCharacters(in: .whitespacesAndNewlines),
+                   !first.isEmpty {
+                    return first
+                }
+                let joined = any.last!.bullets
+                    .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                    .filter { !$0.isEmpty }
+                    .joined(separator: " ")
+                if !joined.isEmpty { return joined }
+            }
         }
-        let joined = last.bullets
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-            .joined(separator: " ")
-        return joined.isEmpty ? nil : joined
+        return nil
     }
 
     @ViewBuilder

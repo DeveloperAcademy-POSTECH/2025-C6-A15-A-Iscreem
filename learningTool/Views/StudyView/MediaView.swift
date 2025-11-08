@@ -60,6 +60,8 @@ struct MediaView: View {
                 rep.getCurrentTime { t in
                     let candidate = max(t ?? 0, self.lastKnownPosition ?? 0)
                     self.persistPositionIfValid(candidate)
+                    // ✅ 현재 시점까지의 요약 스냅샷도 함께 저장
+                    self.persistChapterSnapshotUpToCurrent(at: candidate)
                 }
             }
         }
@@ -110,6 +112,8 @@ struct MediaView: View {
                     let queried = (t ?? 0)
                     let candidate = max(queried, self.lastKnownPosition ?? 0)
                     self.persistPositionIfValid(candidate)
+                    // ✅ 현재 시점까지의 요약 스냅샷도 함께 저장
+                    self.persistChapterSnapshotUpToCurrent(at: candidate)
                 }
                 // 안전하게 정지
                 rep.pause()
@@ -142,6 +146,8 @@ struct MediaView: View {
                 position: t
             )
         }
+        // 3) ✅ 현재 시점까지의 챕터 요약/키워드 스냅샷 저장
+        persistChapterSnapshotUpToCurrent(at: t)
     }
     
     // ✅ onDisappear 등에서 호출: 유효한 값만 저장
@@ -168,6 +174,40 @@ struct MediaView: View {
                 )
             }
         }
+    }
+
+    // MARK: - ✅ “현재 시점까지” 챕터 스냅샷 저장
+    private func persistChapterSnapshotUpToCurrent(at time: TimeInterval) {
+        guard let n = note else { return }
+        // CaptionAnalyzer가 만든 챕터/불릿/키워드에서 현재 시점까지 포함
+        let snapshot = buildUpToCurrentChapters(at: time)
+        guard !snapshot.isEmpty else { return }
+        // Note에도 저장하고, LearningLogStore의 메모리 맵도 갱신
+        learningLogStore.updateChapterSummariesUpToCurrent(for: n, chapters: snapshot)
+    }
+    
+    private func buildUpToCurrentChapters(at time: TimeInterval) -> [CachedChapter] {
+        // 챕터가 없으면 빈 배열 반환
+        let chapters = captionAnalyzer.chapters
+        guard !chapters.isEmpty else { return [] }
+        
+        // time 이전(포함) 챕터만 수집: start <= time 인 챕터를 포함
+        let included = chapters
+            .sorted(by: { $0.start < $1.start })
+            .filter { $0.start <= time }
+        
+        // bullets/keywords를 map에서 꺼내어 CachedChapter 구성
+        var out: [CachedChapter] = []
+        for ch in included {
+            let bullets = captionAnalyzer.chapterBullets[ch.id] ?? []
+            let keywords = captionAnalyzer.chapterKeywords[ch.id] ?? []
+            // 4개까지만 저장(모델 규약)
+            let trimmedBullets = Array(bullets.prefix(4))
+            out.append(
+                CachedChapter(title: ch.title, bullets: trimmedBullets, keywords: keywords)
+            )
+        }
+        return out
     }
 
     // MARK: - Helpers
@@ -282,4 +322,3 @@ extension Notification.Name {
     )
     .environmentObject(CaptionAnalyzer())
 }
-
