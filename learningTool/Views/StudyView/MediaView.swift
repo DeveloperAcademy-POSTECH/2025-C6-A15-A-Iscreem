@@ -191,14 +191,100 @@ struct MediaView: View {
 
     // MARK: - Helpers
     private func loadIfNeeded(_ url: String) {
-        guard loadedURL != url else { return }
-        loadedURL = url
+        // 이어보기: 재개 시간이 있으면 URL에 붙여서 로드
+        let resume = bestResumePosition()
+        let finalURL = (resume ?? 0) > 0.5 ? urlByEmbeddingStart(url, seconds: resume!) : url
+        
+        guard loadedURL != finalURL else { return }
+        loadedURL = finalURL
+        
         if let n = note {
             // 노트 바인딩 + 로드 (캐시 선반영/후저장에 필요)
-            representable?.load(url, for: n)
+            representable?.load(finalURL, for: n)
         } else {
-            representable?.load(url)
+            representable?.load(finalURL)
         }
+        // 보강: 일부 케이스에서 URL 파라미터가 무시될 수 있으므로 JS로 한 번 더 정확히 시킹
+        if let resume, resume > 0.5 {
+            representable?.seek(to: resume, autoPlay: true)
+        }
+    }
+    
+    // 학습 로그 → 노트 순으로 재개 위치를 결정
+    private func bestResumePosition() -> Double? {
+        // 메모리에 방금 업데이트된 값이 있다면 그 값을 우선 사용
+        if let mem = lastKnownPosition, mem > 0.5 {
+            return mem
+        }
+        // 1) 학습 로그에 저장된 마지막 재생 위치(식별자 우선, 없으면 제목+URL 규칙)
+        if let n = note {
+            let nid = String(describing: n.id)
+            let url = n.videoURL ?? videoURL
+            if let s = learningLogStore.sessions.first(where: { sess in
+                if let sid = sess.noteIdentifier, sid == nid { return true }
+                if sess.noteTitle == n.title {
+                    if let v1 = sess.videoURL, let v2 = url, v1 == v2 { return true }
+                    if url == nil { return true }
+                }
+                return false
+            }) {
+                if let lp = s.lastPosition, lp > 0.5 { return lp }
+            }
+            // 2) 노트에 저장된 위치
+            if let lp = n.lastPositionSeconds, lp > 0.5 { return lp }
+        }
+        return nil
+    }
+    
+    // ✅ URL에 시작 시간을 붙여주는 유틸
+    // - youtu.be, youtube.com/watch, shorts 등: t=80s 사용
+    // - youtube.com/embed: start=80 사용
+    // - 기존 t/start 및 프래그먼트(#t=80s, #start=80) 제거
+    // - shorts는 watch?v=<id>로 표준화(시작 파라미터 인식률 향상)
+    private func urlByEmbeddingStart(_ urlString: String, seconds: Double) -> String {
+        guard var url = URL(string: urlString), seconds > 0.5 else { return urlString }
+        var comps = URLComponents(url: url, resolvingAgainstBaseURL: false) ?? URLComponents()
+        let host = (comps.host ?? "").lowercased()
+        var path = comps.path
+        
+        // shorts → watch로 정규화
+        if path.lowercased().contains("/shorts/"),
+           let id = path.components(separatedBy: "/shorts/").last?.components(separatedBy: "/").first,
+           !id.isEmpty {
+            path = "/watch"
+            comps.path = path
+            var items = comps.queryItems ?? []
+            if !items.contains(where: { $0.name == "v" }) {
+                items.append(URLQueryItem(name: "v", value: id))
+            }
+            comps.queryItems = items
+        }
+        
+        // 기존 t/start 제거
+        var q = comps.queryItems ?? []
+        q.removeAll { item in
+            let name = item.name.lowercased()
+            return name == "t" || name == "start"
+        }
+        comps.queryItems = q
+        
+        // 프래그먼트(#t=80s 등) 제거
+        comps.fragment = nil
+        
+        let secInt = Int(seconds.rounded())
+        if comps.path.lowercased().contains("/embed/") {
+            // 임베드 경로는 start=초
+            q.append(URLQueryItem(name: "start", value: "\(secInt)"))
+        } else {
+            // 일반/shorts/짧은 주소 → t=80s 형태가 가장 호환성 좋음
+            q.append(URLQueryItem(name: "t", value: "\(secInt)s"))
+        }
+        comps.queryItems = q
+        
+        if let u = comps.url {
+            url = u
+        }
+        return url.absoluteString
     }
 }
 
@@ -215,3 +301,4 @@ extension Notification.Name {
     )
     .environmentObject(CaptionAnalyzer())
 }
+

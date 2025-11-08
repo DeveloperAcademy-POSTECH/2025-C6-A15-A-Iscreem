@@ -151,6 +151,57 @@ final class YouTubeWebViewHost: NSObject, ObservableObject {
             log.info("webView stop → about:blank loaded")
         }
     }
+    
+    // ✅ 이어보기: 비디오가 준비된 뒤 해당 시점으로 시킹하고 필요하면 자동재생
+    @MainActor
+    func seek(to seconds: Double, autoPlay: Bool = true) {
+        guard seconds > 0.5 else { return }
+        let clamped = max(0.0, seconds)
+        let js = """
+        (function(){
+          try {
+            var v = document.querySelector('video');
+            if (!v) { return 'no-video'; }
+            function doSeek() {
+              try {
+                v.currentTime = \(clamped);
+                if (\(autoPlay ? "true" : "false")) {
+                  var p = v.play();
+                  if (p && p.catch) { p.catch(function(_){}); }
+                }
+                return 'ok';
+              } catch(e) { return 'seek-error'; }
+            }
+            if (v.readyState >= 1) {
+              return doSeek();
+            }
+            try {
+              var once = function() {
+                try { v.removeEventListener('loadedmetadata', once); } catch(e) {}
+                doSeek();
+              };
+              v.addEventListener('loadedmetadata', once, { once: true });
+              return 'pending';
+            } catch(e) {
+              // fallback: 약간 지연 후 시도
+              setTimeout(doSeek, 500);
+              return 'pending-timeout';
+            }
+          } catch(e) { return 'js-error'; }
+        })();
+        """
+        webView.evaluateJavaScript(js) { result, error in
+            if let error = error {
+                self.log.error("seek JS error: \(error.localizedDescription, privacy: .public)")
+                return
+            }
+            if let s = result as? String {
+                self.log.info("seek result=\(s, privacy: .public) t=\(clamped, privacy: .public)")
+            } else {
+                self.log.info("seek result=(nil) t=\(clamped, privacy: .public)")
+            }
+        }
+    }
 
     // MARK: - JS Bootstrap
     private static func youtubeBootstrapScript() -> String {
@@ -401,3 +452,4 @@ extension YouTubeWebViewHost: WKNavigationDelegate, WKUIDelegate {
         decisionHandler(.cancel)
     }
 }
+
