@@ -63,6 +63,14 @@ struct MediaView: View {
                 }
             }
         }
+        // ▶︎ 재생 중지 요청 수신 시 즉시 pause/stop
+        .onReceive(NotificationCenter.default.publisher(for: .pausePlaybackRequested)) { _ in
+            Task { @MainActor in
+                // 저장은 StudyView에서 이미 요청됨. 여기서는 즉시 정지.
+                representable?.pause()
+                representable?.stop()
+            }
+        }
         .onAppear {
             if representable == nil {
                 // YouTubePane의 역할을 이 View에서 수행: 캡션 분석기와 연결된 WebView 브리지 준비
@@ -103,6 +111,9 @@ struct MediaView: View {
                     let candidate = max(queried, self.lastKnownPosition ?? 0)
                     self.persistPositionIfValid(candidate)
                 }
+                // 안전하게 정지
+                rep.pause()
+                rep.stop()
             }
         }
     }
@@ -191,9 +202,10 @@ struct MediaView: View {
     }
 }
 
-// MARK: - Playback Persist Notification
+// MARK: - Playback Persist/Pause Notifications
 extension Notification.Name {
     static let persistPlaybackPosition = Notification.Name("PersistPlaybackPosition")
+    static let pausePlaybackRequested = Notification.Name("PausePlaybackRequested")
 }
 
 #Preview(traits: .landscapeLeft) {
