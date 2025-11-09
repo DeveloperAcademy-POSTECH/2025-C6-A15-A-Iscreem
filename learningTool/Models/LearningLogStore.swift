@@ -285,6 +285,21 @@ final class LearningLogStore: ObservableObject {
         chapterSummariesUpToCurrentByNoteID[nid] = chapters
     }
 
+    /// 앱/홈 진입 시, Note에 저장된 스냅샷으로 메모리 맵을 프리로드하여
+    /// 재실행 후에도 동일하게 보이도록 보강
+    func preloadChapterSummariesFromNotes(currentNotes: [Note]) {
+        for note in currentNotes {
+            let nid = String(describing: note.id)
+            // 비어있거나 미존재한 경우에만 시드
+            if chapterSummariesUpToCurrentByNoteID[nid]?.isEmpty ?? true {
+                let chapters = note.cachedChaptersUpToCurrent
+                if !chapters.isEmpty {
+                    chapterSummariesUpToCurrentByNoteID[nid] = chapters
+                }
+            }
+        }
+    }
+
     // MARK: - 삭제 API (노트/폴더/전체 초기화)
 
     /// 특정 노트의 학습 로그 세션을 삭제 (식별자 우선, 없으면 제목+URL 규칙)
@@ -528,4 +543,3 @@ extension LearningLogStore {
     }
 }
 #endif
-

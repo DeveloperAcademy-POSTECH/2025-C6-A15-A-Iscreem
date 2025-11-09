@@ -155,20 +155,20 @@ struct StudyHistoryView: View {
     // MARK: - Helpers: Chapters up to current
 
     // “마지막 재생 시간에 해당하는 챕터까지”의 챕터 요약/키워드를 배열로 반환
-    // 1) LearningLogStore의 메모리 맵(chapterSummariesUpToCurrentByNoteID)
-    // 2) Note.cachedChaptersUpToCurrent
+    // 1) Note.cachedChaptersUpToCurrent (영구 저장) — 재실행 보장
+    // 2) LearningLogStore의 메모리 맵(chapterSummariesUpToCurrentByNoteID)
     private func chaptersUpToCurrent(for s: StudySession) -> [CachedChapter] {
+        if let nid = s.noteIdentifier,
+           let note = notes.first(where: { String(describing: $0.id) == nid }) {
+            let upTo = note.cachedChaptersUpToCurrent
+            if !upTo.isEmpty { return upTo }
+        }
         if
             let nid = s.noteIdentifier,
             let chapters = learningLogStore.chapterSummariesUpToCurrentByNoteID[nid],
             !chapters.isEmpty
         {
             return chapters
-        }
-        if let nid = s.noteIdentifier,
-           let note = notes.first(where: { String(describing: $0.id) == nid }) {
-            let upTo = note.cachedChaptersUpToCurrent
-            if !upTo.isEmpty { return upTo }
         }
         return []
     }
@@ -439,4 +439,3 @@ private struct FlexibleView<Data: RandomAccessCollection, Content: View>: View w
         .environmentObject(LearningLogStore.previewStore())
 }
 #endif
-

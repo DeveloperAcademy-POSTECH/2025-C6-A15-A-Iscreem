@@ -150,6 +150,8 @@ struct HomeView: View {
                 }
                 // 보수적 안전망: 현재 남아있는 노트로 재동기화
                 _ = learningLogStore.reconcileWithNotes(currentNotes: notes)
+                // 프리로드(재실행/새로고침 후에도 동일 표시)
+                learningLogStore.preloadChapterSummariesFromNotes(currentNotes: notes)
             }
         )
         .onReceive(NotificationCenter.default.publisher(for: .showSettings)) { _ in
@@ -174,12 +176,16 @@ struct HomeView: View {
             _ = learningLogStore.enrichSessionsFromNotes(currentNotes: notes)
             // 3) 고아 세션 정리(노트에 없는 세션 제거)
             _ = learningLogStore.reconcileWithNotes(currentNotes: notes)
+            // 4) ✅ 재실행 시에도 동일하게 보이도록, 노트 캐시로 메모리 맵 프리로드
+            learningLogStore.preloadChapterSummariesFromNotes(currentNotes: notes)
         }
         .onChange(of: notes) { _, newValue in
             // 노트 변경 시에도 동일한 순서로 동기화
             _ = learningLogStore.bootstrapSessionsIfNeeded(currentNotes: newValue)
             _ = learningLogStore.enrichSessionsFromNotes(currentNotes: newValue)
             _ = learningLogStore.reconcileWithNotes(currentNotes: newValue)
+            // ✅ 노트 캐시 → 메모리 맵 프리로드
+            learningLogStore.preloadChapterSummariesFromNotes(currentNotes: newValue)
         }
         .sheet(isPresented: $showStudyHistory) {
             StudyHistoryView()
@@ -515,4 +521,3 @@ extension Notification.Name {
     static let showSettings = Notification.Name("ShowSettings")
     static let hideSettings = Notification.Name("HideSettings")
 }
-
