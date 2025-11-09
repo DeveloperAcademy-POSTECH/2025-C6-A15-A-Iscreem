@@ -167,6 +167,7 @@ struct HomeView: View {
                 _ = learningLogStore.reconcileWithNotes(currentNotes: notes)
                 // 프리로드(재실행/새로고침 후에도 동일 표시)
                 learningLogStore.preloadChapterSummariesFromNotes(currentNotes: notes)
+                // 세션은 보존(복원 시 그대로 사용). 영구 삭제 시에만 정리.
             }
         )
         .onReceive(NotificationCenter.default.publisher(for: .showSettings)) { _ in
@@ -202,7 +203,6 @@ struct HomeView: View {
             learningLogStore.preloadChapterSummariesFromNotes(currentNotes: notes)
         }
         .onChange(of: notes) { _, newValue in
-            // 노트 변경 시에도 동일한 순서로 동기화
             _ = learningLogStore.bootstrapSessionsIfNeeded(currentNotes: newValue)
             _ = learningLogStore.enrichSessionsFromNotes(currentNotes: newValue)
             _ = learningLogStore.reconcileWithNotes(currentNotes: newValue)
@@ -214,188 +214,173 @@ struct HomeView: View {
                 .environmentObject(learningLogStore)
         }
     }
-    
     // MARK: - Header View
-    private var headerView: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("{$app_name}")
-                    .font(.system(size: 28, weight: .semibold))
-                    .foregroundStyle(Color.text1)
+        private var headerView: some View {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("{$app_name}")
+                        .font(.system(size: 28, weight: .semibold))
+                        .foregroundStyle(Color.text1)
 
-                Text(headerSubtitle)
-                    .font(.system(size: 22, weight: .medium))
-                    .foregroundStyle(Color.text2)
-            }
-
-            Spacer()
-
-            HStack(spacing: 12) {
-                // 검색바를 정렬 버튼 바로 옆에 배치 (Liquid Glass)
-                searchBar
-                sortButton
-                ViewModeToggle(selection: $viewModel.selectedViewMode) { mode in
-                    viewModel.viewModeButtonTapped(mode)
+                    Text(headerSubtitle)
+                        .font(.system(size: 22, weight: .medium))
+                        .foregroundStyle(Color.text2)
                 }
-                .frame(width: 116, height: 36)
-            }
-        }
-        .padding()
-    }
-    
-    // MARK: - 🔵 검색바 (Liquid Glass)
-    private var searchBar: some View {
-        GlassEffectContainer(spacing: 0) {
-            HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(Color.text3)
-                TextField("노트 검색", text: $viewModel.searchText, axis: .horizontal)
-                    .font(.system(size: 16))
-                    .lineLimit(1)
-            }
-            .padding(.horizontal, 12)
-            .frame(minWidth: 220, maxWidth: 320)
-            .frame(height: 36)
-            .glassEffect()
-            .glassEffectUnionCompat(id: "search", namespace: glassNS)
-        }
-    }
-    
-    private var sortButton: some View {
-        Menu {
-            // 정렬 기준 선택 (Menu + Picker)
-            Picker("정렬 기준", selection: $headerSort) {
-                // HeaderSortOption은 기존 코드와 동일한 케이스명을 사용합니다.
-                Label("가나다 순(↑)", systemImage: "a.circle")
-                    .tag(HeaderSortOption.alphabeticalAsc)
-                Label("가나다 순(↓)", systemImage: "a.circle")
-                    .tag(HeaderSortOption.alphabeticalDesc)
-                Label("최근 열어본  항목(↑)", systemImage: "clock")
-                    .tag(HeaderSortOption.recentlyOpenedAsc)
-                Label("최근 열어본 항목(↓)", systemImage: "clock")
-                    .tag(HeaderSortOption.recentlyOpenedDesc)
-                Label("학습 진행률(↑)", systemImage: "progress.indicator")
-                    .tag(HeaderSortOption.progressAsc)
-                Label("학습 진행률(↓)", systemImage: "progress.indicator")
-                    .tag(HeaderSortOption.progressDesc)
-            }
 
-            Divider()
+                Spacer()
 
-            // 노트 이동하기
-            Button {
-                // TODO: 편집 액션 연결(시트/네비/알럿 등)
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "square.and.pencil")
-                    Text("노트 이동하기")
+                HStack(spacing: 12) {
+                    // 검색바를 정렬 버튼 바로 옆에 배치 (Liquid Glass)
+                    searchBar
+                    sortButton
+                    ViewModeToggle(selection: $viewModel.selectedViewMode) { mode in
+                        viewModel.viewModeButtonTapped(mode)
+                    }
+                    .frame(width: 116, height: 36)
                 }
-                .font(.system(size: 14, weight: .regular))
-                .foregroundStyle(Color.secondColor)   // ← 텍스트+아이콘 색상 적용
-                //텍스트 색상 적용 못 시킴 (Menu { ... } 안의 항목 텍스트 색은 iOS에서 시스템이 강제합니다.)
             }
-            .tint(Color.secondColor)                   // ← 일부 환경에서 아이콘 색 반영 보조
-            .buttonStyle(.plain)
-        } label: {
+            .padding()
+        }
+        
+        // MARK: - 🔵 검색바 (Liquid Glass)
+        private var searchBar: some View {
             GlassEffectContainer(spacing: 0) {
-                Image(systemName: "line.3.horizontal.decrease")
-                    .font(.system(size: 16, weight: .semibold))
-                    .frame(width: 36, height: 36)
-                    .glassEffect()
-                    .glassEffectUnionCompat(id: "sort", namespace: glassNS)
-            }
-            .tint(Color.text2)
-        }
-        // 기존 버튼 그림자 느낌 유지
-        .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 2)
-    }
-    
-    // MARK: - Content View
-    private var contentView: some View {
-        ScrollView {
-            if viewModel.selectedViewMode == .list {
-                listModeContent(
-                    isAllView: isAllView,
-                    allItems: allItems,
-                    allItemsFiltered: allItemsFiltered,
-                    filteredNotes: filteredNotes,
-                    searchQuery: searchQuery,
-                    selectedFolderName: $selectedFolderName,
-                    headerSubtitle: $headerSubtitle,
-                    noteToRename: $noteToRename,
-                    renameText: $renameText,
-                    onNoteSelected: onNoteSelected,
-                    modelContext: modelContext
-                )
-            } else {
-                gridModeContent(
-                    columns: columns,
-                    isAllView: isAllView,
-                    allItems: allItems,
-                    allItemsFiltered: allItemsFiltered,
-                    filteredNotes: filteredNotes,
-                    searchQuery: searchQuery,
-                    selectedFolderName: $selectedFolderName,
-                    headerSubtitle: $headerSubtitle,
-                    noteToRename: $noteToRename,
-                    renameText: $renameText,
-                    onNoteSelected: onNoteSelected,
-                    modelContext: modelContext
-                )
+                HStack(spacing: 8) {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(Color.text3)
+                    TextField("노트 검색", text: $viewModel.searchText, axis: .horizontal)
+                        .font(.system(size: 16))
+                        .lineLimit(1)
+                }
+                .padding(.horizontal, 12)
+                .frame(minWidth: 220, maxWidth: 320)
+                .frame(height: 36)
+                .glassEffect()
+                .glassEffectUnionCompat(id: "search", namespace: glassNS)
             }
         }
-    }
-    
-    // MARK: - Empty State
-    private var emptyStateView: some View {
-        VStack(spacing: 4) {
-            Text("아직은 노트가 없어요!")
-                .font(.system(size: 16, weight: .regular))
-                .foregroundStyle(Color.text3)
-            
-            Text("하단 추가 버튼을 눌러서 첫 학습을 시작해 보세요!")
-                .font(.system(size: 16, weight: .regular))
-                .foregroundStyle(Color.text3)
-            
-            Spacer()
-                .frame(height: 12)
-            
-            Text("사용법을 알고 싶으신가요?")
-                .font(.system(size: 16, weight: .regular))
-                .foregroundStyle(Color.text3)
-            
-            HStack(spacing: 4) {
-                Text("좌측 하단의")
-                    .font(.system(size: 16, weight: .regular))
-                    .foregroundStyle(Color.text3)
-                
-                Image(systemName: "questionmark.circle.fill")
-                    .font(.system(size: 16))
-                    .foregroundStyle(Color.text3)
-                
-                Text("도움말 버튼을 클릭해 보세요!")
-                    .font(.system(size: 16, weight: .regular))
-                    .foregroundStyle(Color.text3)
-            }
-        }
-        .multilineTextAlignment(.center)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .offset(y: -50)
-    }
-    
-    // Add button visibility: hide on Settings, show on Home (전체 보기)
-    private var shouldShowAddButton: Bool {
-        // isAllView is true when selectedFolderName == "__ALL__"
-        // Hide when Settings overlay is showing
-        return !isShowingSettings && isAllView
-    }
-    
-    // 🔵 추가 버튼 (Gradient + Floating)
-    private var addButton: some View {
-        Group {
-            if #available(iOS 26.0, *) {
-                // iOS 26.0 이상: 시스템 glass 버튼 스타일 사용
+        
+        private var sortButton: some View {
+            Menu {
+                // 정렬 기준 선택 (Menu + Picker)
+                Picker("정렬 기준", selection: $headerSort) {
+                    // HeaderSortOption은 기존 코드와 동일한 케이스명을 사용합니다.
+                    Label("가나다 순(↑)", systemImage: "a.circle")
+                        .tag(HeaderSortOption.alphabeticalAsc)
+                    Label("가나다 순(↓)", systemImage: "a.circle")
+                        .tag(HeaderSortOption.alphabeticalDesc)
+                    Label("최근 열어본  항목(↑)", systemImage: "clock")
+                        .tag(HeaderSortOption.recentlyOpenedAsc)
+                    Label("최근 열어본 항목(↓)", systemImage: "clock")
+                        .tag(HeaderSortOption.recentlyOpenedDesc)
+                    Label("학습 진행률(↑)", systemImage: "progress.indicator")
+                        .tag(HeaderSortOption.progressAsc)
+                    Label("학습 진행률(↓)", systemImage: "progress.indicator")
+                        .tag(HeaderSortOption.progressDesc)
+                }
+
+                Divider()
+
+                // 노트 이동하기
                 Button {
+                    // TODO: 편집 액션 연결(시트/네비/알럿 등)
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "square.and.pencil")
+                        Text("노트 이동하기")
+                    }
+                    .font(.system(size: 14, weight: .regular))
+                    .foregroundStyle(Color.secondColor)   // ← 텍스트+아이콘 색상 적용
+                    //텍스트 색상 적용 못 시킴 (Menu { ... } 안의 항목 텍스트 색은 iOS에서 시스템이 강제합니다.)
+                }
+                .tint(Color.secondColor)                   // ← 일부 환경에서 아이콘 색 반영 보조
+                .buttonStyle(.plain)
+            } label: {
+                GlassEffectContainer(spacing: 0) {
+                    Image(systemName: "line.3.horizontal.decrease")
+                        .font(.system(size: 16, weight: .semibold))
+                        .frame(width: 36, height: 36)
+                        .glassEffect()
+                        .glassEffectUnionCompat(id: "sort", namespace: glassNS)
+                }
+                .tint(Color.text2)
+            }
+            // 기존 버튼 그림자 느낌 유지
+            .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 2)
+        }
+        
+        // MARK: - Content View
+        private var contentView: some View {
+            ScrollView {
+                if viewModel.selectedViewMode == .list {
+                    listModeContent(
+                        isAllView: isAllView,
+                        allItems: allItems,
+                        allItemsFiltered: allItemsFiltered,
+                        filteredNotes: filteredNotes,
+                        searchQuery: searchQuery,
+                        selectedFolderName: $selectedFolderName,
+                        headerSubtitle: $headerSubtitle,
+                        noteToRename: $noteToRename,
+                        renameText: $renameText,
+                        onNoteSelected: onNoteSelected,
+                        modelContext: modelContext
+                    )
+                } else {
+                    gridModeContent(
+                        columns: columns,
+                        isAllView: isAllView,
+                        allItems: allItems,
+                        allItemsFiltered: allItemsFiltered,
+                        filteredNotes: filteredNotes,
+                        searchQuery: searchQuery,
+                        selectedFolderName: $selectedFolderName,
+                        headerSubtitle: $headerSubtitle,
+                        noteToRename: $noteToRename,
+                        renameText: $renameText,
+                        onNoteSelected: onNoteSelected,
+                        modelContext: modelContext
+                    )
+                }
+            }
+        }
+        
+        // MARK: - Empty State
+        private var emptyStateView: some View {
+            VStack(spacing: 4) {
+                Text("아직은 노트가 없어요!")
+                    .font(.system(size: 16, weight: .regular))
+                    .foregroundStyle(Color.text3)
+                
+                Text("하단 추가 버튼을 눌러서 첫 학습을 시작해 보세요!")
+                    .font(.system(size: 16, weight: .regular))
+                    .foregroundStyle(Color.text3)
+                
+                Spacer()
+                    .frame(height: 12)
+                
+                Text("사용법을 알고 싶으신가요?")
+                    .font(.system(size: 16, weight: .regular))
+                    .foregroundStyle(Color.text3)
+                
+                HStack(spacing: 4) {
+                    Text("좌측 하단의")
+                        .font(.system(size: 16, weight: .regular))
+                        .foregroundStyle(Color.text3)
+                    
+                    Image(systemName: "questionmark.circle.fill")
+                        .font(.system(size: 16))
+                        .foregroundStyle(Color.text3)
+                    
+                    Text("도움말 버튼을 클릭해 보세요!")
+                        .font(.system(size: 16, weight: .regular))
+                        .foregroundStyle(Color.text3)
+                }
+            }
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .offset(y: -50)
+        }
         
         // Add button visibility: hide on Settings, show on Home (전체 보기)
         private var shouldShowAddButton: Bool {

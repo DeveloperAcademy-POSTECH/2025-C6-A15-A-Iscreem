@@ -45,7 +45,6 @@ extension HomeView {
                     NoteComponent(note: note)
                         .onTapGesture { onNoteSelected?(note) }
                         .contextMenu {
-                            // 🔵 컨텍스트 메뉴 버튼들
                             Button {
                                 noteToRename.wrappedValue = note
                                 renameText.wrappedValue = note.title
