@@ -43,6 +43,9 @@ struct HomeView: View {
     @State var folderIDsPendingDelete = Set<PersistentIdentifier>()
     @State var showResetConfirm: Bool = false
     @Namespace private var glassNS
+
+    // 휴지통 화면 표시
+    @State private var isShowingTrash: Bool = false
     
     init(
         onNoteSelected: ((Note) -> Void)? = nil,
@@ -56,6 +59,7 @@ struct HomeView: View {
         NavigationSplitView {
             SidebarView(onFolderSelected: { name in
                 isShowingSettings = false
+                isShowingTrash = false
                 if name == "__ALL__" {
                     headerSubtitle = "전체 보기"
                     selectedFolderName = "__ALL__"
@@ -76,19 +80,24 @@ struct HomeView: View {
             .toolbar(.hidden, for: .navigationBar)
         } detail: {
             ZStack {
-                VStack(spacing: 0) {
-                    // 헤더
-                    headerView
+                if isShowingTrash {
+                    TrashView()
+                        .environmentObject(learningLogStore)
+                } else {
+                    VStack(spacing: 0) {
+                        // 헤더
+                        headerView
 
-                    Divider().background(Color.borderColor)
+                        Divider().background(Color.borderColor)
 
-                    // 노트 그리드/리스트
-                    contentView
-                        .overlay {
-                            if shouldShowEmptyState {
-                                emptyStateView
+                        // 노트 그리드/리스트
+                        contentView
+                            .overlay {
+                                if shouldShowEmptyState {
+                                    emptyStateView
+                                }
                             }
-                        }
+                    }
                 }
                 if isShowingSettings {
                     SettingsDetailView(showResetConfirm: $showResetConfirm)
@@ -99,8 +108,10 @@ struct HomeView: View {
         }
         .overlay(alignment: .bottomTrailing) {
             VStack(spacing: 20) {
-                historyButton
-                addButton
+                if !isShowingTrash {
+                    historyButton
+                    addButton
+                }
             }
         }
         .background {
@@ -135,12 +146,16 @@ struct HomeView: View {
             isFormValid: isFormValid,
             createNoteTapped: createNoteTapped,
             onFolderDeleteConfirmed: {
-                // 🔴 폴더 삭제 시 학습 기록도 함께 제거
+                // 폴더를 휴지통으로 이동
                 for id in folderIDsPendingDelete {
                     if let target = folders.first(where: { $0.persistentModelID == id }) {
-                        // 폴더명 기반 일괄 삭제(고속)
-                        learningLogStore.deleteSessions(in: target)
-                        modelContext.delete(target)
+                        target.isTrashed = true
+                        target.trashedAt = Date()
+                        // 포함된 노트도 함께 휴지통으로 이동
+                        for n in target.notes {
+                            n.isTrashed = true
+                            n.trashedAt = Date()
+                        }
                     }
                 }
                 try? modelContext.save()
@@ -157,10 +172,17 @@ struct HomeView: View {
         .onReceive(NotificationCenter.default.publisher(for: .showSettings)) { _ in
             withAnimation(.easeInOut(duration: 0.2)) {
                 isShowingSettings = true
+                isShowingTrash = false
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .hideSettings)) { _ in
             withAnimation(.easeInOut(duration: 0.2)) {
+                isShowingSettings = false
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .showTrash)) { _ in
+            withAnimation(.easeInOut(duration: 0.2)) {
+                isShowingTrash = true
                 isShowingSettings = false
             }
         }
@@ -374,150 +396,168 @@ struct HomeView: View {
             if #available(iOS 26.0, *) {
                 // iOS 26.0 이상: 시스템 glass 버튼 스타일 사용
                 Button {
-                    viewModel.addButtonTapped()
-                    withAnimation(.easeInOut(duration: 0.2)) { showCreateNote = true }
-                } label: {
-                    Image(systemName: "plus")
-                        .font(.system(size: 22, weight: .semibold))
-                        .frame(width: 44, height: 44)
-                }
-                .buttonStyle(.glass)
-                .buttonBorderShape(.circle)
-                .tint(Color.secondColor)
-                .controlSize(.large)
-            } else {
-                // iOS 18+ ~ 25.x: 기존 그라디언트 원형 플로팅 버튼 사용
-                Button {
-                    viewModel.addButtonTapped()
-                    withAnimation(.easeInOut(duration: 0.2)) { showCreateNote = true }
-                } label: {
-                    Image(systemName: "plus")
-                        .font(.system(size: 30, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: 60, height: 60)
-                        .background(
-                            LinearGradient(
-                                colors: [Color.secondColor, Color.secondColor.opacity(0.85)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            in: Circle()
-                        )
-                        .overlay(
-                            Circle()
-                                .strokeBorder(.white.opacity(0.3), lineWidth: 1)
-                        )
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(32)
-        // Hide when Settings is open, show again on Home (전체 보기)
-        .opacity(shouldShowAddButton ? 1 : 0)
-        .allowsHitTesting(shouldShowAddButton)
-        .animation(.easeInOut(duration: 0.2), value: shouldShowAddButton)
-    }
-    
-    // 학습 기록 버튼 (우측 하단 Add 버튼 위에 위치)
-    private var historyButton: some View {
-        Button {
-            showStudyHistory = true
-        } label: {
-            HStack(spacing: 6) {
-                Image(systemName: "chart.line.uptrend.xyaxis")
-                    .font(.system(size: 13, weight: .semibold))
-                Text("학습 기록")
-                    .font(.system(size: 13, weight: .semibold))
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
-            .background(
-                Color.background2
-                    .opacity(0.96)
-            )
-            .overlay(
-                Capsule()
-                    .stroke(Color.white.opacity(0.28), lineWidth: 0.6)
-            )
-            .clipShape(Capsule())
-            .shadow(color: Color.black.opacity(0.08), radius: 6, x: 0, y: 3)
-        }
-        .buttonStyle(.plain)
-    }
-    
-    // MARK: - Actions
-    private func createNoteTapped() {
-        let newNote = Note(
-            title: noteTitle,
-            lastRead: Date(),
-            thumbnailURL: youtubeLink
-        )
-        if let selected = selectedFolderName,
-           selected != "__ALL__",
-           let target = folders.first(where: { $0.name == selected }) {
-            newNote.folder = target
-        }
-        modelContext.insert(newNote)
-        onNoteCreated?(newNote)
         
-        youtubeLink = ""
-        noteTitle = ""
+        // Add button visibility: hide on Settings, show on Home (전체 보기)
+        private var shouldShowAddButton: Bool {
+            // isAllView is true when selectedFolderName == "__ALL__"
+            // Hide when Settings overlay is showing
+            return !isShowingSettings && isAllView
+        }
         
-        withAnimation(.easeInOut(duration: 0.2)) { showCreateNote = false }
+        // 🔵 추가 버튼 (Gradient + Floating)
+        private var addButton: some View {
+            Group {
+                if #available(iOS 26.0, *) {
+                    // iOS 26.0 이상: 시스템 glass 버튼 스타일 사용
+                    Button {
+                        viewModel.addButtonTapped()
+                        withAnimation(.easeInOut(duration: 0.2)) { showCreateNote = true }
+                    } label: {
+                        Image(systemName: "plus")
+                            .font(.system(size: 22, weight: .semibold))
+                            .frame(width: 44, height: 44)
+                    }
+                    .buttonStyle(.glass)
+                    .buttonBorderShape(.circle)
+                    .tint(Color.secondColor)
+                    .controlSize(.large)
+                } else {
+                    // iOS 18+ ~ 25.x: 기존 그라디언트 원형 플로팅 버튼 사용
+                    Button {
+                        viewModel.addButtonTapped()
+                        withAnimation(.easeInOut(duration: 0.2)) { showCreateNote = true }
+                    } label: {
+                        Image(systemName: "plus")
+                            .font(.system(size: 30, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(width: 60, height: 60)
+                            .background(
+                                LinearGradient(
+                                    colors: [Color.secondColor, Color.secondColor.opacity(0.85)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                in: Circle()
+                            )
+                            .overlay(
+                                Circle()
+                                    .strokeBorder(.white.opacity(0.3), lineWidth: 1)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(32)
+            // Hide when Settings is open, show again on Home (전체 보기)
+            .opacity(shouldShowAddButton ? 1 : 0)
+            .allowsHitTesting(shouldShowAddButton)
+            .animation(.easeInOut(duration: 0.2), value: shouldShowAddButton)
+        }
+        
+        // 학습 기록 버튼 (우측 하단 Add 버튼 위에 위치)
+        private var historyButton: some View {
+            Button {
+                showStudyHistory = true
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                        .font(.system(size: 13, weight: .semibold))
+                    Text("학습 기록")
+                        .font(.system(size: 13, weight: .semibold))
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(
+                    Color.background2
+                        .opacity(0.96)
+                )
+                .overlay(
+                    Capsule()
+                        .stroke(Color.white.opacity(0.28), lineWidth: 0.6)
+                )
+                .clipShape(Capsule())
+                .shadow(color: Color.black.opacity(0.08), radius: 6, x: 0, y: 3)
+            }
+            .buttonStyle(.plain)
+        }
+        
+        // MARK: - Actions
+        private func createNoteTapped() {
+            let newNote = Note(
+                title: noteTitle,
+                lastRead: Date(),
+                thumbnailURL: youtubeLink
+            )
+            if let selected = selectedFolderName,
+               selected != "__ALL__",
+               let target = folders.first(where: { $0.name == selected }) {
+                newNote.folder = target
+            }
+            modelContext.insert(newNote)
+            onNoteCreated?(newNote)
+            
+            youtubeLink = ""
+            noteTitle = ""
+            
+            withAnimation(.easeInOut(duration: 0.2)) { showCreateNote = false }
+        }
     }
-}
 
-// MARK: - Consolidated App Root (moved from ContentView)
-extension HomeView {
-    struct AppRootView: View {
-        @State private var selectedNote: Note?
-        @State private var showStudyView = false
-        
-        var body: some View {
-            ScaledContainer(baseSize: CGSize(width: 1366, height: 1024),
-                            minScale: 0.78,  // 터치 최소 44pt 근사 유지용(원하면 0.75~0.85 사이 조절)
-                            maxScale: 1.0,
-                            alignment: .topLeading) {
-                ZStack {
-                    if showStudyView, let note = selectedNote {
-                        StudyView(note: note) {
-                            showStudyView = false
-                            selectedNote = nil
-                        }
-                    } else {
-                        HomeView(
-                            onNoteSelected: { note in
-                                selectedNote = note
-                                withAnimation { showStudyView = true }
-                            },
-                            onNoteCreated: { note in
-                                selectedNote = note
-                                withAnimation { showStudyView = true }
+    // MARK: - Consolidated App Root (moved from ContentView)
+    extension HomeView {
+        struct AppRootView: View {
+            @State private var selectedNote: Note?
+            @State private var showStudyView = false
+            
+            var body: some View {
+                ScaledContainer(baseSize: CGSize(width: 1366, height: 1024),
+                                minScale: 0.78,  // 터치 최소 44pt 근사 유지용(원하면 0.75~0.85 사이 조절)
+                                maxScale: 1.0,
+                                alignment: .topLeading) {
+                    ZStack {
+                        if showStudyView, let note = selectedNote {
+                            StudyView(note: note) {
+                                showStudyView = false
+                                selectedNote = nil
                             }
-                        )
+                        } else {
+                            HomeView(
+                                onNoteSelected: { note in
+                                    selectedNote = note
+                                    withAnimation { showStudyView = true }
+                                },
+                                onNoteCreated: { note in
+                                    selectedNote = note
+                                    withAnimation { showStudyView = true }
+                                }
+                            )
+                        }
                     }
                 }
+                                .keyboardOverlay()
             }
-                            .keyboardOverlay()
         }
     }
-}
 
-// MARK: - Glass Effect Compatibility (iOS 18+ fallback)
-extension View {
-    /// iOS 26.0 이상에서는 glassEffectUnion을 적용하고,
-    /// 그 미만(iOS 18+ 등)에서는 기본 스타일을 유지하는 래퍼
-    @ViewBuilder
-    func glassEffectUnionCompat(id: String, namespace: Namespace.ID) -> some View {
-        if #available(iOS 26.0, *) {
-            self.glassEffectUnion(id: id, namespace: namespace)
-        } else {
-            self
+    // MARK: - Glass Effect Compatibility (iOS 18+ fallback)
+    extension View {
+        /// iOS 26.0 이상에서는 glassEffectUnion을 적용하고,
+        /// 그 미만(iOS 18+ 등)에서는 기본 스타일을 유지하는 래퍼
+        @ViewBuilder
+        func glassEffectUnionCompat(id: String, namespace: Namespace.ID) -> some View {
+            if #available(iOS 26.0, *) {
+                self.glassEffectUnion(id: id, namespace: namespace)
+            } else {
+                self
+            }
         }
-    }
+    // ... 이하 기존 내용 동일 (headerView, searchBar, sortButton, contentView, emptyState, addButton, historyButton, createNoteTapped 등)
 }
 
+// 라우팅용 노티피케이션 추가
 extension Notification.Name {
     static let showSettings = Notification.Name("ShowSettings")
     static let hideSettings = Notification.Name("HideSettings")
+    static let showTrash = Notification.Name("ShowTrash")
 }
+

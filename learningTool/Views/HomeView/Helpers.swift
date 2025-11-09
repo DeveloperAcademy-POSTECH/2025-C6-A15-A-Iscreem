@@ -29,11 +29,14 @@ extension HomeView {
     }
     
     var filteredNotes: [Note] {
+        // 휴지통 제외
+        let nonTrashed = notes.filter { !$0.isTrashed }
+        
         let base: [Note]
         if let selected = selectedFolderName, selected != "__ALL__" {
-            base = notes.filter { $0.folder?.name == selected }
+            base = nonTrashed.filter { $0.folder?.name == selected }
         } else {
-            base = notes
+            base = nonTrashed
         }
         
         let q = searchQuery
@@ -52,8 +55,9 @@ extension HomeView {
     }
     
     var allItems: [HomeItem] {
-        let folderItems = folders.map { HomeItem.folder($0) }
-        let unfiledNotes = notes.filter { $0.folder == nil }.map { HomeItem.note($0) }
+        // 휴지통 제외
+        let folderItems = folders.filter { !$0.isTrashed }.map { HomeItem.folder($0) }
+        let unfiledNotes = notes.filter { !$0.isTrashed && $0.folder == nil }.map { HomeItem.note($0) }
         let combined = folderItems + unfiledNotes
         return combined.sorted { createdDate(for: $0) > createdDate(for: $1) }
     }
@@ -63,11 +67,11 @@ extension HomeView {
         guard !q.isEmpty else { return allItems }
         
         let matchedFolders = folders
-            .filter { KoreanSearchUtils.matches($0.name, query: q) }
+            .filter { !$0.isTrashed && KoreanSearchUtils.matches($0.name, query: q) }
             .map { HomeItem.folder($0) }
         
         let matchedNotes = notes
-            .filter { KoreanSearchUtils.matches($0.title, query: q) }
+            .filter { !$0.isTrashed && KoreanSearchUtils.matches($0.title, query: q) }
             .map { HomeItem.note($0) }
         
         let combined = matchedFolders + matchedNotes
@@ -105,11 +109,6 @@ private struct CompactScaleModifier: ViewModifier {
 }
 
 extension View {
-    /// Apply proportional scaling only in compact width environments (e.g., iPhone).
-    /// - Parameters:
-    ///   - base: Baseline logical size to preserve ratios against (default: 390x844 = iPhone 12/13/14/15 Portrait class).
-    ///   - min: Minimum scale clamp to keep tap targets usable.
-    ///   - max: Maximum scale clamp (usually 1.0).
     func compactScaled(base: CGSize = CGSize(width: 390, height: 844),
                        min: CGFloat = 0.9,
                        max: CGFloat = 1.0) -> some View {
@@ -117,9 +116,7 @@ extension View {
     }
 }
 
-// MARK: - ScaledContainer (Proportional window scaling)
-// 창 크기에 따라 전체 UI를 비율 유지하며 축소/확대.
-// 기준 해상도(1366x1024) 대비 비율을 구해 0.75~1.0 사이로 클램프.
+// MARK: - ScaledContainer
 struct ScaledContainer<Content: View>: View {
     let baseSize: CGSize
     let minScale: CGFloat
@@ -143,16 +140,14 @@ struct ScaledContainer<Content: View>: View {
     
     var body: some View {
         GeometryReader { geo in
-            // 기준 크기 대비 가로/세로 스케일 → 더 작은 쪽 채택
             let sW = geo.size.width / max(baseSize.width, 1)
             let sH = geo.size.height / max(baseSize.height, 1)
             let raw = min(sW, sH)
-            let scale = min(max(raw, minScale), maxScale) // 0.75~1.0 클램프
+            let scale = min(max(raw, minScale), maxScale)
             
             ZStack(alignment: alignment) {
                 content()
                     .scaleEffect(scale, anchor: .topLeading)
-                // 스케일 후 히트영역 불일치 방지를 위해 논리 프레임을 보정
                     .frame(width: geo.size.width / scale,
                            height: geo.size.height / scale,
                            alignment: alignment)

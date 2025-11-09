@@ -24,6 +24,10 @@ final class Note {
     @Relationship var folder: Folder?
     var videoURL: String?
 
+    // 휴지통(소프트 삭제) 상태
+    var isTrashed: Bool = false
+    var trashedAt: Date? = nil
+
     // ✅ 마지막 시청 위치(초)
     var lastPositionSeconds: Double?
 
@@ -86,4 +90,3 @@ final class Note {
         self.cachedChaptersUpToCurrentBlob = try? JSONEncoder().encode(cachedChaptersUpToCurrent)
     }
 }
-

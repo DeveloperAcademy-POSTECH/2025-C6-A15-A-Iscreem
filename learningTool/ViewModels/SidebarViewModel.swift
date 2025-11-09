@@ -24,43 +24,17 @@ class SidebarViewModel: ObservableObject {
     
     init() {    }
     
-    func addFolderTapped() {
-        print("Add folder tapped")
-    }
-    
-    func deleteFolderTapped() {
-        print("Delete folder tapped")
-    }
-    
-    func editFolderTapped() {
-        print("Edit folder tapped")
-    }
-    
-    func sortButtonTapped() {
-        print("Sort button tapped")
-    }
-    
-    func selectSortOption(_ option: SortOption) {
-        currentSortOption = option
-    }
-    
-    func allViewTapped() {
-        selectedItem = nil
-    }
-    
-    func recentItemsTapped() {
-        selectedItem = nil
-    }
-    
-    func helpTapped() {
-        isHelpPresented = true
-    }
-    
-    func settingsTapped() {
-        NotificationCenter.default.post(name: .showSettings, object: nil)
-    }
-    
+    func addFolderTapped() { }
+    func deleteFolderTapped() { }
+    func editFolderTapped() { }
+    func sortButtonTapped() { }
+    func selectSortOption(_ option: SortOption) { currentSortOption = option }
+    func allViewTapped() { selectedItem = nil }
+    func recentItemsTapped() { selectedItem = nil }
+    func helpTapped() { isHelpPresented = true }
+    func settingsTapped() { NotificationCenter.default.post(name: .showSettings, object: nil) }
     func trashTapped() {
-        print("Trash tapped")
+        NotificationCenter.default.post(name: .showTrash, object: nil)
     }
 }
+
