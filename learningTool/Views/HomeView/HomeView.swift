@@ -751,7 +751,7 @@ struct CoachOverlay: View {
         case .fab:
             return "' ' 버튼을 누르면 ‘노트 생성’과 ‘학습 기록’이 나타나요. 첫 노트를 만들어 보세요."
         case .searchCluster:
-            return "이름으로 검색하고, 정렬과 리스트/그리드를 여기서 바꿔요."
+            return "이름으로 검색하고, 노트 정렬과 리스트/그리드를 여기서 바꿔요."
         case .done:
             return ""
         }

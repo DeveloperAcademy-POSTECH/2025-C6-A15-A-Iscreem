@@ -23,6 +23,9 @@ struct StudyView: View {
     @State private var showGlobalQuestionBar = false
     @FocusState private var globalQuestionFocus: Bool
     
+    @AppStorage("hasSeenStudyOnboarding") private var hasSeenStudyOnboarding: Bool = false
+    @State private var studyOnboardingStep: StudyOnboardingStep = .media
+    
     // 디바이스 타입 감지
     private var isIPad: Bool {
         UIDevice.current.userInterfaceIdiom == .pad
@@ -149,6 +152,13 @@ struct StudyView: View {
                 }
             }
         }
+        .overlayPreferenceValue(StudyTargetBoundsKey.self) { map in
+            if !hasSeenStudyOnboarding {
+                StudyCoachOverlay(step: $studyOnboardingStep, map: map) {
+                    hasSeenStudyOnboarding = true
+                }
+            }
+        }
         .onAppear { captionAnalyzer.autoSummarizeEnabled = true }
         .onChange(of: captionAnalyzer.summaryStatus) { _, newValue in
             if case .ready = newValue {
@@ -233,6 +243,7 @@ struct StudyView: View {
                     MediaView(note: viewModel.currentNote, videoURL: resolvedVideoURL)
                         .frame(width: embedWidth, height: mediaH)
                         .clipped() // 임베드 영역 밖 컨텐츠 숨김(보강)
+                        .tagStudyTarget(.media)
                 }
                 .frame(width: mainW, height: mediaH, alignment: .center)
                 .frame(maxWidth: .infinity, alignment: .top)
@@ -244,6 +255,7 @@ struct StudyView: View {
                 )
                 .frame(width: mainW, height: questionH)
                 .frame(maxWidth: .infinity, alignment: .bottom)
+                .tagStudyTarget(.question)
             }
             .frame(width: mainW, height: totalH)
             
@@ -275,6 +287,7 @@ struct StudyView: View {
                     }
                     .padding(.horizontal, 12)
                     .padding(.vertical, sidebarTopBarVPad)
+                    .tagStudyTarget(.sidebar)
                     
                     Divider().background(Color.borderColor)
                     
@@ -360,6 +373,7 @@ struct StudyView: View {
                 KeywordView(analyzer: captionAnalyzer, studyViewModel: viewModel)
                     .frame(minHeight: 200)
                     .frame(maxWidth: .infinity)
+                    .tagStudyTarget(.sidebar)
                 
                 // MARK: SummaryView (하단 1)
                 SummaryView()
@@ -374,6 +388,7 @@ struct StudyView: View {
                 )
                 .frame(maxWidth: .infinity)
                 .frame(height: phoneQuestionHeight)
+                .tagStudyTarget(.question)
             }
         }
     }
@@ -593,4 +608,144 @@ struct InfoRow: View {
         )
     )
     .environmentObject(CaptionAnalyzer())
+}
+
+
+// MARK: - Study Onboarding Coach Marks
+
+enum StudyOnboardingStep: Int, CaseIterable {
+    case media       // 영상 재생 영역
+    case sidebar     // 요약/키워드 영역(또는 iPad의 세그먼트 바)
+    case question    // 질문(채팅) 영역
+    case done
+}
+
+enum StudyCoachTarget: Hashable {
+    case media
+    case sidebar
+    case question
+}
+
+struct StudyTargetBoundsKey: PreferenceKey {
+    static var defaultValue: [StudyCoachTarget: Anchor<CGRect>] = [:]
+    static func reduce(value: inout [StudyCoachTarget: Anchor<CGRect>], nextValue: () -> [StudyCoachTarget: Anchor<CGRect>]) {
+        value.merge(nextValue(), uniquingKeysWith: { $1 })
+    }
+}
+
+extension View {
+    func tagStudyTarget(_ target: StudyCoachTarget) -> some View {
+        anchorPreference(key: StudyTargetBoundsKey.self, value: .bounds) { [target: $0] }
+    }
+}
+
+struct StudyCoachOverlay: View {
+    @Binding var step: StudyOnboardingStep
+    let map: [StudyCoachTarget: Anchor<CGRect>]
+    let onFinish: () -> Void
+
+    var body: some View {
+        GeometryReader { proxy in
+            let rect = targetRect(in: proxy)
+            // Bubble size and smart positioning
+            let bubbleWidth: CGFloat = min(360.0, proxy.size.width - 40.0)
+            let rightEdgeClose = rect.maxX > proxy.size.width - 60
+            let placeAbove = (step == .question)
+
+            // X positions
+            let xBelow = min(max(rect.midX, bubbleWidth/2 + 20), proxy.size.width - bubbleWidth/2 - 20)
+            let xLeft  = max(bubbleWidth/2 + 20, rect.minX - 16 - bubbleWidth/2)
+            let bubbleX = (placeAbove && rightEdgeClose) ? xLeft : xBelow
+
+            // Y positions
+            let yBelow = min(rect.maxY + 90, proxy.size.height - 80)
+            let yAbove = max(rect.minY - 90, 100)
+            let bubbleY = placeAbove ? yAbove : yBelow
+
+            ZStack {
+                Color.black.opacity(0.45).ignoresSafeArea()
+
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(.white.opacity(0.95), lineWidth: 2)
+                    .frame(width: rect.width, height: rect.height)
+                    .position(x: rect.midX, y: rect.midY)
+
+                VStack(spacing: 10) {
+                    Text(title)
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(.white)
+                    Text(message)
+                        .multilineTextAlignment(.center)
+                        .font(.system(size: 14))
+                        .foregroundStyle(.white.opacity(0.9))
+                        .frame(maxWidth: .infinity)
+                    HStack {
+                        Button("건너뛰기") { onFinish() }
+                        Spacer()
+                        Button(nextButtonTitle) { next() }
+                            .buttonStyle(.borderedProminent)
+                    }
+                }
+                .padding(16)
+                .frame(width: bubbleWidth)
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
+                .position(x: bubbleX, y: bubbleY)
+            }
+        }
+    }
+
+    private func next() {
+        switch step {
+        case .media:   step = .sidebar
+        case .sidebar: step = .question
+        case .question, .done:
+            onFinish()
+        }
+    }
+
+    private var nextButtonTitle: String {
+        switch step {
+        case .question, .done: return "완료"
+        default: return "다음"
+        }
+    }
+
+    private var title: String {
+        switch step {
+        case .media:   return "영상 재생"
+        case .sidebar: return "요약 · 키워드"
+        case .question:return "질문하기(채팅)"
+        case .done:    return ""
+        }
+    }
+
+    private var message: String {
+        switch step {
+        case .media:
+            return "여기서 영상이 재생돼요."
+        case .sidebar:
+            return "영상에 맞춰 요약과 키워드가 자동으로 표시돼요."
+        case .question:
+            return "모르는 건 채팅으로 질문해보세요. 대화는 학습 기록에 남길 수 있어요."
+        case .done:
+            return ""
+        }
+    }
+
+    private func targetRect(in proxy: GeometryProxy) -> CGRect {
+        func rect(for key: StudyCoachTarget) -> CGRect? {
+            guard let anchor = map[key] else { return nil }
+            return proxy[anchor]
+        }
+        switch step {
+        case .media:    return rect(for: .media)    ?? fallback(proxy)
+        case .sidebar:  return rect(for: .sidebar)  ?? fallback(proxy)
+        case .question: return rect(for: .question) ?? fallback(proxy)
+        case .done:     return fallback(proxy)
+        }
+    }
+
+    private func fallback(_ proxy: GeometryProxy) -> CGRect {
+        CGRect(x: proxy.size.width/2 - 80, y: proxy.size.height/2 - 40, width: 160, height: 80)
+    }
 }
