@@ -47,6 +47,9 @@ struct HomeView: View {
     @Namespace private var glassNS
     @AppStorage("hasSeenHomeOnboarding") private var hasSeenHomeOnboarding: Bool = false
     @State private var onboardingStep: OnboardingStep = .makeFolder
+    @AppStorage("hasSeenHomePostNoteOnboarding") private var hasSeenHomePostNoteOnboarding: Bool = false
+    @State private var postOnboardingStep: PostHomeOnboardingStep = .list
+    @State private var shouldTriggerPostOnboarding: Bool = false
 
     // 휴지통 화면 표시
     @State private var isShowingTrash: Bool = false
@@ -192,6 +195,16 @@ struct HomeView: View {
                 isShowingSettings = false
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .returnedFromStudyView)) { _ in
+            if !hasSeenHomePostNoteOnboarding {
+                postOnboardingStep = .list
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        shouldTriggerPostOnboarding = true
+                    }
+                }
+            }
+        }
         .onAppear {
             // 앱 시작 직후 ‘전체 보기’로 진입 → + 버튼 보이게
             if selectedFolderName == nil {
@@ -206,6 +219,14 @@ struct HomeView: View {
             _ = learningLogStore.reconcileWithNotes(currentNotes: notes)
             // 4) ✅ 재실행 시에도 동일하게 보이도록, 노트 캐시로 메모리 맵 프리로드
             learningLogStore.preloadChapterSummariesFromNotes(currentNotes: notes)
+            // ✔️ StudyView에서 복귀 플래그가 있으면 포스트 온보딩 실행 (노티가 누락되어도 동작)
+            if !hasSeenHomePostNoteOnboarding && UserDefaults.standard.bool(forKey: "TriggerPostHomeOnboarding") {
+                UserDefaults.standard.set(false, forKey: "TriggerPostHomeOnboarding")
+                postOnboardingStep = .list
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    shouldTriggerPostOnboarding = true
+                }
+            }
         }
         .onChange(of: notes) { _, newValue in
             _ = learningLogStore.bootstrapSessionsIfNeeded(currentNotes: newValue)
@@ -222,6 +243,14 @@ struct HomeView: View {
             if !hasSeenHomeOnboarding {
                 CoachOverlay(step: $onboardingStep, map: map) {
                     hasSeenHomeOnboarding = true
+                }
+            }
+        }
+        .overlayPreferenceValue(PostHomeTargetBoundsKey.self) { map in
+            if shouldTriggerPostOnboarding && !hasSeenHomePostNoteOnboarding {
+                PostHomeCoachOverlay(step: $postOnboardingStep, map: map) {
+                    hasSeenHomePostNoteOnboarding = true
+                    shouldTriggerPostOnboarding = false
                 }
             }
         }
@@ -255,6 +284,7 @@ struct HomeView: View {
                     .frame(width: 116, height: 36)
                 }
                 .tagTarget(.searchCluster)
+                .tagPostHomeTarget(.searchCluster)
             }
             .padding()
         }
@@ -360,6 +390,7 @@ struct HomeView: View {
                     )
                 }
             }
+            .tagPostHomeTarget(.homeList)
         }
         
         // MARK: - Empty State
@@ -589,7 +620,7 @@ struct HomeView: View {
             
             var body: some View {
                 ScaledContainer(baseSize: CGSize(width: 1366, height: 1024),
-                                minScale: 0.78,  // 터치 최소 44pt 근사 유지용(원하면 0.75~0.85 사이 조절)
+                                minScale: 0.78,
                                 maxScale: 1.0,
                                 alignment: .topLeading) {
                     ZStack {
@@ -597,6 +628,9 @@ struct HomeView: View {
                             StudyView(note: note) {
                                 showStudyView = false
                                 selectedNote = nil
+                                DispatchQueue.main.async {
+                                    NotificationCenter.default.post(name: .returnedFromStudyView, object: nil)
+                                }
                             }
                         } else {
                             HomeView(
@@ -612,7 +646,7 @@ struct HomeView: View {
                         }
                     }
                 }
-                                .keyboardOverlay()
+                .keyboardOverlay()
             }
         }
     }
@@ -637,6 +671,7 @@ extension Notification.Name {
     static let showSettings = Notification.Name("ShowSettings")
     static let hideSettings = Notification.Name("HideSettings")
     static let showTrash = Notification.Name("ShowTrash")
+    static let returnedFromStudyView = Notification.Name("ReturnedFromStudyView")
 }
 // MARK: - Onboarding (Coach Marks)
 
@@ -749,7 +784,7 @@ struct CoachOverlay: View {
         case .makeFolder:
             return "+ 버튼으로 폴더를 만들어요. 이름은 스와이프로 수정/삭제할 수 있어요."
         case .fab:
-            return "' ' 버튼을 누르면 ‘노트 생성’과 ‘학습 기록’이 나타나요. 첫 노트를 만들어 보세요."
+            return "우하단 버튼을 누르면 ‘노트 생성’과 ‘학습 기록’이 나타나요. 첫 노트를 만들어 보세요."
         case .searchCluster:
             return "이름으로 검색하고, 노트 정렬과 리스트/그리드를 여기서 바꿔요."
         case .done:
@@ -771,6 +806,139 @@ struct CoachOverlay: View {
     }
 
     private func fallbackRect(_ proxy: GeometryProxy) -> CGRect {
+        CGRect(x: proxy.size.width/2 - 80, y: proxy.size.height/2 - 40, width: 160, height: 80)
+    }
+}
+
+
+// MARK: - Post-First-Note Onboarding (Home)
+
+enum PostHomeOnboardingStep: Int, CaseIterable {
+    case list        // 노트 목록 안내
+    case controls    // 검색/정렬/보기 전환 안내
+    case done
+}
+
+enum PostHomeCoachTarget: Hashable {
+    case homeList
+    case searchCluster
+}
+
+struct PostHomeTargetBoundsKey: PreferenceKey {
+    static var defaultValue: [PostHomeCoachTarget: Anchor<CGRect>] = [:]
+    static func reduce(value: inout [PostHomeCoachTarget: Anchor<CGRect>], nextValue: () -> [PostHomeCoachTarget: Anchor<CGRect>]) {
+        value.merge(nextValue(), uniquingKeysWith: { $1 })
+    }
+}
+
+extension View {
+    func tagPostHomeTarget(_ target: PostHomeCoachTarget) -> some View {
+        anchorPreference(key: PostHomeTargetBoundsKey.self, value: .bounds) { [target: $0] }
+    }
+}
+
+struct PostHomeCoachOverlay: View {
+    @Binding var step: PostHomeOnboardingStep
+    let map: [PostHomeCoachTarget: Anchor<CGRect>]
+    let onFinish: () -> Void
+
+    var body: some View {
+        GeometryReader { proxy in
+            let rect = targetRect(in: proxy)
+
+            // bubble size & smart position
+            let bubbleWidth: CGFloat = min(360.0, proxy.size.width - 40.0)
+            let nearRight = rect.maxX > proxy.size.width - 60
+            let placeLeft = (step == .controls && nearRight)
+
+            let xBelow = min(max(rect.midX, bubbleWidth/2 + 20), proxy.size.width - bubbleWidth/2 - 20)
+            let xLeft  = max(bubbleWidth/2 + 20, rect.minX - 16 - bubbleWidth/2)
+            let bubbleX = placeLeft ? xLeft : xBelow
+
+            let yBelow = min(rect.maxY + 90, proxy.size.height - 80)
+            let yAbove = max(rect.minY - 90, 100)
+            // 목록은 상단 공간 충분하면 위, 아니면 아래 / 컨트롤은 기본 아래
+            let bubbleY = (step == .controls) ? yBelow : (rect.minY < 140 ? yBelow : yAbove)
+
+            ZStack {
+                Color.black.opacity(0.45).ignoresSafeArea()
+
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(.white.opacity(0.95), lineWidth: 2)
+                    .frame(width: rect.width, height: rect.height)
+                    .position(x: rect.midX, y: rect.midY)
+
+                VStack(spacing: 10) {
+                    Text(title)
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(.white)
+                    Text(message)
+                        .multilineTextAlignment(.center)
+                        .font(.system(size: 14))
+                        .foregroundStyle(.white.opacity(0.9))
+                        .frame(maxWidth: .infinity)
+                    HStack {
+                        Button("건너뛰기") { onFinish() }
+                        Spacer()
+                        Button(nextButtonTitle) { next() }
+                            .buttonStyle(.borderedProminent)
+                    }
+                }
+                .padding(16)
+                .frame(width: bubbleWidth)
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
+                .position(x: bubbleX, y: bubbleY)
+            }
+        }
+    }
+
+    private func next() {
+        switch step {
+        case .list:     step = .controls
+        case .controls, .done:
+            onFinish()
+        }
+    }
+
+    private var nextButtonTitle: String {
+        switch step {
+        case .controls, .done: return "완료"
+        default: return "다음"
+        }
+    }
+
+    private var title: String {
+        switch step {
+        case .list:     return "노트 목록"
+        case .controls: return "검색 · 정렬 · 보기 전환"
+        case .done:     return ""
+        }
+    }
+
+    private var message: String {
+        switch step {
+        case .list:
+            return "방금 만든 노트가 여기 목록에 표시돼요. 목록에서 노트를 눌러 학습을 이어가요."
+        case .controls:
+            return "여기서 이름으로 검색하고, 정렬을 바꾸고, 리스트/그리드 보기로 전환할 수 있어요."
+        case .done:
+            return ""
+        }
+    }
+
+    private func targetRect(in proxy: GeometryProxy) -> CGRect {
+        func rect(for key: PostHomeCoachTarget) -> CGRect? {
+            guard let anchor = map[key] else { return nil }
+            return proxy[anchor]
+        }
+        switch step {
+        case .list:     return rect(for: .homeList)      ?? fallback(proxy)
+        case .controls: return rect(for: .searchCluster) ?? fallback(proxy)
+        case .done:     return fallback(proxy)
+        }
+    }
+
+    private func fallback(_ proxy: GeometryProxy) -> CGRect {
         CGRect(x: proxy.size.width/2 - 80, y: proxy.size.height/2 - 40, width: 160, height: 80)
     }
 }

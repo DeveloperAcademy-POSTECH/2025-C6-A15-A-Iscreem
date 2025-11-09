@@ -65,6 +65,8 @@ struct StudyView: View {
                     NotificationCenter.default.post(name: .persistPlaybackPosition, object: viewModel.currentNote)
                     // ▶︎ 2) 즉시 일시정지/정지 요청 (재생 중지)
                     NotificationCenter.default.post(name: .pausePlaybackRequested, object: nil)
+                    // 홈 복귀 시 포스트 온보딩 트리거 플래그
+                    UserDefaults.standard.set(true, forKey: "TriggerPostHomeOnboarding")
                     // JS 질의가 완료될 수 있도록 아주 짧게 지연 후 닫기
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                         onDismiss?()
