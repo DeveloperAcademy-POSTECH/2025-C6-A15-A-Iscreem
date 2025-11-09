@@ -111,6 +111,7 @@ https://github.com/user-attachments/assets/e98da29a-7157-47d5-a971-de8b2e455354
 │   ├── Views
 │   │   ├── HomeView
 │   │   │   ├── CreateNoteView.swift
+│   │   │   ├── DestructiveConfirmAlertView.swift
 │   │   │   ├── FolderDeleteView.swift
 │   │   │   ├── GridMode.swift
 │   │   │   ├── Helpers.swift
@@ -119,6 +120,8 @@ https://github.com/user-attachments/assets/e98da29a-7157-47d5-a971-de8b2e455354
 │   │   │   ├── Overlay.swift
 │   │   │   ├── SettingView.swift
 │   │   │   ├── SidebarView.swift
+│   │   │   ├── TrashService.swift
+│   │   │   ├── TrashView.swift
 │   │   │   ├── Utils
 │   │   │   │   ├── KoreanSearchUtils.swift
 │   │   │   │   └── NoteFormattingUtils.swift
@@ -136,7 +139,8 @@ https://github.com/user-attachments/assets/e98da29a-7157-47d5-a971-de8b2e455354
 │   │       ├── QuestionView.swift
 │   │       ├── StudyView.swift
 │   │       ├── SuggestionsSheetView.swift
-│   │       └── SummaryView.swift
+│   │       ├── SummaryView.swift
+│   │       └── UIEffects.swift
 │   └── Web
 │       ├── YouTubeThumbnail.swift
 │       ├── YouTubeWebViewHost.swift
@@ -168,6 +172,7 @@ https://github.com/user-attachments/assets/e98da29a-7157-47d5-a971-de8b2e455354
 │               └── xcschememanagement.plist
 ├── LICENSE
 └── README.md
+
 
 ```
 
