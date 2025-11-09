@@ -107,6 +107,7 @@ struct HomeView: View {
                         .background(Color(.systemBackground))
                 }
             }
+            .navigationBarBackButtonHidden(horizontalSizeClass == .compact)
         }
         .overlay(alignment: .bottomTrailing) {
             VStack(spacing: 20) {
