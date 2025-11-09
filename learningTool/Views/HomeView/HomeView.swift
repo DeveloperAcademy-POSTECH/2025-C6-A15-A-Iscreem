@@ -18,6 +18,7 @@ struct HomeView: View {
     
     @EnvironmentObject private var learningLogStore: LearningLogStore
     @State private var showStudyHistory: Bool = false
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     
     @Environment(\.modelContext) var modelContext
     @Query(sort: [SortDescriptor(\Note.lastRead, order: .reverse)]) var notes: [Note]
@@ -34,6 +35,7 @@ struct HomeView: View {
     
     @State var headerSort: HeaderSortOption = .recentlyOpenedDesc
     @State var showNoteSortMenu = false
+    @State private var preferredCompactColumn: NavigationSplitViewColumn = .detail
     
     let columns = [GridItem(.adaptive(minimum: 200, maximum: 250), spacing: 16)]
     
@@ -56,7 +58,7 @@ struct HomeView: View {
     }
     
     var body: some View {
-        NavigationSplitView {
+        NavigationSplitView(preferredCompactColumn: $preferredCompactColumn) {
             SidebarView(onFolderSelected: { name in
                 isShowingSettings = false
                 isShowingTrash = false
@@ -216,7 +218,11 @@ struct HomeView: View {
     }
     // MARK: - Header View
         private var headerView: some View {
-            HStack {
+            HStack(spacing: 12) {
+                // 📱 Compact (iPhone / 좁은 폭)일 때: 좌측에 리퀴드 글래스 메뉴 버튼
+                if horizontalSizeClass == .compact {
+                    sidebarMenuButton
+                }
                 VStack(alignment: .leading, spacing: 4) {
                     Text("{$app_name}")
                         .font(.system(size: 28, weight: .semibold))
@@ -465,6 +471,83 @@ struct HomeView: View {
             }
             .buttonStyle(.plain)
         }
+    
+    // MARK: - Sidebar Compact Menu Button (Liquid Glass)
+    private var sidebarMenuButton: some View {
+        Menu {
+            // 전체 보기
+            Button {
+                headerSubtitle = "전체 보기"
+                selectedFolderName = "__ALL__"
+                isShowingTrash = false
+                isShowingSettings = false
+            } label: {
+                Label("전체 보기", systemImage: "square.grid.2x2")
+            }
+            
+            // 최근 열어본 항목
+            Button {
+                headerSubtitle = "최근 열어본 항목"
+                selectedFolderName = nil
+                isShowingTrash = false
+                isShowingSettings = false
+            } label: {
+                Label("최근 열어본 항목", systemImage: "clock")
+            }
+            
+            // 폴더 목록
+            if !folders.isEmpty {
+                Section("폴더") {
+                    ForEach(folders) { folder in
+                        Button {
+                            headerSubtitle = folder.name
+                            selectedFolderName = folder.name
+                            isShowingTrash = false
+                            isShowingSettings = false
+                        } label: {
+                            Label(folder.name, systemImage: "folder")
+                        }
+                    }
+                }
+            }
+            
+            // 도움말 / 설정 / 휴지통
+            Section {
+                Button {
+                    isHelpPresented = true
+                } label: {
+                    Label("도움말", systemImage: "questionmark.circle")
+                }
+                
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        isShowingSettings = true
+                        isShowingTrash = false
+                    }
+                } label: {
+                    Label("설정", systemImage: "gearshape")
+                }
+                
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        isShowingTrash = true
+                        isShowingSettings = false
+                    }
+                } label: {
+                    Label("휴지통", systemImage: "trash")
+                }
+            }
+        } label: {
+            GlassEffectContainer(spacing: 0) {
+                Image(systemName: "line.3.horizontal")
+                    .font(.system(size: 18, weight: .semibold))
+                    .frame(width: 32, height: 32)
+                    .glassEffect()
+                    .glassEffectUnionCompat(id: "sidebar-menu", namespace: glassNS)
+            }
+        }
+        .buttonStyle(.plain)
+    }
         
         // MARK: - Actions
         private func createNoteTapped() {
