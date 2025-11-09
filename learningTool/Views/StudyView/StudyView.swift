@@ -649,6 +649,10 @@ struct StudyCoachOverlay: View {
     var body: some View {
         GeometryReader { proxy in
             let rect = targetRect(in: proxy)
+            // ✅ 강조 영역 확장
+            let highlightPadding: CGFloat = 12
+            let highlightRect = rect.insetBy(dx: -highlightPadding, dy: -highlightPadding)
+
             // Bubble size and smart positioning
             let bubbleWidth: CGFloat = min(360.0, proxy.size.width - 40.0)
             let rightEdgeClose = rect.maxX > proxy.size.width - 60
@@ -670,16 +674,16 @@ struct StudyCoachOverlay: View {
                     .ignoresSafeArea()
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
-                            .frame(width: rect.width, height: rect.height)
-                            .position(x: rect.midX, y: rect.midY)
+                            .frame(width: highlightRect.width, height: highlightRect.height)
+                            .position(x: highlightRect.midX, y: highlightRect.midY)
                             .blendMode(.destinationOut)
                     )
                     .compositingGroup()
 
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(.white.opacity(0.95), lineWidth: 2)
-                    .frame(width: rect.width, height: rect.height)
-                    .position(x: rect.midX, y: rect.midY)
+                    .stroke(Color.clear, lineWidth: 2)
+                    .frame(width: highlightRect.width, height: highlightRect.height)
+                    .position(x: highlightRect.midX, y: highlightRect.midY)
 
                 VStack(spacing: 10) {
                     Text(title)

@@ -712,8 +712,12 @@ struct CoachOverlay: View {
     var body: some View {
         GeometryReader { proxy in
             let rect = targetRect(in: proxy)
+            // ✅ 강조 영역을 타깃보다 조금 더 크게
+            let highlightPadding: CGFloat = 12
+            let highlightRect = rect.insetBy(dx: -highlightPadding, dy: -highlightPadding)
+
             // Bubble position and clamping logic
-            let bubbleWidth: CGFloat = min(360.0, proxy.size.width - 40.0) // 20pt horizontal margins
+            let bubbleWidth: CGFloat = min(360.0, proxy.size.width - 40.0)
             let isRightEdge = rect.maxX > proxy.size.width - 60
             // Preferred X when placing bubble to the LEFT of the target
             let bubbleLeftPreferred = rect.minX - 16 - bubbleWidth / 2
@@ -725,21 +729,26 @@ struct CoachOverlay: View {
             let bubbleYBelow = min(rect.maxY + 90, proxy.size.height - 80)
             let bubbleYCentered = min(max(rect.midY, 100), proxy.size.height - 100)
             let bubbleY = (step == .fab || isRightEdge) ? bubbleYCentered : bubbleYBelow
+
             ZStack {
+                // ✅ 내부는 뚫고(회색 제외), 크기는 highlightRect 사용
                 Rectangle()
                     .fill(Color.black.opacity(0.45))
                     .ignoresSafeArea()
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
-                            .frame(width: rect.width, height: rect.height)
-                            .position(x: rect.midX, y: rect.midY)
+                            .frame(width: highlightRect.width, height: highlightRect.height)
+                            .position(x: highlightRect.midX, y: highlightRect.midY)
                             .blendMode(.destinationOut)
                     )
                     .compositingGroup()
+
+                // ✅ 테두리도 highlightRect 기준
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(.white.opacity(0.95), lineWidth: 2)
-                    .frame(width: rect.width, height: rect.height)
-                    .position(x: rect.midX, y: rect.midY)
+                    .stroke(Color.clear, lineWidth: 2)
+                    .frame(width: highlightRect.width, height: highlightRect.height)
+                    .position(x: highlightRect.midX, y: highlightRect.midY)
+
                 VStack(spacing: 10) {
                     Text(title)
                         .font(.system(size: 18, weight: .semibold))
@@ -855,6 +864,10 @@ struct PostHomeCoachOverlay: View {
         GeometryReader { proxy in
             let rect = targetRect(in: proxy)
 
+            // ✅ 강조 영역 확장
+            let highlightPadding: CGFloat = 12
+            let highlightRect = rect.insetBy(dx: -highlightPadding, dy: -highlightPadding)
+
             // bubble size & smart position
             let bubbleWidth: CGFloat = min(360.0, proxy.size.width - 40.0)
             let nearRight = rect.maxX > proxy.size.width - 60
@@ -875,16 +888,16 @@ struct PostHomeCoachOverlay: View {
                     .ignoresSafeArea()
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
-                            .frame(width: rect.width, height: rect.height)
-                            .position(x: rect.midX, y: rect.midY)
+                            .frame(width: highlightRect.width, height: highlightRect.height)
+                            .position(x: highlightRect.midX, y: highlightRect.midY)
                             .blendMode(.destinationOut)
                     )
                     .compositingGroup()
 
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(.white.opacity(0.95), lineWidth: 2)
-                    .frame(width: rect.width, height: rect.height)
-                    .position(x: rect.midX, y: rect.midY)
+                    .stroke(Color.clear, lineWidth: 2)
+                    .frame(width: highlightRect.width, height: highlightRect.height)
+                    .position(x: highlightRect.midX, y: highlightRect.midY)
 
                 VStack(spacing: 10) {
                     Text(title)
