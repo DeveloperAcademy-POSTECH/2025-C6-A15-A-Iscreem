@@ -26,7 +26,6 @@ struct SidebarView: View {
     }
     
     @StateObject private var viewModel = SidebarViewModel()
-    @State private var showSortMenu = false
 
     @Environment(\.modelContext) private var modelContext
     @Query private var folders: [Folder]
@@ -41,6 +40,9 @@ struct SidebarView: View {
     @State private var isDeletingFolders = false
     @State private var selectedFolderIDs = Set<PersistentIdentifier>()
 
+    // Glass 효과 유니온용 네임스페이스 (HomeView와 동일 스타일)
+    @Namespace private var glassNS
+
     // 256:762 비율 유지 (사이드바:메인)
     private let sidebarRatio: CGFloat = 256.0 / (256.0 + 762.0) // ≈ 0.2514
 
@@ -49,7 +51,7 @@ struct SidebarView: View {
             // 상단 폴더 섹션
             VStack(spacing: 0) {
                 HStack(spacing: 16) {
-                    // 폴더 추가
+                    // 폴더 추가 (+ 심볼, 기존 컬러 유지)
                     Button {
                         isDeletingFolders = false
                         selectedFolderIDs.removeAll()
@@ -57,93 +59,37 @@ struct SidebarView: View {
                         newFolderName = ""
                         DispatchQueue.main.async { newFolderFieldFocused = true }
                     } label: {
-                        ZStack {
-                            Image(systemName: "folder.fill")
-                                .foregroundStyle(Color.secondColor)
-                                .font(.system(size: 20))
-                            ZStack {
-                                Circle().fill(.white).frame(width: 12, height: 12)
-                                Image(systemName: "plus")
-                                    .foregroundStyle(Color.secondColor)
-                                    .font(.system(size: 8, weight: .bold))
-                            }
-                            .offset(x: 8, y: -6)
-                        }
-                    }
-                    .buttonStyle(.plain)
-
-                    // 폴더 삭제 (선택된 폴더)
-                    Button {
-                        if isDeletingFolders {
-                            if !selectedFolderIDs.isEmpty {
-                                // 선택이 있으면 부모에 삭제 확인 오버레이 요청
-                                requestDeleteConfirmation?(selectedFolderIDs)
-                            } else {
-                                // 선택이 없으면 삭제 모드 종료
-                                isDeletingFolders = false
-                            }
-                        } else {
-                            // 삭제 선택 모드로 진입
-                            isDeletingFolders = true
-                            selectedFolderIDs.removeAll()
-                        }
-                    } label: {
-                        ZStack {
-                            Image(systemName: "folder.fill")
-                                .foregroundStyle(Color.secondColor)
-                                .font(.system(size: 20))
-                            ZStack {
-                                Circle().fill(.white).frame(width: 12, height: 12)
-                                Image(systemName: "minus")
-                                    .foregroundStyle(Color.secondColor)
-                                    .font(.system(size: 8, weight: .bold))
-                            }
-                            .offset(x: 8, y: -6)
-                        }
-                    }
-                    .buttonStyle(.plain)
-
-                    // 폴더 이름 변경(선택된 폴더)
-                    Button {
-                        // 다른 모드 종료
-                        isDeletingFolders = false
-                        isAddingFolder = false
-                        newFolderFieldFocused = false
-
-                        if let selectedID = viewModel.selectedItem,
-                           let target = folders.first(where: { $0.persistentModelID == selectedID }) {
-                            folderToRename = target
-                            folderRenameText = target.name
-                            isRenamingSheet = true
-                        }
-                    } label: {
-                        ZStack {
-                            Image(systemName: "folder.fill")
-                                .foregroundStyle(Color.secondColor)
-                                .font(.system(size: 20))
-                            ZStack {
-                                Circle().fill(.white).frame(width: 12, height: 12)
-                                Image(systemName: "gearshape.fill")
-                                    .foregroundStyle(Color.secondColor)
-                                    .font(.system(size: 7))
-                            }
-                            .offset(x: 8, y: -6)
-                        }
+                        Image(systemName: "plus")
+                            .foregroundStyle(Color.secondColor)
+                            .font(.system(size: 20, weight: .bold))
                     }
                     .buttonStyle(.plain)
 
                     Spacer()
 
-                    // 정렬 버튼
-                    Button { showSortMenu.toggle() } label: {
-                        Image(systemName: "arrow.up.arrow.down")
-                            .foregroundStyle(Color.secondColor)
-                            .font(.system(size: 20))
+                    // 홈뷰 스타일의 정렬 버튼 (Menu + Picker, Glass 스타일)
+                    Menu {
+                        Picker("정렬 기준", selection: $viewModel.currentSortOption) {
+                            Label("가나다 순(↑)", systemImage: "a.circle")
+                                .tag(SortOption.nameAscending)
+                            Label("가나다 순(↓)", systemImage: "a.circle")
+                                .tag(SortOption.nameDescending)
+                            Label("생성일(↑)", systemImage: "clock")
+                                .tag(SortOption.dateAscending)
+                            Label("생성일(↓)", systemImage: "clock")
+                                .tag(SortOption.dateDescending)
+                        }
+                    } label: {
+                        GlassEffectContainer(spacing: 0) {
+                            Image(systemName: "line.3.horizontal.decrease")
+                                .font(.system(size: 16, weight: .semibold))
+                                .frame(width: 36, height: 36)
+                                .glassEffect()
+                                .glassEffectUnionCompat(id: "sidebar-sort", namespace: glassNS)
+                        }
+                        .tint(Color.text2)
                     }
-                    .buttonStyle(.plain)
-                    .popover(isPresented: $showSortMenu, arrowEdge: .top) {
-                        sortMenuView
-                    }
+                    .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 2)
                 }
                 .padding(.horizontal, 20)
                 // 고정 50 → 안전영역을 고려한 top 패딩
@@ -222,6 +168,43 @@ struct SidebarView: View {
                             .buttonStyle(.plain)
                             .listRowBackground(Color.clear)
                             .listRowInsets(EdgeInsets(top: 6, leading: 32, bottom: 6, trailing: 20))
+                            // 길게 누르기(컨텍스트 메뉴)로 이름 변경/삭제 제공
+                            .contextMenu {
+                                Button {
+                                    // 이름 변경 진입
+                                    folderToRename = folder
+                                    folderRenameText = folder.name
+                                    isRenamingSheet = true
+                                } label: {
+                                    Label("이름 변경", systemImage: "pencil")
+                                }
+                                Button(role: .destructive) {
+                                    // 단일 폴더 삭제 확인 요청
+                                    let id = folder.persistentModelID
+                                    requestDeleteConfirmation?(Set([id]))
+                                } label: {
+                                    Label("삭제", systemImage: "trash")
+                                }
+                            }
+                            // 스와이프 액션: 왼쪽(이름 변경), 오른쪽(삭제)
+                            .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                                Button {
+                                    folderToRename = folder
+                                    folderRenameText = folder.name
+                                    isRenamingSheet = true
+                                } label: {
+                                    Label("이름 변경", systemImage: "pencil")
+                                }
+                                .tint(Color.secondColor)
+                            }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button(role: .destructive) {
+                                    let id = folder.persistentModelID
+                                    requestDeleteConfirmation?(Set([id]))
+                                } label: {
+                                    Label("삭제", systemImage: "trash")
+                                }
+                            }
                         }
                     }
                     if isAddingFolder {
@@ -356,55 +339,6 @@ struct SidebarView: View {
         .contentShape(Rectangle())
     }
     
-    @ViewBuilder
-    private var sortMenuView: some View {
-        VStack(spacing: 0) {
-            ForEach(SortOption.allCases, id: \.self) { option in
-                Button {
-                    viewModel.currentSortOption = option
-                    showSortMenu = false
-                } label: {
-                    HStack(spacing: 12) {
-                        ZStack {
-                            Circle()
-                                .stroke(viewModel.currentSortOption == option ? Color.text1 : Color.text3, lineWidth: 1.5)
-                                .frame(width: 18, height: 18)
-                            if viewModel.currentSortOption == option {
-                                Circle().fill(Color.text1).frame(width: 10, height: 10)
-                            }
-                            if option == .nameAscending || option == .nameDescending {
-                                Text("A")
-                                    .foregroundStyle(viewModel.currentSortOption == option ? Color.text1 : Color.text3)
-                                    .font(.system(size: 10, weight: .semibold))
-                            } else {
-                                Image(systemName: "clock")
-                                    .foregroundStyle(viewModel.currentSortOption == option ? Color.text1 : Color.text3)
-                                    .font(.system(size: 10))
-                            }
-                        }
-                        Text(option.rawValue)
-                            .foregroundStyle(viewModel.currentSortOption == option ? Color.text1 : Color.text3)
-                            .font(.buttonText)
-                        Spacer()
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-
-                if option != SortOption.allCases.last {
-                    Divider().background(Color.borderColor).padding(.horizontal, 16)
-                }
-            }
-        }
-        // 고정 프레임 제거 → 자연스러운 컨텐츠 적응 + 폭 상/하한만 둠
-        .frame(minWidth: 180, idealWidth: 220, maxWidth: 280)
-        .sidebarMenuGlassCompat()
-        .presentationCompactAdaptation(.popover)
-    }
-
-
     private var sortedFolders: [Folder] {
         switch viewModel.currentSortOption {
         case .nameAscending:
