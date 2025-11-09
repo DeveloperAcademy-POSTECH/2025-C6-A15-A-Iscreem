@@ -665,7 +665,16 @@ struct StudyCoachOverlay: View {
             let bubbleY = placeAbove ? yAbove : yBelow
 
             ZStack {
-                Color.black.opacity(0.45).ignoresSafeArea()
+                Rectangle()
+                    .fill(Color.black.opacity(0.45))
+                    .ignoresSafeArea()
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .frame(width: rect.width, height: rect.height)
+                            .position(x: rect.midX, y: rect.midY)
+                            .blendMode(.destinationOut)
+                    )
+                    .compositingGroup()
 
                 RoundedRectangle(cornerRadius: 12)
                     .stroke(.white.opacity(0.95), lineWidth: 2)
