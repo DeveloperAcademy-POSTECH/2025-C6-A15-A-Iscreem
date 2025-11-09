@@ -63,7 +63,6 @@ extension HomeView {
         }
     }
     
-    // MARK: - List Header Row
     @ViewBuilder
     func listHeaderRow() -> some View {
         HStack {
@@ -92,7 +91,7 @@ extension HomeView {
         .background(Color.background1)
     }
     
-    // MARK: - 🔵 Note Row (리스트 모드 노트 행)
+    // MARK: - 🔵 Note Row
     @ViewBuilder
     func noteRow(
         _ note: Note,
@@ -138,18 +137,18 @@ extension HomeView {
         .contentShape(Rectangle())
         .onTapGesture { onNoteSelected?(note) }
         .contextMenu {
-            // 🔵 컨텍스트 메뉴 버튼들
             Button {
                 noteToRename.wrappedValue = note
                 renameText.wrappedValue = note.title
             } label: {
                 Label("이름 변경", systemImage: "pencil")
             }
-            Button(role: .destructive) {
-                modelContext.delete(note)
+            Button {
+                note.isTrashed = true
+                note.trashedAt = Date()
                 try? modelContext.save()
             } label: {
-                Label("삭제", systemImage: "trash")
+                Label("휴지통으로 이동", systemImage: "trash")
             }
         }
     }
@@ -167,7 +166,6 @@ extension HomeView {
     ) -> some View {
         switch item {
         case .folder(let folder):
-            // 🔵 폴더 행 버튼 (Liquid Glass 효과)
             Button {
                 selectedFolderName.wrappedValue = folder.name
                 headerSubtitle.wrappedValue = folder.name

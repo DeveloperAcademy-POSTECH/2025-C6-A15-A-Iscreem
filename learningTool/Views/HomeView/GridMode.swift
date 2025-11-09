@@ -45,18 +45,19 @@ extension HomeView {
                     NoteComponent(note: note)
                         .onTapGesture { onNoteSelected?(note) }
                         .contextMenu {
-                            // 🔵 컨텍스트 메뉴 버튼들
                             Button {
                                 noteToRename.wrappedValue = note
                                 renameText.wrappedValue = note.title
                             } label: {
                                 Label("이름 변경", systemImage: "pencil")
                             }
-                            Button(role: .destructive) {
-                                modelContext.delete(note)
+                            Button {
+                                // 휴지통으로 이동(소프트 삭제)
+                                note.isTrashed = true
+                                note.trashedAt = Date()
                                 try? modelContext.save()
                             } label: {
-                                Label("삭제", systemImage: "trash")
+                                Label("휴지통으로 이동", systemImage: "trash")
                             }
                         }
                 }
@@ -78,7 +79,6 @@ extension HomeView {
     ) -> some View {
         switch item {
         case .folder(let folder):
-            // 🔵 폴더 타일 버튼 (Liquid Glass)
             Button {
                 selectedFolderName.wrappedValue = folder.name
                 headerSubtitle.wrappedValue = folder.name
@@ -108,18 +108,18 @@ extension HomeView {
                     onNoteSelected?(note)
                 }
                 .contextMenu {
-                    // 🔵 컨텍스트 메뉴 버튼들
                     Button {
                         noteToRename.wrappedValue = note
                         renameText.wrappedValue = note.title
                     } label: {
                         Label("이름 변경", systemImage: "pencil")
                     }
-                    Button(role: .destructive) {
-                        modelContext.delete(note)
+                    Button {
+                        note.isTrashed = true
+                        note.trashedAt = Date()
                         try? modelContext.save()
                     } label: {
-                        Label("삭제", systemImage: "trash")
+                        Label("휴지통으로 이동", systemImage: "trash")
                     }
                 }
         }

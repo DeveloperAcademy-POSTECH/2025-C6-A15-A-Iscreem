@@ -41,7 +41,6 @@ final class StudySession {
     var videoURL: String?
 
     var lastPosition: TimeInterval?   // 마지막 재생 위치 (초)
-    var lastTextSnippet: String?      // 그 지점의 원문 텍스트 일부
 
     var keywords: [String]            // 이 노트에서 선택된 키워드 모음 (편집 가능)
 
@@ -56,7 +55,6 @@ final class StudySession {
         noteIdentifier: String?,
         videoURL: String?,
         lastPosition: TimeInterval? = nil,
-        lastTextSnippet: String? = nil,
         keywords: [String] = [],
         qaPairs: [StudyQAPair] = []
     ) {
@@ -67,7 +65,6 @@ final class StudySession {
         self.noteIdentifier = noteIdentifier
         self.videoURL = videoURL
         self.lastPosition = lastPosition
-        self.lastTextSnippet = lastTextSnippet
         self.keywords = keywords
         self.qaPairs = qaPairs
     }
@@ -82,6 +79,11 @@ final class LearningLogStore: ObservableObject {
 
     /// 모든 학습 세션 (SwiftData에서 fetch하여 보관)
     @Published private(set) var sessions: [StudySession] = []
+
+    /// 노트별 “00:00 ~ 현재 챕터까지”의 챕터별 요약 스냅샷
+    /// - 키: String(describing: Note.id)
+    /// - 값: CachedChapter 배열
+    @Published var chapterSummariesUpToCurrentByNoteID: [String: [CachedChapter]] = [:]
 
     // MARK: - Init
     init(context: ModelContext) {
@@ -182,14 +184,13 @@ final class LearningLogStore: ObservableObject {
 
     // MARK: - Public API (기록)
 
-    /// 재생 위치 & 해당 시점 텍스트 기록
+    /// 재생 위치 기록
     func recordProgress(
         folderName: String?,
         noteTitle: String,
         noteIdentifier: String? = nil,
         videoURL: String? = nil,
-        position: TimeInterval?,
-        snippet: String?
+        position: TimeInterval?
     ) {
         let idx = ensureSession(
             folderName: folderName,
@@ -198,7 +199,6 @@ final class LearningLogStore: ObservableObject {
             videoURL: videoURL
         )
         sessions[idx].lastPosition = position
-        sessions[idx].lastTextSnippet = snippet
         saveAndRefresh()
     }
 
@@ -266,6 +266,38 @@ final class LearningLogStore: ObservableObject {
         pair.session = sessions[idx] // 역관계 연결(선택)
         sessions[idx].qaPairs.append(pair)
         saveAndRefresh()
+    }
+
+    // MARK: - “현재 챕터까지” 요약 상태 업데이트/노출
+
+    /// 키워드를 UI로 뿌리기 직전에, “00:00 ~ 현재 챕터까지”의 챕터별 요약 스냅샷을 Note에 저장하고
+    /// 동시에 메모리 매핑을 갱신하여 학습 기록 UI에서 즉시 활용 가능하도록 한다.
+    func updateChapterSummariesUpToCurrent(for note: Note, chapters: [CachedChapter]) {
+        // 1) Note에 영속 저장
+        note.cachedChaptersUpToCurrent = chapters
+        do {
+            try context.save()
+        } catch {
+            print("⚠️ updateChapterSummariesUpToCurrent save failed: \(error)")
+        }
+        // 2) 메모리 매핑 갱신 (학습 기록 UI에서 noteIdentifier로 조회)
+        let nid = String(describing: note.id)
+        chapterSummariesUpToCurrentByNoteID[nid] = chapters
+    }
+
+    /// 앱/홈 진입 시, Note에 저장된 스냅샷으로 메모리 맵을 프리로드하여
+    /// 재실행 후에도 동일하게 보이도록 보강
+    func preloadChapterSummariesFromNotes(currentNotes: [Note]) {
+        for note in currentNotes {
+            let nid = String(describing: note.id)
+            // 비어있거나 미존재한 경우에만 시드
+            if chapterSummariesUpToCurrentByNoteID[nid]?.isEmpty ?? true {
+                let chapters = note.cachedChaptersUpToCurrent
+                if !chapters.isEmpty {
+                    chapterSummariesUpToCurrentByNoteID[nid] = chapters
+                }
+            }
+        }
     }
 
     // MARK: - 삭제 API (노트/폴더/전체 초기화)
@@ -489,7 +521,6 @@ extension LearningLogStore {
             noteIdentifier: "note-001",
             videoURL: "https://youtu.be/example1",
             lastPosition: 842,
-            lastTextSnippet: "패킷 교환 방식은 회선 교환보다 회선 효율을 높일 수 있습니다.",
             keywords: ["패킷 교환", "회선 교환", "LAN", "WAN", "프로토콜"]
         )
         let q1 = StudyQAPair(
