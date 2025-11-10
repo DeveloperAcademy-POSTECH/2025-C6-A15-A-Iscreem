@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		684152A72EB47D0D00075A8F /* HeaderComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 684152A62EB47CED00075A8F /* HeaderComponents.swift */; };
+		6856AD462EC200250075AE98 /* BaseLayoutScaler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6856AD452EC200250075AE98 /* BaseLayoutScaler.swift */; };
 		685FD1E02EB4949E00132910 /* SettingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 685FD1DE2EB4949E00132910 /* SettingView.swift */; };
 		685FD1E12EB4949E00132910 /* ViewModelToggle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 685FD1DF2EB4949E00132910 /* ViewModelToggle.swift */; };
 		687CE8872EBCDB29004BF7C2 /* LearningLogStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 687CE8862EBCDB1C004BF7C2 /* LearningLogStore.swift */; };
@@ -67,6 +68,7 @@
 
 /* Begin PBXFileReference section */
 		684152A62EB47CED00075A8F /* HeaderComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeaderComponents.swift; sourceTree = "<group>"; };
+		6856AD452EC200250075AE98 /* BaseLayoutScaler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaseLayoutScaler.swift; sourceTree = "<group>"; };
 		685FD1DE2EB4949E00132910 /* SettingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingView.swift; sourceTree = "<group>"; };
 		685FD1DF2EB4949E00132910 /* ViewModelToggle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModelToggle.swift; sourceTree = "<group>"; };
 		687CE8862EBCDB1C004BF7C2 /* LearningLogStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LearningLogStore.swift; sourceTree = "<group>"; };
@@ -237,6 +239,7 @@
 				68F3EDF22EC066E80093FF07 /* TrashView.swift */,
 				68F3EDF42EC066EC0093FF07 /* DestructiveConfirmAlertView.swift */,
 				68F3EDF62EC066F30093FF07 /* TrashService.swift */,
+				6856AD452EC200250075AE98 /* BaseLayoutScaler.swift */,
 			);
 			path = HomeView;
 			sourceTree = "<group>";
@@ -435,6 +438,7 @@
 				687CE8892EBCDBD0004BF7C2 /* StudyHistoryView.swift in Sources */,
 				687CE8872EBCDB29004BF7C2 /* LearningLogStore.swift in Sources */,
 				C989B1AF2EB7608F00FD3752 /* ListMode.swift in Sources */,
+				6856AD462EC200250075AE98 /* BaseLayoutScaler.swift in Sources */,
 				C989B1AD2EB7607D00FD3752 /* GridMode.swift in Sources */,
 				C934CC2F2EBA1DDA00902FF0 /* VTTParser.swift in Sources */,
 				68B08B862EB083F50067AD9E /* YouTubeThumbnail.swift in Sources */,
