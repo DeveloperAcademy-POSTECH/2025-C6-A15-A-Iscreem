@@ -41,12 +41,20 @@ Attach videos if you are available
 <img width="1472" height="1183" alt="스크린샷 2025-10-20 오후 6 41 10" src="https://github.com/user-attachments/assets/7c78688e-6fa6-46d1-aa60-d2966a4be2e8" />
 <img width="964" height="714" alt="스크린샷 2025-10-22 오후 6 42 02" src="https://github.com/user-attachments/assets/f1964cf2-90f7-489a-ad17-66748b5a1bb9" />
 
-<video src="https://github.com/user-attachments/assets/3f8f7ee3-317a-417a-b368-a337a972d227" width="920" controls playsinline></video>
+
 <video src="https://raw.githubusercontent.com/<USER>/<REPO>/<BRANCH>/assets/KakaoTalk_Video_2025-10-28-17-52-00.mp4"
        width="920" autoplay loop muted playsinline></video>
 
 
 https://github.com/user-attachments/assets/e98da29a-7157-47d5-a971-de8b2e455354
+
+
+https://github.com/user-attachments/assets/dd83c9b4-400e-451e-8281-f5bc6a1d1a1e
+
+
+
+https://github.com/user-attachments/assets/8d3b2d55-5ce6-4507-8468-94ee9e7dae59
+
 
 
 
