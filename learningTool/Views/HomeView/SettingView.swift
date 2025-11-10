@@ -447,10 +447,3 @@ struct ResetConfirmAlertView: View {
     }
 }
 
-#Preview(traits: .landscapeLeft) {
-    SettingView()
-}
-
-#Preview(traits: .landscapeLeft) {
-    SettingsDetailView(showResetConfirm: .constant(false))
-}
