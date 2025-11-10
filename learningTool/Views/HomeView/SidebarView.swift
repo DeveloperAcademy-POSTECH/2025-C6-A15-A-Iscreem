@@ -64,6 +64,7 @@ struct SidebarView: View {
                             .font(.system(size: 20, weight: .bold))
                     }
                     .buttonStyle(.plain)
+                    .tagTarget(.plusFolder)
 
                     Spacer()
 
