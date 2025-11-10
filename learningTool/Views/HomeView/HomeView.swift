@@ -132,6 +132,7 @@ struct HomeView: View {
 
                             // 노트 그리드/리스트
                             contentView(metrics: metrics)
+                                .tagPostHomeTarget(.homeList)
                                 .overlay {
                                     if shouldShowEmptyState {
                                         emptyStateView
@@ -243,17 +244,61 @@ struct HomeView: View {
                 _ = learningLogStore.reconcileWithNotes(currentNotes: notes)
                 // 4) ✅ 재실행 시에도 동일하게 보이도록, 노트 캐시로 메모리 맵 프리로드
                 learningLogStore.preloadChapterSummariesFromNotes(currentNotes: notes)
+                if !hasSeenHomeOnboarding { onboardingStep = .makeFolder }
+                lastFolderCount = folders.count
             }
-            .onChange(of: notes) { _, newValue in
+            .onChange(of: notes) { oldValue, newValue in
                 _ = learningLogStore.bootstrapSessionsIfNeeded(currentNotes: newValue)
                 _ = learningLogStore.enrichSessionsFromNotes(currentNotes: newValue)
                 _ = learningLogStore.reconcileWithNotes(currentNotes: newValue)
                 // ✅ 노트 캐시 → 메모리 맵 프리로드
                 learningLogStore.preloadChapterSummariesFromNotes(currentNotes: newValue)
+
+                // 첫 노트가 생성된 순간에 사후 온보딩 표시
+                if !hasSeenHomePostNoteOnboarding && oldValue.isEmpty && !newValue.isEmpty {
+                    shouldTriggerPostOnboarding = true
+                    postOnboardingStep = .list
+                }
+            }
+            .onChange(of: folders) { oldValue, newValue in
+                if !hasSeenFolderSidebarOnboarding && newValue.count > oldValue.count {
+                    showFolderSidebarOnboarding = true
+                    folderSidebarStep = .list
+                }
+                lastFolderCount = newValue.count
             }
             .sheet(isPresented: $showStudyHistory) {
                 StudyHistoryView()
                     .environmentObject(learningLogStore)
+            }
+            .overlayPreferenceValue(TargetBoundsKey.self) { map in
+                if !hasSeenHomeOnboarding {
+                    CoachOverlay(step: $onboardingStep, map: map) {
+                        hasSeenHomeOnboarding = true
+                        onboardingStep = .done
+                    }
+                    .transition(.opacity)
+                }
+            }
+            .overlayPreferenceValue(PostHomeTargetBoundsKey.self) { map in
+                if shouldTriggerPostOnboarding && !hasSeenHomePostNoteOnboarding {
+                    PostHomeCoachOverlay(step: $postOnboardingStep, map: map) {
+                        hasSeenHomePostNoteOnboarding = true
+                        shouldTriggerPostOnboarding = false
+                        postOnboardingStep = .done
+                    }
+                    .transition(.opacity)
+                }
+            }
+            .overlay {
+                if showFolderSidebarOnboarding && !hasSeenFolderSidebarOnboarding {
+                    SidebarCoachOverlay(step: $folderSidebarStep) {
+                        hasSeenFolderSidebarOnboarding = true
+                        showFolderSidebarOnboarding = false
+                        folderSidebarStep = .done
+                    }
+                    .transition(.opacity)
+                }
             }
         }
     }
@@ -286,6 +331,8 @@ struct HomeView: View {
                 }
                 .frame(width: metrics.toggleWidth, height: metrics.toggleHeight)
             }
+            .tagTarget(.searchCluster)
+            .tagPostHomeTarget(.searchCluster)
         }
         .padding()
     }
@@ -481,6 +528,7 @@ struct HomeView: View {
         .opacity(shouldShowAddButton ? 1 : 0)
         .allowsHitTesting(shouldShowAddButton)
         .animation(.easeInOut(duration: 0.2), value: shouldShowAddButton)
+        .tagTarget(.fab)
     }
     
     // 학습 기록 버튼 (우측 하단 Add 버튼 위에 위치)
