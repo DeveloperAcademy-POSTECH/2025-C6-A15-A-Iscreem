@@ -225,7 +225,7 @@ struct HomeView: View {
                     sidebarMenuButton
                 }
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("{$app_name}")
+                    Text("AIno")
                         .font(.system(size: 28, weight: .semibold))
                         .foregroundStyle(Color.text1)
 
@@ -249,7 +249,7 @@ struct HomeView: View {
             .padding()
         }
         
-        // MARK: - 🔵 검색바 (Liquid Glass)
+        // MARK: - 검색바
         private var searchBar: some View {
             GlassEffectContainer(spacing: 0) {
                 HStack(spacing: 8) {
@@ -389,14 +389,12 @@ struct HomeView: View {
             .offset(y: -50)
         }
         
-        // Add button visibility: hide on Settings, show on Home (전체 보기)
+        // Add button visibility: 폴더 내부에서도 노트 추가 가능하도록, 설정 화면에서만 숨김
         private var shouldShowAddButton: Bool {
-            // isAllView is true when selectedFolderName == "__ALL__"
-            // Hide when Settings overlay is showing
-            return !isShowingSettings && isAllView
+            return !isShowingSettings
         }
         
-        // 🔵 추가 버튼 (Gradient + Floating)
+        // 추가 버튼
         private var addButton: some View {
             Group {
                 if #available(iOS 26.0, *) {
@@ -440,7 +438,7 @@ struct HomeView: View {
                 }
             }
             .padding(32)
-            // Hide when Settings is open, show again on Home (전체 보기)
+            // 설정 화면에서만 숨김
             .opacity(shouldShowAddButton ? 1 : 0)
             .allowsHitTesting(shouldShowAddButton)
             .animation(.easeInOut(duration: 0.2), value: shouldShowAddButton)
