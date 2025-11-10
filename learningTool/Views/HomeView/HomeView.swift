@@ -230,6 +230,14 @@ struct HomeView: View {
                     isShowingSettings = false
                 }
             }
+            .onReceive(NotificationCenter.default.publisher(for: .returnedFromStudyView)) { _ in
+                // 사용자가 StudyView에서 홈으로 돌아왔을 때,
+                // 아직 포스트 온보딩을 보지 않았다면 다시 표시되도록 재무장
+                if !hasSeenHomePostNoteOnboarding && !notes.isEmpty {
+                    shouldTriggerPostOnboarding = true
+                    postOnboardingStep = .list
+                }
+            }
             .onAppear {
                 // 앱 시작 직후 ‘전체 보기’로 진입 → + 버튼 보이게
                 if selectedFolderName == nil {
@@ -246,6 +254,12 @@ struct HomeView: View {
                 learningLogStore.preloadChapterSummariesFromNotes(currentNotes: notes)
                 if !hasSeenHomeOnboarding { onboardingStep = .makeFolder }
                 lastFolderCount = folders.count
+                // 앱을 다시 그리면서 HomeView가 재생성된 경우에도
+                // 첫 노트 이후 온보딩이 한 번도 완료되지 않았다면 다시 보여준다.
+                if !hasSeenHomePostNoteOnboarding && !notes.isEmpty {
+                    shouldTriggerPostOnboarding = true
+                    postOnboardingStep = .list
+                }
             }
             .onChange(of: notes) { oldValue, newValue in
                 _ = learningLogStore.bootstrapSessionsIfNeeded(currentNotes: newValue)
@@ -690,6 +704,8 @@ extension HomeView {
                         StudyView(note: note) {
                             showStudyView = false
                             selectedNote = nil
+                            // 홈으로 복귀 알림 → HomeView에서 포스트 온보딩 재무장
+                            NotificationCenter.default.post(name: .returnedFromStudyView, object: nil)
                         }
                     } else {
                         HomeView(
