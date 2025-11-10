@@ -50,6 +50,10 @@ struct HomeView: View {
     @AppStorage("hasSeenHomePostNoteOnboarding") private var hasSeenHomePostNoteOnboarding: Bool = false
     @State private var postOnboardingStep: PostHomeOnboardingStep = .list
     @State private var shouldTriggerPostOnboarding: Bool = false
+    @AppStorage("hasSeenFolderSidebarOnboarding") private var hasSeenFolderSidebarOnboarding: Bool = false
+    @State private var folderSidebarStep: FolderSidebarOnboardingStep = .list
+    @State private var showFolderSidebarOnboarding: Bool = false
+    @State private var lastFolderCount: Int = 0
 
     // 휴지통 화면 표시
     @State private var isShowingTrash: Bool = false
@@ -227,6 +231,7 @@ struct HomeView: View {
                     shouldTriggerPostOnboarding = true
                 }
             }
+            lastFolderCount = folders.count
         }
         .onChange(of: notes) { _, newValue in
             _ = learningLogStore.bootstrapSessionsIfNeeded(currentNotes: newValue)
@@ -234,6 +239,16 @@ struct HomeView: View {
             _ = learningLogStore.reconcileWithNotes(currentNotes: newValue)
             // ✅ 노트 캐시 → 메모리 맵 프리로드
             learningLogStore.preloadChapterSummariesFromNotes(currentNotes: newValue)
+        }
+        .onChange(of: folders) { _, newValue in
+            // 폴더가 새로 추가되면 사이드바 온보딩 표시
+            if newValue.count > lastFolderCount && !hasSeenFolderSidebarOnboarding {
+                folderSidebarStep = .list
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    showFolderSidebarOnboarding = true
+                }
+            }
+            lastFolderCount = newValue.count
         }
         .sheet(isPresented: $showStudyHistory) {
             StudyHistoryView()
@@ -252,6 +267,15 @@ struct HomeView: View {
                     hasSeenHomePostNoteOnboarding = true
                     shouldTriggerPostOnboarding = false
                 }
+            }
+        }
+        .overlay {
+            if showFolderSidebarOnboarding && !hasSeenFolderSidebarOnboarding {
+                SidebarCoachOverlay(step: $folderSidebarStep) {
+                    hasSeenFolderSidebarOnboarding = true
+                    showFolderSidebarOnboarding = false
+                }
+                .transition(.opacity)
             }
         }
     }
@@ -800,7 +824,7 @@ struct CoachOverlay: View {
     private var message: String {
         switch step {
         case .makeFolder:
-            return "+ 버튼으로 폴더를 만들어요. 이름은 스와이프로 수정/삭제할 수 있어요."
+            return "+ 버튼을 누르면 학습노트를 담을 수 있는 폴더를 생성할 수 있습니다."
         case .fab:
             return "우하단 버튼을 누르면 ‘노트 생성’과 ‘학습 기록’이 나타나요. 첫 노트를 만들어 보세요."
         case .searchCluster:
@@ -971,5 +995,201 @@ struct PostHomeCoachOverlay: View {
 
     private func fallback(_ proxy: GeometryProxy) -> CGRect {
         CGRect(x: proxy.size.width/2 - 80, y: proxy.size.height/2 - 40, width: 160, height: 80)
+    }
+}
+
+
+// MARK: - Sidebar (Folder/List/Sort) Onboarding
+
+enum FolderSidebarOnboardingStep: Int, CaseIterable {
+    case list           // 생성된 폴더가 좌측 목록에 표시됨
+    case recentButton   // '최근 열어본 항목' 버튼 (폴더 목록 아래)
+    case sort           // 사이드바 정렬 아이콘 안내
+    case tips           // 탭/스와이프 팁
+    case done
+}
+
+struct SidebarCoachOverlay: View {
+    @Binding var step: FolderSidebarOnboardingStep
+    let onFinish: () -> Void
+
+    var body: some View {
+        GeometryReader { proxy in
+            // 좌측 사이드바 영역 (NavigationSplitView 설정: min 280, ideal 320, max 400)
+            let leftWidth = min(max(proxy.size.width * 0.24, 280), 400)
+            let sidebarTop = proxy.safeAreaInsets.top + 8
+            let headerHeight: CGFloat = 44
+            let itemHeight: CGFloat = 40
+            let pad: CGFloat = 12
+
+            // 1) 전체 사이드바(기본)
+            let fullSidebarRect = CGRect(x: 0,
+                                         y: sidebarTop - 4,
+                                         width: leftWidth,
+                                         height: proxy.size.height - proxy.safeAreaInsets.top - proxy.safeAreaInsets.bottom - 8)
+                .insetBy(dx: -pad, dy: -pad)
+
+            // 2) '최근 열어본 항목' 버튼 영역(폴더 목록 아래에 고정된 버튼 영역을 근사)
+            let recentButtonRect = CGRect(x: 8,
+                                          y: sidebarTop + headerHeight + 6,
+                                          width: max(leftWidth - 16, 120),
+                                          height: itemHeight)
+                .insetBy(dx: -8, dy: -6)
+
+            // 3) 정렬 아이콘(+ 오른쪽 상단)
+            let sortIconSize: CGFloat = 32
+            let sortIconRect = CGRect(x: max(8, leftWidth - sortIconSize - 12),
+                                      y: sidebarTop,
+                                      width: sortIconSize,
+                                      height: sortIconSize)
+                .insetBy(dx: -6, dy: -6)
+
+            // 단계별 하이라이트 대상
+            let highlightRect: CGRect = {
+                switch step {
+                case .list:         return fullSidebarRect
+                case .recentButton: return recentButtonRect
+                case .sort:         return sortIconRect
+                case .tips, .done:  return fullSidebarRect
+                }
+            }()
+
+            // 말풍선 가로폭과 위치(사이드바 오른쪽 공간에 배치)
+            let bubbleWidth: CGFloat = min(360.0, proxy.size.width - 40.0)
+            let bubbleX = min(leftWidth + bubbleWidth/2 + 24, proxy.size.width - bubbleWidth/2 - 20)
+            let bubbleY: CGFloat = {
+                switch step {
+                case .list:          return max(120, proxy.safeAreaInsets.top + 100)
+                case .recentButton:  return max(180, proxy.safeAreaInsets.top + 140)
+                case .sort:          return max(220, proxy.safeAreaInsets.top + 160)
+                case .tips, .done:   return max(260, proxy.safeAreaInsets.top + 180)
+                }
+            }()
+
+            ZStack {
+                // Dim background with a "hole" over the sidebar area
+                Rectangle()
+                    .fill(Color.black.opacity(0.45))
+                    .ignoresSafeArea()
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .frame(width: highlightRect.width, height: highlightRect.height)
+                            .position(x: highlightRect.midX, y: highlightRect.midY)
+                            .blendMode(.destinationOut)
+                    )
+                    .compositingGroup()
+
+                // Bubble
+                VStack(spacing: 10) {
+                    Text(title)
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(.white)
+                    Text(message)
+                        .multilineTextAlignment(.leading)
+                        .font(.system(size: 14))
+                        .foregroundStyle(.white.opacity(0.92))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    if step == .tips {
+                        VStack(alignment: .leading, spacing: 8) {
+                            // 이름 변경(우측으로 스와이프)
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(Color.white.opacity(0.08))
+                                    .frame(height: 36)
+                                HStack(spacing: 10) {
+                                    Image(systemName: "folder")
+                                    Text("예시 폴더")
+                                        .font(.system(size: 14))
+                                    Spacer()
+                                }
+                                .padding(.horizontal, 12)
+                                .foregroundStyle(.white.opacity(0.9))
+                                // Leading action preview (이름 변경)
+                                Capsule()
+                                    .fill(Color.blue.opacity(0.85))
+                                    .frame(width: 88, height: 26)
+                                    .overlay(Text("이름 변경").font(.system(size: 12, weight: .semibold)).foregroundStyle(.white))
+                                    .shadow(radius: 2, y: 1)
+                                    .offset(x: -((bubbleWidth/2) - 68)) // 좌측에 고정 미리보기 느낌
+                            }
+
+                            // 삭제(좌측으로 스와이프)
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(Color.white.opacity(0.08))
+                                    .frame(height: 36)
+                                HStack(spacing: 10) {
+                                    Image(systemName: "folder")
+                                    Text("예시 폴더")
+                                        .font(.system(size: 14))
+                                    Spacer()
+                                }
+                                .padding(.horizontal, 12)
+                                .foregroundStyle(.white.opacity(0.9))
+                                // Trailing action preview (삭제)
+                                Capsule()
+                                    .fill(Color.red.opacity(0.9))
+                                    .frame(width: 64, height: 26)
+                                    .overlay(Text("삭제").font(.system(size: 12, weight: .semibold)).foregroundStyle(.white))
+                                    .shadow(radius: 2, y: 1)
+                                    .offset(x: ((bubbleWidth/2) - 52)) // 우측에 고정 미리보기 느낌
+                            }
+                        }
+                        .padding(.top, 6)
+                    }
+                    HStack {
+                        Button("건너뛰기") { onFinish() }
+                        Spacer()
+                        Button(nextButtonTitle) { next() }
+                            .buttonStyle(.borderedProminent)
+                    }
+                }
+                .padding(16)
+                .frame(width: bubbleWidth)
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
+                .position(x: bubbleX, y: bubbleY)
+            }
+        }
+    }
+
+    private func next() {
+        switch step {
+        case .list:          step = .recentButton
+        case .recentButton:  step = .sort
+        case .sort:          step = .tips
+        case .tips, .done:   onFinish()
+        }
+    }
+
+    private var nextButtonTitle: String {
+        switch step {
+        case .tips, .done: return "완료"
+        default: return "다음"
+        }
+    }
+
+    private var title: String {
+        switch step {
+        case .list:          return "폴더 목록"
+        case .recentButton:  return "최근 열어본 항목"
+        case .sort:          return "정렬 바꾸기"
+        case .tips:          return "빠른 사용 팁"
+        case .done:          return ""
+        }
+    }
+
+    private var message: String {
+        switch step {
+        case .list:
+            return "생성된 폴더는 좌측에 **목록으로 표시**됩니다. 폴더를 탭하면 해당 폴더 안의 노트를 볼 수 있어요."
+        case .recentButton:
+            return "‘최근 열어본 항목’은 **폴더 목록 바로 아래에 있는 버튼**이에요. 여기에는 **최근에 열어본 노트만** 표시됩니다. ‘전체 보기’로 이동하면 **노트와 폴더를 함께** 볼 수 있어요. (정렬과는 **별개** 동작입니다.)"
+        case .sort:
+            return "사이드바 상단 **+ 버튼의 오른쪽에 있는 정렬 아이콘**을 누르면 메뉴가 열려요. 여기서 **가나다 순(↑/↓)**, **생성일(↑/↓)** 중 선택해 **폴더/노트 표시 순서**를 바꿀 수 있어요. (※ ‘최근 열어본 항목’ 버튼과는 **별개**입니다.)"
+        case .tips:
+            return "폴더 이름을 **오른쪽으로 스와이프 → 이름 변경**, **왼쪽으로 스와이프 → 삭제** 할 수 있어요."
+        case .done:
+            return ""
+        }
     }
 }
