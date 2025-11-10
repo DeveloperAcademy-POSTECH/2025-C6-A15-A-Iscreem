@@ -33,10 +33,13 @@ struct StudyView: View {
     private let rightSidebarWidthRatio: CGFloat = 0.35  // 우측 사이드바(기본 펼침)
     private let mainTopMediaHeightRatio: CGFloat = 0.6  // 메인 내부: Media(상) 비율
     private let mainBottomQuestionHeightRatio: CGFloat = 0.4 // 메인 내부: Question(하) 비율
-    
+
     // iPhone 고정 높이
     private let phoneSummaryHeight: CGFloat = 250
     private let phoneQuestionHeight: CGFloat = 300
+
+    // iPad 레이아웃 기준 해상도 (13인치 가로형 1366x1024)
+    private let baseIPadLandscapeSize = CGSize(width: 1366, height: 1024)
     
     // 사이드바 탭 (키워드/요약 전환)
     private enum SidebarTab: String, CaseIterable {
@@ -209,14 +212,16 @@ struct StudyView: View {
     private func iPadLayout(geometry: GeometryProxy) -> some View {
         let totalW = geometry.size.width
         let totalH = geometry.size.height
-        
+
+        let scaler = BaseLayoutScaler(proxy: geometry, base: baseIPadLandscapeSize)
+
         let sideW = isSidebarCollapsed ? 0 : totalW * rightSidebarWidthRatio
         let mainW = totalW - sideW
-        
-        // 사이드바 상단 바의 레이아웃 기준(세로 패딩 + 컨트롤 높이)
-        let sidebarTopBarVPad: CGFloat = 8
-        let sidebarControlHeight: CGFloat = 32
-        
+
+        // 사이드바 상단 바의 레이아웃 기준(세로 패딩 + 컨트롤 높이) - 기준 해상도 대비 스케일
+        let sidebarTopBarVPad: CGFloat = scaler.h(8)
+        let sidebarControlHeight: CGFloat = scaler.h(32)
+
         HStack(spacing: 0) {
             // MAIN (좌측)
             VStack(spacing: 0) {
@@ -267,7 +272,7 @@ struct StudyView: View {
                             Image(systemName: "sidebar.right")
                                 .font(.system(size: 16, weight: .semibold))
                                 .foregroundStyle(Color.text2)
-                                .frame(width: 32, height: sidebarControlHeight)
+                                .frame(width: scaler.w(32), height: sidebarControlHeight)
                                 .background(Color.background2)
                                 .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                         }
