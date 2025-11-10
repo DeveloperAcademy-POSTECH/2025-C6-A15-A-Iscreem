@@ -37,7 +37,10 @@ struct HomeView: View {
     @State var showNoteSortMenu = false
     @State private var preferredCompactColumn: NavigationSplitViewColumn = .detail
     
-    let columns = [GridItem(.adaptive(minimum: 200, maximum: 250), spacing: 16)]
+    let columns = [
+        GridItem(.flexible(), spacing: 16),
+        GridItem(.flexible(), spacing: 16)
+    ]
     
     @State var isHelpPresented: Bool = false
     @State var isShowingSettings: Bool = false
@@ -218,26 +221,61 @@ struct HomeView: View {
         }
     }
     // MARK: - Header View
+        @ViewBuilder
         private var headerView: some View {
-            HStack(spacing: 12) {
-                // 📱 Compact (iPhone / 좁은 폭)일 때: 좌측에 리퀴드 글래스 메뉴 버튼
-                if horizontalSizeClass == .compact {
-                    sidebarMenuButton
-                }
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("{$app_name}")
-                        .font(.system(size: 28, weight: .semibold))
-                        .foregroundStyle(Color.text1)
-
-                    Text(headerSubtitle)
-                        .font(.system(size: 22, weight: .medium))
-                        .foregroundStyle(Color.text2)
-                }
-
-                Spacer()
-
+            if horizontalSizeClass == .compact {
+                // 📱 iPhone (Compact) 레이아웃
+                compactHeaderView
+            } else {
+                // 🖥️ iPad (Regular) 레이아웃
+                regularHeaderView
+            }
+        }
+        
+        // 📱 iPhone용 헤더 (2줄 레이아웃)
+        private var compactHeaderView: some View {
+            VStack(spacing: 8) {
+                // 첫 번째 줄: 메뉴 + 제목
                 HStack(spacing: 12) {
-                    // 검색바를 정렬 버튼 바로 옆에 배치 (Liquid Glass)
+                    sidebarMenuButton
+                    
+                    Text(headerSubtitle)
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundStyle(Color.text2)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                    
+                    Spacer(minLength: 4)
+                    
+                    // 뷰 모드 토글만 표시
+                    ViewModeToggle(selection: $viewModel.selectedViewMode) { mode in
+                        viewModel.viewModeButtonTapped(mode)
+                    }
+                    .frame(width: 100, height: 32)
+                }
+                
+                // 두 번째 줄: 검색바 + 정렬 버튼
+                HStack(spacing: 8) {
+                    searchBar
+                    sortButton
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+        }
+        
+        // 🖥️ iPad용 헤더 (1줄 레이아웃)
+        private var regularHeaderView: some View {
+            HStack(spacing: 12) {
+                Text(headerSubtitle)
+                    .font(.system(size: 22, weight: .medium))
+                    .foregroundStyle(Color.text2)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+
+                Spacer(minLength: 8)
+
+                HStack(spacing: 8) {
                     searchBar
                     sortButton
                     ViewModeToggle(selection: $viewModel.selectedViewMode) { mode in
@@ -246,22 +284,24 @@ struct HomeView: View {
                     .frame(width: 116, height: 36)
                 }
             }
-            .padding()
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
         }
         
         // MARK: - 🔵 검색바 (Liquid Glass)
         private var searchBar: some View {
             GlassEffectContainer(spacing: 0) {
-                HStack(spacing: 8) {
+                HStack(spacing: 6) {
                     Image(systemName: "magnifyingglass")
                         .foregroundStyle(Color.text3)
+                        .font(.system(size: 14))
                     TextField("노트 검색", text: $viewModel.searchText, axis: .horizontal)
-                        .font(.system(size: 16))
+                        .font(.system(size: 15))
                         .lineLimit(1)
                 }
-                .padding(.horizontal, 12)
-                .frame(minWidth: 220, maxWidth: 320)
-                .frame(height: 36)
+                .padding(.horizontal, 10)
+                .frame(maxWidth: .infinity)
+                .frame(height: horizontalSizeClass == .compact ? 32 : 36)
                 .glassEffect()
                 .glassEffectUnionCompat(id: "search", namespace: glassNS)
             }
@@ -577,33 +617,48 @@ struct HomeView: View {
         struct AppRootView: View {
             @State private var selectedNote: Note?
             @State private var showStudyView = false
+            @Environment(\.horizontalSizeClass) private var horizontalSizeClass
             
             var body: some View {
-                ScaledContainer(baseSize: CGSize(width: 1366, height: 1024),
-                                minScale: 0.78,  // 터치 최소 44pt 근사 유지용(원하면 0.75~0.85 사이 조절)
-                                maxScale: 1.0,
-                                alignment: .topLeading) {
-                    ZStack {
-                        if showStudyView, let note = selectedNote {
-                            StudyView(note: note) {
-                                showStudyView = false
-                                selectedNote = nil
-                            }
-                        } else {
-                            HomeView(
-                                onNoteSelected: { note in
-                                    selectedNote = note
-                                    withAnimation { showStudyView = true }
-                                },
-                                onNoteCreated: { note in
-                                    selectedNote = note
-                                    withAnimation { showStudyView = true }
-                                }
-                            )
+                GeometryReader { geometry in
+                    let safeArea = geometry.safeAreaInsets
+                    let availableWidth = geometry.size.width - safeArea.leading - safeArea.trailing
+                    let availableHeight = geometry.size.height - safeArea.top - safeArea.bottom
+                    
+                    // SafeArea 기준으로 baseSize 설정
+                    ScaledContainer(
+                        baseSize: CGSize(width: availableWidth, height: availableHeight),
+                        minScale: 1.0,  // 최소 크기 = 현재 기기 크기
+                        maxScale: 1.0,  // 최대 크기 = 현재 기기 크기
+                        alignment: .topLeading
+                    ) {
+                        contentView
+                    }
+                    .keyboardOverlay()
+                }
+            }
+            
+            @ViewBuilder
+            private var contentView: some View {
+                ZStack {
+                    if showStudyView, let note = selectedNote {
+                        StudyView(note: note) {
+                            showStudyView = false
+                            selectedNote = nil
                         }
+                    } else {
+                        HomeView(
+                            onNoteSelected: { note in
+                                selectedNote = note
+                                withAnimation { showStudyView = true }
+                            },
+                            onNoteCreated: { note in
+                                selectedNote = note
+                                withAnimation { showStudyView = true }
+                            }
+                        )
                     }
                 }
-                                .keyboardOverlay()
             }
         }
     }

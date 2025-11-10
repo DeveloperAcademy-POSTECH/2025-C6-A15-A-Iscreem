@@ -65,30 +65,38 @@ extension HomeView {
     
     @ViewBuilder
     func listHeaderRow() -> some View {
-        HStack {
-            Text("제목")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Color.text3)
-                .frame(minWidth: 260, maxWidth: .infinity, alignment: .leading)
+        GeometryReader { geometry in
+            let totalWidth = geometry.size.width - 32 // horizontal padding
+            let useCompact = totalWidth < 600
             
-            Text("강의 길이")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Color.text3)
-                .frame(width: 72, alignment: .trailing)
-            
-            Text("수강률")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Color.text3)
-                .frame(width: 72, alignment: .trailing)
-            
-            Text("최근 학습 일시")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Color.text3)
-                .frame(width: 110, alignment: .trailing)
+            HStack(spacing: useCompact ? 8 : 12) {
+                Text("제목")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.text3)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                
+                if !useCompact {
+                    Text("강의 길이")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Color.text3)
+                        .frame(width: 72, alignment: .trailing)
+                }
+                
+                Text("수강률")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.text3)
+                    .frame(width: useCompact ? 60 : 72, alignment: .trailing)
+                
+                Text(useCompact ? "학습 일시" : "최근 학습 일시")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.text3)
+                    .frame(width: useCompact ? 80 : 110, alignment: .trailing)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(Color.background1)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
-        .background(Color.background1)
+        .frame(height: 40)
     }
     
     // MARK: - 🔵 Note Row
@@ -100,57 +108,67 @@ extension HomeView {
         onNoteSelected: ((Note) -> Void)?,
         modelContext: ModelContext
     ) -> some View {
-        HStack(spacing: 12) {
-            HStack(spacing: 12) {
-                thumbnailView(for: note)
-                    .frame(width: 56, height: 56)
-                    .cornerRadius(8)
+        GeometryReader { geometry in
+            let totalWidth = geometry.size.width - 16 // horizontal padding
+            let useCompact = totalWidth < 600
+            
+            HStack(spacing: useCompact ? 8 : 12) {
+                HStack(spacing: useCompact ? 8 : 12) {
+                    thumbnailView(for: note)
+                        .frame(width: useCompact ? 48 : 56, height: useCompact ? 48 : 56)
+                        .cornerRadius(8)
+                    
+                    Text(note.title)
+                        .font(.system(size: useCompact ? 14 : 16, weight: .medium))
+                        .foregroundStyle(Color.text1)
+                        .lineLimit(1)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 
-                Text(note.title)
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(Color.text1)
+                if !useCompact {
+                    Text(NoteFormattingUtils.durationText(for: note))
+                        .font(.system(size: 14))
+                        .foregroundStyle(Color.text2)
+                        .frame(width: 72, alignment: .trailing)
+                }
+                
+                Text(NoteFormattingUtils.progressText(for: note))
+                    .font(.system(size: useCompact ? 13 : 14))
+                    .foregroundStyle(Color.text2)
+                    .frame(width: useCompact ? 60 : 72, alignment: .trailing)
+                
+                Text(NoteFormattingUtils.lastReadText(for: note))
+                    .font(.system(size: useCompact ? 13 : 14))
+                    .foregroundStyle(Color.text2)
+                    .frame(width: useCompact ? 80 : 110, alignment: .trailing)
                     .lineLimit(1)
             }
-            .frame(minWidth: 260, maxWidth: .infinity, alignment: .leading)
-            
-            Text(NoteFormattingUtils.durationText(for: note))
-                .font(.system(size: 14))
-                .foregroundStyle(Color.text2)
-                .frame(width: 72, alignment: .trailing)
-            
-            Text(NoteFormattingUtils.progressText(for: note))
-                .font(.system(size: 14))
-                .foregroundStyle(Color.text2)
-                .frame(width: 72, alignment: .trailing)
-            
-            Text(NoteFormattingUtils.lastReadText(for: note))
-                .font(.system(size: 14))
-                .foregroundStyle(Color.text2)
-                .frame(width: 110, alignment: .trailing)
-        }
-        .padding(.vertical, 10)
-        .padding(.horizontal, 8)
-        .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(Color.clear)
-        )
-        .contentShape(Rectangle())
-        .onTapGesture { onNoteSelected?(note) }
-        .contextMenu {
-            Button {
-                noteToRename.wrappedValue = note
-                renameText.wrappedValue = note.title
-            } label: {
-                Label("이름 변경", systemImage: "pencil")
+            .padding(.vertical, 10)
+            .padding(.horizontal, 8)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color.clear)
+            )
+            .contentShape(Rectangle())
+            .onTapGesture { onNoteSelected?(note) }
+            .contextMenu {
+                Button {
+                    noteToRename.wrappedValue = note
+                    renameText.wrappedValue = note.title
+                } label: {
+                    Label("이름 변경", systemImage: "pencil")
+                }
+                Button {
+                    note.isTrashed = true
+                    note.trashedAt = Date()
+                    try? modelContext.save()
+                } label: {
+                    Label("휴지통으로 이동", systemImage: "trash")
+                }
             }
-            Button {
-                note.isTrashed = true
-                note.trashedAt = Date()
-                try? modelContext.save()
-            } label: {
-                Label("휴지통으로 이동", systemImage: "trash")
-            }
+            .frame(height: useCompact ? 68 : 76)
         }
+        .frame(height: 76)
     }
     
     // MARK: - 🔵 Home Item Row (폴더/노트 행)
@@ -166,45 +184,57 @@ extension HomeView {
     ) -> some View {
         switch item {
         case .folder(let folder):
-            Button {
-                selectedFolderName.wrappedValue = folder.name
-                headerSubtitle.wrappedValue = folder.name
-            } label: {
-                HStack(spacing: 12) {
-                    HStack(spacing: 12) {
-                        Image(systemName: "folder.fill")
-                            .font(.system(size: 20, weight: .semibold))
-                            .foregroundStyle(Color.text2)
-                            .frame(width: 56, height: 56)
-                            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .strokeBorder(.white.opacity(0.2), lineWidth: 0.5)
-                            )
+            GeometryReader { geometry in
+                let totalWidth = geometry.size.width - 16
+                let useCompact = totalWidth < 600
+                
+                Button {
+                    selectedFolderName.wrappedValue = folder.name
+                    headerSubtitle.wrappedValue = folder.name
+                } label: {
+                    HStack(spacing: useCompact ? 8 : 12) {
+                        HStack(spacing: useCompact ? 8 : 12) {
+                            Image(systemName: "folder.fill")
+                                .font(.system(size: useCompact ? 18 : 20, weight: .semibold))
+                                .foregroundStyle(Color.text2)
+                                .frame(width: useCompact ? 48 : 56, height: useCompact ? 48 : 56)
+                                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .strokeBorder(.white.opacity(0.2), lineWidth: 0.5)
+                                )
+                            
+                            Text(folder.name)
+                                .font(.system(size: useCompact ? 14 : 16, weight: .medium))
+                                .foregroundStyle(Color.text1)
+                                .lineLimit(1)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         
-                        Text(folder.name)
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundStyle(Color.text1)
+                        if !useCompact {
+                            Text("—").frame(width: 72, alignment: .trailing).foregroundStyle(Color.text3)
+                        }
+                        
+                        Text("—").frame(width: useCompact ? 60 : 72, alignment: .trailing).foregroundStyle(Color.text3)
+                        
+                        Text(NoteFormattingUtils.relativeDate(folder.createdAt))
+                            .font(.system(size: useCompact ? 13 : 14))
+                            .foregroundStyle(Color.text2)
+                            .frame(width: useCompact ? 80 : 110, alignment: .trailing)
                             .lineLimit(1)
                     }
-                    .frame(minWidth: 260, maxWidth: .infinity, alignment: .leading)
-                    
-                    Text("—").frame(width: 72, alignment: .trailing).foregroundStyle(Color.text3)
-                    Text("—").frame(width: 72, alignment: .trailing).foregroundStyle(Color.text3)
-                    Text(NoteFormattingUtils.relativeDate(folder.createdAt))
-                        .font(.system(size: 14))
-                        .foregroundStyle(Color.text2)
-                        .frame(width: 110, alignment: .trailing)
+                    .padding(.vertical, 10)
+                    .padding(.horizontal, 8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(.ultraThinMaterial.opacity(0.3))
+                    )
                 }
-                .padding(.vertical, 10)
-                .padding(.horizontal, 8)
-                .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(.ultraThinMaterial.opacity(0.3))
-                )
+                .buttonStyle(.plain)
+                .shadow(color: .black.opacity(0.04), radius: 4, x: 0, y: 1)
+                .frame(height: useCompact ? 68 : 76)
             }
-            .buttonStyle(.plain)
-            .shadow(color: .black.opacity(0.04), radius: 4, x: 0, y: 1)
+            .frame(height: 76)
             
         case .note(let n):
             noteRow(

@@ -400,6 +400,7 @@ struct StudyView: View {
 
 struct APISettingsView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var apiKey: String = ""
     @State private var showingSuccessAlert = false
     @State private var showingErrorAlert = false
@@ -422,7 +423,7 @@ struct APISettingsView: View {
                 }
                 .buttonStyle(.plain)
             }
-            .padding(20)
+            .padding(horizontalSizeClass == .compact ? 16 : 20)
             
             Divider()
                 .background(Color.borderColor)
@@ -434,10 +435,14 @@ struct APISettingsView: View {
                         Text("Gemini API 키")
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundStyle(Color.text1)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         
                         Text("Google AI Studio에서 Gemini API 키를 발급받아 입력하세요.")
                             .font(.system(size: 13))
                             .foregroundStyle(Color.text3)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         
                         SecureField("API 키를 입력하세요", text: $apiKey)
                             .font(.system(size: 14))
@@ -449,12 +454,15 @@ struct APISettingsView: View {
                                     .stroke(Color.borderColor, lineWidth: 1)
                             )
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     
                     /// 안내 섹션
                     VStack(alignment: .leading, spacing: 12) {
                         Text("API 키 발급 방법")
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundStyle(Color.text1)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         
                         VStack(alignment: .leading, spacing: 8) {
                             InfoRow(number: "1", text: "Google AI Studio (ai.google.dev)에 접속")
@@ -462,32 +470,38 @@ struct APISettingsView: View {
                             InfoRow(number: "3", text: "'Get API key' 버튼 클릭")
                             InfoRow(number: "4", text: "생성된 API 키 복사 후 위에 입력")
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     
                     /// 현재 상태
-                    HStack {
+                    HStack(alignment: .top, spacing: 8) {
                         Image(systemName: GeminiAPIService.shared.isAPIKeyConfigured()
                               ? "checkmark.circle.fill"
                               : "exclamationmark.circle.fill")
                         .foregroundStyle(GeminiAPIService.shared.isAPIKeyConfigured()
                                          ? Color.green
                                          : Color.orange)
+                        .font(.system(size: 16))
                         
                         Text(GeminiAPIService.shared.isAPIKeyConfigured()
                              ? "API 키가 설정되어 있습니다"
                              : "API 키가 설정되지 않았습니다")
                         .font(.system(size: 13))
                         .foregroundStyle(Color.text2)
+                        .fixedSize(horizontal: false, vertical: true)
                         
                         Spacer()
                     }
                     .padding(12)
                     .background(Color.background2)
                     .cornerRadius(8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     
                     Spacer()
                 }
-                .padding(20)
+                .padding(horizontalSizeClass == .compact ? 16 : 20)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
             
             Divider()
@@ -520,9 +534,10 @@ struct APISettingsView: View {
                 .buttonStyle(.plain)
                 .disabled(apiKey.isEmpty)
             }
-            .padding(20)
+            .padding(horizontalSizeClass == .compact ? 16 : 20)
         }
-        .frame(width: 500, height: 600)
+        .frame(maxWidth: horizontalSizeClass == .compact ? .infinity : 600, 
+               maxHeight: horizontalSizeClass == .compact ? .infinity : 700)
         .background(Color.background1)
         .onAppear {
             if let existingKey = GeminiAPIService.shared.getAPIKey() {
@@ -579,9 +594,10 @@ struct InfoRow: View {
             Text(text)
                 .font(.system(size: 13))
                 .foregroundStyle(Color.text2)
-            
-            Spacer()
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 

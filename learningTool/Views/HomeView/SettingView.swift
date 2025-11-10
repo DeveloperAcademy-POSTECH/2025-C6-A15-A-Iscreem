@@ -18,6 +18,7 @@ struct SettingsDetailView: View {
     @Query private var folders: [Folder]
     @Query private var notes: [Note]
     @EnvironmentObject private var learningLogStore: LearningLogStore
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     
     // 테마를 ColorScheme으로 변환
     private var colorScheme: ColorScheme? {
@@ -28,23 +29,22 @@ struct SettingsDetailView: View {
         }
     }
     
+    // 화면 크기에 따른 패딩
+    private var horizontalPadding: CGFloat {
+        horizontalSizeClass == .compact ? 16 : 24
+    }
+    
     var body: some View {
         VStack(spacing: 0) {
             // 헤더
             HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("SWAI")
-                        .font(.system(size: 28, weight: .semibold))
-                        .foregroundStyle(Color.text1)
-                    
-                    Text("설정")
-                        .font(.system(size: 22, weight: .medium))
-                        .foregroundStyle(Color.text2)
-                }
+                Text("설정")
+                    .font(.system(size: 22, weight: .medium))
+                    .foregroundStyle(Color.text2)
                 
                 Spacer()
             }
-            .padding(.horizontal, 24)
+            .padding(.horizontal, horizontalPadding)
             .padding(.top, 12)
             .padding(.bottom, 16)
             
@@ -65,7 +65,7 @@ struct SettingsDetailView: View {
                         }
                         
                         // 테마 설정
-                        HStack(alignment: .top, spacing: 20) {
+                        VStack(alignment: .leading, spacing: 12) {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("테마")
                                     .font(.system(size: 16, weight: .medium))
@@ -73,15 +73,15 @@ struct SettingsDetailView: View {
                                 Text("내 기기에서 SWAI의 모습을 바꿔보세요!")
                                     .font(.system(size: 14, weight: .regular))
                                     .foregroundStyle(Color.text3)
+                                    .fixedSize(horizontal: false, vertical: true)
                             }
-                            
-                            Spacer()
                             
                             ThemeModePicker(selection: $selectedTheme, useVibrancy: $useVibrancy)
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         
                         // 언어 설정
-                        HStack(alignment: .top, spacing: 20) {
+                        VStack(alignment: .leading, spacing: 12) {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("언어")
                                     .font(.system(size: 16, weight: .medium))
@@ -89,12 +89,12 @@ struct SettingsDetailView: View {
                                 Text("SWAI로 학습할 언어를 설정하세요!")
                                     .font(.system(size: 14, weight: .regular))
                                     .foregroundStyle(Color.text3)
+                                    .fixedSize(horizontal: false, vertical: true)
                             }
-                            
-                            Spacer()
                             
                             LanguageModePicker(selection: $selectedLanguage, useVibrancy: $useVibrancy)
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     
                     // 외관 설정 섹션
@@ -111,25 +111,28 @@ struct SettingsDetailView: View {
                         }
                         
                         // 리퀴드 글래스 (Vibrancy) 설정
-                        HStack(alignment: .top, spacing: 20) {
+                        HStack(alignment: .center, spacing: 12) {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("리퀴드 글래스 효과")
                                     .font(.system(size: 16, weight: .medium))
                                     .foregroundStyle(Color.text1)
+                                    .fixedSize(horizontal: false, vertical: true)
                                 Text("반투명한 유리 같은 효과를 적용합니다.")
                                     .font(.system(size: 14, weight: .regular))
                                     .foregroundStyle(Color.text3)
+                                    .fixedSize(horizontal: false, vertical: true)
                             }
                             
-                            Spacer()
+                            Spacer(minLength: 8)
                             
                             Toggle("", isOn: $useVibrancy)
                                 .labelsHidden()
                                 .toggleStyle(SwitchToggleStyle(tint: .blue))
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, horizontalPadding)
                 .padding(.top, 12)
                 .padding(.bottom, 24)
             }
@@ -149,17 +152,17 @@ struct SettingsDetailView: View {
                             .frame(height: 1)
                     }
                     
-                    HStack {
+                    VStack(alignment: .leading, spacing: 12) {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("노트 초기화")
                                 .font(.system(size: 16, weight: .medium))
                                 .foregroundStyle(Color.text1)
+                                .fixedSize(horizontal: false, vertical: true)
                             Text("SWAI에서 작성한 모든 노트가 초기화 됩니다.")
                                 .font(.system(size: 14, weight: .regular))
                                 .foregroundStyle(Color.text3)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
-                        
-                        Spacer()
                         
                         Button {
                             withAnimation(.easeInOut(duration: 0.2)) { showResetConfirm = true }
@@ -167,8 +170,8 @@ struct SettingsDetailView: View {
                             Text("초기화")
                                 .font(.system(size: 14, weight: .medium))
                                 .foregroundStyle(Color.errorColor)
-                                .padding(.horizontal, 20)
-                                .padding(.vertical, 8)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 10)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 8)
                                         .stroke(Color.borderColor, lineWidth: 1)
@@ -176,8 +179,9 @@ struct SettingsDetailView: View {
                         }
                         .buttonStyle(.plain)
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .padding(24)
+                .padding(horizontalPadding)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -294,8 +298,7 @@ struct ThemeModePicker: View {
         .pickerStyle(.segmented)
         .labelsHidden()
         .background(.clear)
-        // 고정폭(370) 제거 → 기기 폭에 따라 자연스럽게 확장/축소
-        .frame(minWidth: 200, idealWidth: 320, maxWidth: 460)
+        .frame(maxWidth: .infinity)
         .background(.clear, in: Capsule())
         .overlay(Capsule().stroke(Color.borderColor.opacity(0.5), lineWidth: 1))
     }
@@ -328,8 +331,7 @@ struct LanguageModePicker: View {
         }
         .pickerStyle(.segmented)
         .labelsHidden()
-        // 고정폭(370) 제거 → 기기 폭에 따라 자연스럽게 확장/축소
-        .frame(minWidth: 200, idealWidth: 320, maxWidth: 460)
+        .frame(maxWidth: .infinity)
         .background(.clear, in: Capsule())
         .overlay(Capsule().stroke(Color.borderColor.opacity(0.5), lineWidth: 1))
     }
