@@ -85,13 +85,15 @@ struct HomeView: View {
                 sortButtonSize: scaler.uni(36),
                 toggleWidth: scaler.w(116),
                 toggleHeight: scaler.h(36),
-                addButtonLegacyDiameter: scaler.uni(60),
-                addButtonLegacyIcon: scaler.uni(30),
-                addButtonModernSide: scaler.uni(44),
+                addButtonLegacyDiameter: scaler.h(60),
+                addButtonLegacyIcon: scaler.h(50),
+                addButtonModernSide: scaler.h(60),
+                addButtonModernIcon: horizontalSizeClass == .compact ? scaler.h(32) : scaler.h(28),
                 overlayPadding: scaler.uni(32),
-                menuButtonSide: scaler.uni(32),
+                menuButtonSide: scaler.h(36),
                 controlMinSide: scaler.uni(44),
                 controlIconPadding: scaler.uni(6)
+                , overlayTrailingExtra: (horizontalSizeClass == .compact ? scaler.w(40) : 0)
             )
             
             NavigationSplitView(preferredCompactColumn: $preferredCompactColumn) {
@@ -151,13 +153,17 @@ struct HomeView: View {
                 .navigationBarBackButtonHidden(horizontalSizeClass == .compact)
             }
             .overlay(alignment: .bottomTrailing) {
-                VStack(spacing: scaler.uni(20)) {
+                VStack(spacing: scaler.h(20)) {
                     if !isShowingTrash {
                         historyButton
+                            .padding(.bottom, horizontalSizeClass == .compact ? scaler.h(8) : 0)
                         addButton(metrics: metrics)
                     }
                 }
-                .padding(metrics.overlayPadding)
+                .padding(.leading, metrics.overlayPadding)
+                .padding(.top, metrics.overlayPadding)
+                .padding(.trailing, metrics.overlayPadding + (horizontalSizeClass == .compact ? metrics.overlayTrailingExtra : 0))
+                .padding(.bottom, horizontalSizeClass == .compact ? scaler.h(4) : metrics.overlayPadding)
             }
             .background {
                 LinearGradient(
@@ -565,13 +571,13 @@ struct HomeView: View {
     private func addButton(metrics: LayoutMetrics) -> some View {
         Group {
             if #available(iOS 26.0, *) {
-                // iOS 26.0 이상: 시스템 glass 버튼 스타일 사용
+                // iOS 26.0 이상: 시스템 glass 버튼 스타일 사용 (아이콘 크기 메트릭 적용)
                 Button {
                     viewModel.addButtonTapped()
                     withAnimation(.easeInOut(duration: 0.2)) { showCreateNote = true }
                 } label: {
                     Image(systemName: "plus")
-                        .font(.system(size: 22, weight: .semibold))
+                        .font(.system(size: metrics.addButtonModernIcon, weight: .semibold))
                         .frame(width: metrics.addButtonModernSide, height: metrics.addButtonModernSide)
                 }
                 .buttonStyle(.glass)
@@ -749,10 +755,12 @@ extension HomeView {
         var addButtonLegacyDiameter: CGFloat = 60
         var addButtonLegacyIcon: CGFloat = 30
         var addButtonModernSide: CGFloat = 44
+        var addButtonModernIcon: CGFloat = 22
         var overlayPadding: CGFloat = 32
-        var menuButtonSide: CGFloat = 32
+        var menuButtonSide: CGFloat = 100
         var controlMinSide: CGFloat = 44
         var controlIconPadding: CGFloat = 6
+        var overlayTrailingExtra: CGFloat = 0
     }
 }
 
