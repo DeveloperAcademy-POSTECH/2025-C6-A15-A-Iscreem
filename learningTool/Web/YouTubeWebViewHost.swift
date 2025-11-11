@@ -23,24 +23,28 @@ final class YouTubeWebViewHost: NSObject, ObservableObject {
     // 🔹 재생 상태 콜백(일시정지/종료 시 현재 시간 전달)
     var onPause: ((Double) -> Void)?
 
+    // 디바이스 분기(아이폰 전용 튜닝)
+    private let isPhone: Bool = (UIDevice.current.userInterfaceIdiom == .phone)
+
     init(captionAnalyzer: CaptionAnalyzer?) {
         self.captionAnalyzer = captionAnalyzer
 
         let config = WKWebViewConfiguration()
+        // iPhone에서 인라인 재생/무음 자동재생 허용
         config.allowsInlineMediaPlayback = true
-        config.mediaTypesRequiringUserActionForPlayback = [] // 자동 재생 허용(소리없는 재생)
+        config.mediaTypesRequiringUserActionForPlayback = [] // iOS 10+ 무음 자동재생 허용
         config.defaultWebpagePreferences.allowsContentJavaScript = true
 
         let ucc = WKUserContentController()
         config.userContentController = ucc
 
-        // 유저 스크립트 주입 (ytcfg/자막 트랙 수집)
-        let script = YouTubeWebViewHost.youtubeBootstrapScript()
+        // 유저 스크립트 주입 (ytcfg/자막 트랙 수집) — iPhone 전용으로 폴링 강화
+        let script = YouTubeWebViewHost.youtubeBootstrapScript(phoneMode: UIDevice.current.userInterfaceIdiom == .phone)
         let userScript = WKUserScript(source: script, injectionTime: .atDocumentEnd, forMainFrameOnly: true)
         ucc.addUserScript(userScript)
 
-        // 레이아웃/인터랙션 제한을 위한 CSS/JS 주입
-        let lockdownScript = YouTubeWebViewHost.lockdownStyleAndInteractionScript()
+        // 레이아웃/인터랙션 제한을 위한 CSS/JS 주입 — iPhone에서 viewport/터치 차단을 조금 더 적극적으로
+        let lockdownScript = YouTubeWebViewHost.lockdownStyleAndInteractionScript(phoneMode: UIDevice.current.userInterfaceIdiom == .phone)
         let lockdownUserScript = WKUserScript(source: lockdownScript, injectionTime: .atDocumentStart, forMainFrameOnly: true)
         ucc.addUserScript(lockdownUserScript)
 
@@ -87,13 +91,14 @@ final class YouTubeWebViewHost: NSObject, ObservableObject {
     // MARK: - Public
     func load(urlString: String) {
         guard let url = URL(string: urlString) else { return }
-        // ✅ reset을 동기 메인에서 즉시 수행 (지연 Task 제거)
+        // ✅ reset을 동기 메인에서 즉시 수행
         if Thread.isMainThread {
             self.captionAnalyzer?.resetForNewVideo()
         } else {
             DispatchQueue.main.async { self.captionAnalyzer?.resetForNewVideo() }
         }
         var req = URLRequest(url: url)
+        // 모바일 페이지 경로에서도 통일된 DOM을 얻기 위해 iPhone UA 사용 (iPad에서도 동일 적용 무방)
         req.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1", forHTTPHeaderField: "User-Agent")
         log.info("WKNav allow → \(url.host ?? "-")")
         // Reset bridge flags for a fresh navigation
@@ -204,8 +209,14 @@ final class YouTubeWebViewHost: NSObject, ObservableObject {
     }
 
     // MARK: - JS Bootstrap
-    private static func youtubeBootstrapScript() -> String {
-        return """
+    /// iPhone 전용: 폴링 시간 연장 + DOM MutationObserver 활성화
+    private static func youtubeBootstrapScript(phoneMode: Bool) -> String {
+        // 분기된 파라미터
+        let intervalMs = phoneMode ? 200 : 150
+        let maxDurationMs = phoneMode ? 10000 : 2500
+        let enableMutationObserver = phoneMode // iPhone에서만 활성화
+
+        let script = """
         (function() {
           if (window._ytlex_bootstrapped) return;
           window._ytlex_bootstrapped = true;
@@ -264,22 +275,44 @@ final class YouTubeWebViewHost: NSObject, ObservableObject {
           function tick() {
             trySendYtcfg();
             trySendTracks();
-            if (postedCfg && postedTracks) { clearInterval(timer); }
           }
-          // Kick once then poll briefly to cover late population
+
+          // Kick once then poll (device-tuned)
           tick();
-          var timer = setInterval(tick, 150);
-          setTimeout(function(){ clearInterval(timer); }, 2500);
+          var intervalMs = \(intervalMs);
+          var maxDurationMs = \(maxDurationMs);
+          var elapsed = 0;
+          var timer = setInterval(function(){
+            tick();
+            elapsed += intervalMs;
+            if (postedCfg && postedTracks) { clearInterval(timer); }
+            else if (elapsed >= maxDurationMs) { clearInterval(timer); }
+          }, intervalMs);
+
+          \(enableMutationObserver ? """
+          // iPhone: also observe DOM mutations to catch late PR/ytcfg population
+          try {
+            var mo = new MutationObserver(function() { tick(); });
+            mo.observe(document.documentElement, { childList: true, subtree: true });
+            // 안전 종료: 충분히 지난 뒤 해제
+            setTimeout(function(){ try { mo.disconnect(); } catch(e){} }, maxDurationMs);
+          } catch (e) {}
+          """ : "")
         })();
         """
+        return script
     }
 
     // MARK: - Lockdown CSS/JS
-    private static func lockdownStyleAndInteractionScript() -> String {
-        // 1) 스타일: 여백 제거, 오버플로우 숨김, 플레이어만 전체 채우기
-        // 2) 선택/롱프레스/텍스트 호출 비활성화
-        // 3) 스크롤/터치 무시(플레이어 외 영역)
-        // 4) viewport 고정(확대/축소 방지)
+    private static func lockdownStyleAndInteractionScript(phoneMode: Bool) -> String {
+        // iPhone에서 터치/스크롤 차단을 조금 더 적극적으로
+        let extraTouchBlock = phoneMode ? """
+        try {
+          document.addEventListener('touchstart', function(e){ if(e.target && e.target.tagName !== 'VIDEO'){ e.preventDefault(); } }, {passive:false});
+          document.addEventListener('touchmove', function(e){ if(e.target && e.target.tagName !== 'VIDEO'){ e.preventDefault(); } }, {passive:false});
+        } catch (e) {}
+        """ : ""
+
         let css = """
         html, body {
           margin: 0 !important;
@@ -333,9 +366,10 @@ final class YouTubeWebViewHost: NSObject, ObservableObject {
           // 스크롤 방지
           try {
             window.addEventListener('scroll', function(){ window.scrollTo(0,0); }, {passive:false});
-            document.addEventListener('touchmove', function(e){ e.preventDefault(); }, {passive:false});
             document.addEventListener('gesturestart', function(e){ e.preventDefault(); }, {passive:false});
           } catch (e) {}
+
+          \(extraTouchBlock)
         })();
         """
 
@@ -452,4 +486,3 @@ extension YouTubeWebViewHost: WKNavigationDelegate, WKUIDelegate {
         decisionHandler(.cancel)
     }
 }
-
