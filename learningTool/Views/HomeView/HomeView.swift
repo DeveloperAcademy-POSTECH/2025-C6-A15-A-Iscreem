@@ -85,11 +85,17 @@ struct HomeView: View {
                 sortButtonSize: scaler.uni(36),
                 toggleWidth: scaler.w(116),
                 toggleHeight: scaler.h(36),
-                addButtonLegacyDiameter: scaler.uni(60),
-                addButtonLegacyIcon: scaler.uni(30),
-                addButtonModernSide: scaler.uni(44),
+                addButtonLegacyDiameter: scaler.h(60),
+                addButtonLegacyIcon: scaler.h(50),
+                addButtonModernSide: scaler.h(60),
+                addButtonModernIcon: horizontalSizeClass == .compact ? scaler.h(32) : scaler.h(28),
                 overlayPadding: scaler.uni(32),
-                menuButtonSide: scaler.uni(32)
+                menuButtonSide: scaler.h(36),
+                controlMinSide: scaler.uni(92),
+                controlIconPadding: scaler.uni(6),
+                compactHeaderRowSpacing: scaler.h(12),
+                compactHeaderBottomPadding: horizontalSizeClass == .compact ? scaler.h(12) : scaler.h(8),
+                overlayTrailingExtra: (horizontalSizeClass == .compact ? scaler.w(40) : 0)
             )
             
             NavigationSplitView(preferredCompactColumn: $preferredCompactColumn) {
@@ -149,13 +155,17 @@ struct HomeView: View {
                 .navigationBarBackButtonHidden(horizontalSizeClass == .compact)
             }
             .overlay(alignment: .bottomTrailing) {
-                VStack(spacing: scaler.uni(20)) {
+                VStack(spacing: scaler.h(20)) {
                     if !isShowingTrash {
                         historyButton
+                            .padding(.bottom, horizontalSizeClass == .compact ? scaler.h(8) : 0)
                         addButton(metrics: metrics)
                     }
                 }
-                .padding(metrics.overlayPadding)
+                .padding(.leading, metrics.overlayPadding)
+                .padding(.top, metrics.overlayPadding)
+                .padding(.trailing, metrics.overlayPadding + (horizontalSizeClass == .compact ? metrics.overlayTrailingExtra : 0))
+                .padding(.bottom, horizontalSizeClass == .compact ? scaler.h(4) : metrics.overlayPadding)
             }
             .background {
                 LinearGradient(
@@ -318,37 +328,93 @@ struct HomeView: View {
     }
     
     // MARK: - Header View
-    private func headerView(metrics: LayoutMetrics) -> some View {
-        HStack(spacing: 12) {
-            // 📱 Compact (iPhone / 좁은 폭)일 때: 좌측에 리퀴드 글래스 메뉴 버튼
-            if horizontalSizeClass == .compact {
-                sidebarMenuButton(metrics: metrics)
-            }
-            VStack(alignment: .leading, spacing: 4) {
-                Text("AIno")
-                    .font(.system(size: 28, weight: .semibold))
-                    .foregroundStyle(Color.text1)
+    @ViewBuilder private func headerView(metrics: LayoutMetrics) -> some View {
+        if horizontalSizeClass == .compact {
+            // 📱 iPhone: 두 줄 레이아웃 (1행: 메뉴/제목/토글, 2행: 검색바 + 정렬)
+            VStack(alignment: .leading, spacing: metrics.compactHeaderRowSpacing) {
+                // Row 1: 메뉴 버튼 + 제목 + 보기 토글
+                HStack(spacing: 8) {
+                    sidebarMenuButton(metrics: metrics)
+                        .layoutPriority(2)
 
-                Text(headerSubtitle)
-                    .font(.system(size: 22, weight: .medium))
-                    .foregroundStyle(Color.text2)
-            }
+                    Text(headerSubtitle)
+                        .padding(.leading, 6) 
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundStyle(Color.text1)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .minimumScaleFactor(0.85)
 
-            Spacer()
+                    Spacer()
 
-            HStack(spacing: 12) {
-                // 검색바를 정렬 버튼 바로 옆에 배치 (Liquid Glass)
-                searchBar(metrics: metrics)
-                sortButton(metrics: metrics)
-                ViewModeToggle(selection: $viewModel.selectedViewMode) { mode in
-                    viewModel.viewModeButtonTapped(mode)
+                    // Place toggle inside a fixed-width column, left-aligned with sort button below
+                    HStack {
+                        ViewModeToggle(selection: $viewModel.selectedViewMode) { mode in
+                            viewModel.viewModeButtonTapped(mode)
+                        }
+                        .frame(height: metrics.toggleHeight)
+                        .frame(width: max(metrics.toggleWidth, metrics.controlMinSide), alignment: .trailing)
+                        .layoutPriority(2)
+                    }
                 }
-                .frame(width: metrics.toggleWidth, height: metrics.toggleHeight)
+
+                // Row 2: 검색바 + 정렬 버튼 (정렬 버튼을 검색바 오른쪽에 배치)
+                HStack(spacing: 8) {
+                    searchBar(metrics: metrics)
+                        .frame(maxWidth: .infinity)
+                        .layoutPriority(1)
+
+                    // Wrap sort button in a fixed-width trailing column
+                    HStack {
+                        sortButton(metrics: metrics)
+                            .frame(width: max(metrics.toggleWidth, metrics.controlMinSide), alignment: .trailing)
+                            .layoutPriority(2)
+                    }
+                }
+                .tagTarget(.searchCluster)
+                .tagPostHomeTarget(.searchCluster)
             }
-            .tagTarget(.searchCluster)
-            .tagPostHomeTarget(.searchCluster)
+            .padding(.horizontal, 16)
+            .padding(.top, 6)
+            .padding(.bottom, metrics.compactHeaderBottomPadding)
+            .safeAreaPadding([.top, .horizontal])
+        } else {
+            // 💻 iPad/Regular: 기존 단일 행 레이아웃 유지
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    if horizontalSizeClass != .compact {
+                        Text("AIno")
+                            .font(.system(size: 28, weight: .semibold))
+                            .foregroundStyle(Color.text1)
+                    }
+                    Text(headerSubtitle)
+                        .font(.system(size: 22, weight: .medium))
+                        .foregroundStyle(Color.text2)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .minimumScaleFactor(0.85)
+                }
+
+                Spacer()
+
+                HStack(spacing: 8) {
+                    // 검색바를 정렬 버튼 바로 옆에 배치 (Liquid Glass)
+                    searchBar(metrics: metrics)
+                        .layoutPriority(0)
+                    sortButton(metrics: metrics)
+                        .layoutPriority(2)
+                    ViewModeToggle(selection: $viewModel.selectedViewMode) { mode in
+                        viewModel.viewModeButtonTapped(mode)
+                    }
+                    .frame(width: metrics.toggleWidth, height: metrics.toggleHeight)
+                    .layoutPriority(2)
+                }
+                .tagTarget(.searchCluster)
+                .tagPostHomeTarget(.searchCluster)
+            }
+            .padding()
+            .safeAreaPadding([.top, .horizontal])
         }
-        .padding()
     }
     
     // MARK: - 검색바
@@ -362,11 +428,15 @@ struct HomeView: View {
                     .lineLimit(1)
             }
             .padding(.horizontal, 12)
-            .frame(minWidth: metrics.searchMinWidth, maxWidth: metrics.searchMaxWidth)
+            .frame(
+                minWidth: horizontalSizeClass == .compact ? 0 : metrics.searchMinWidth,
+                maxWidth: horizontalSizeClass == .compact ? .infinity : metrics.searchMaxWidth
+            )
             .frame(height: metrics.searchHeight)
             .glassEffect()
             .glassEffectUnionCompat(id: "search", namespace: glassNS)
         }
+        .layoutPriority(0)
     }
     
     private func sortButton(metrics: LayoutMetrics) -> some View {
@@ -404,15 +474,29 @@ struct HomeView: View {
             .tint(Color.secondColor)
             .buttonStyle(.plain)
         } label: {
-            GlassEffectContainer(spacing: 0) {
-                Image(systemName: "line.3.horizontal.decrease")
-                    .font(.system(size: 16, weight: .semibold))
-                    .frame(width: metrics.sortButtonSize, height: metrics.sortButtonSize)
-                    .glassEffect()
-                    .glassEffectUnionCompat(id: "sort", namespace: glassNS)
+            Group {
+                if horizontalSizeClass == .compact {
+                    ZStack {
+                        Circle()
+                            .fill(Color.background2.opacity(0.96))
+                            .frame(width: metrics.controlMinSide, height: metrics.controlMinSide)
+                        Image(systemName: "line.3.horizontal.decrease")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundStyle(Color.text2)
+                    }
+                    .contentShape(Circle())
+                } else {
+                    GlassEffectContainer(spacing: 0) {
+                        Image(systemName: "line.3.horizontal.decrease")
+                            .font(.system(size: 16, weight: .semibold))
+                            .frame(width: metrics.sortButtonSize, height: metrics.sortButtonSize)
+                            .glassEffect()
+                            .glassEffectUnionCompat(id: "sort", namespace: glassNS)
+                    }
+                }
             }
-            .tint(Color.text2)
         }
+        .tint(Color.text2)
         // 기존 버튼 그림자 느낌 유지
         .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 2)
     }
@@ -499,13 +583,13 @@ struct HomeView: View {
     private func addButton(metrics: LayoutMetrics) -> some View {
         Group {
             if #available(iOS 26.0, *) {
-                // iOS 26.0 이상: 시스템 glass 버튼 스타일 사용
+                // iOS 26.0 이상: 시스템 glass 버튼 스타일 사용 (아이콘 크기 메트릭 적용)
                 Button {
                     viewModel.addButtonTapped()
                     withAnimation(.easeInOut(duration: 0.2)) { showCreateNote = true }
                 } label: {
                     Image(systemName: "plus")
-                        .font(.system(size: 22, weight: .semibold))
+                        .font(.system(size: metrics.addButtonModernIcon, weight: .semibold))
                         .frame(width: metrics.addButtonModernSide, height: metrics.addButtonModernSide)
                 }
                 .buttonStyle(.glass)
@@ -638,12 +722,26 @@ struct HomeView: View {
                 }
             }
         } label: {
-            GlassEffectContainer(spacing: 0) {
-                Image(systemName: "line.3.horizontal")
-                    .font(.system(size: 18, weight: .semibold))
-                    .frame(width: metrics.menuButtonSide, height: metrics.menuButtonSide)
-                    .glassEffect()
-                    .glassEffectUnionCompat(id: "sidebar-menu", namespace: glassNS)
+            Group {
+                if horizontalSizeClass == .compact {
+                    ZStack {
+                        Circle()
+                            .fill(Color.background2.opacity(0.96))
+                            .frame(width: metrics.controlMinSide, height: metrics.controlMinSide)
+                        Image(systemName: "line.3.horizontal")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundStyle(Color.text2)
+                    }
+                    .contentShape(Circle())
+                } else {
+                    GlassEffectContainer(spacing: 0) {
+                        Image(systemName: "line.3.horizontal")
+                            .font(.system(size: 18, weight: .semibold))
+                            .frame(width: metrics.menuButtonSide, height: metrics.menuButtonSide)
+                            .glassEffect()
+                            .glassEffectUnionCompat(id: "sidebar-menu", namespace: glassNS)
+                    }
+                }
             }
         }
         .buttonStyle(.plain)
@@ -683,8 +781,14 @@ extension HomeView {
         var addButtonLegacyDiameter: CGFloat = 60
         var addButtonLegacyIcon: CGFloat = 30
         var addButtonModernSide: CGFloat = 44
+        var addButtonModernIcon: CGFloat = 22
         var overlayPadding: CGFloat = 32
-        var menuButtonSide: CGFloat = 32
+        var menuButtonSide: CGFloat = 100
+        var controlMinSide: CGFloat = 44
+        var controlIconPadding: CGFloat = 6
+        var compactHeaderRowSpacing: CGFloat = 8
+        var compactHeaderBottomPadding: CGFloat = 8
+        var overlayTrailingExtra: CGFloat = 0
     }
 }
 
