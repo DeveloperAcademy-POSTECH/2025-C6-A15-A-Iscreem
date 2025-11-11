@@ -65,26 +65,34 @@ extension HomeView {
     
     @ViewBuilder
     func listHeaderRow() -> some View {
-        HStack {
+        HStack(spacing: 6) {
             Text("제목")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Color.text3)
-                .frame(minWidth: 260, maxWidth: .infinity, alignment: .leading)
+                .lineLimit(1)
+                .minimumScaleFactor(0.9)
+                .frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
             
             Text("강의 길이")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Color.text3)
-                .frame(width: 72, alignment: .trailing)
+                .lineLimit(1)
+                .minimumScaleFactor(0.9)
+                .frame(width: 60, alignment: .trailing)
             
             Text("수강률")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Color.text3)
-                .frame(width: 72, alignment: .trailing)
+                .lineLimit(1)
+                .minimumScaleFactor(0.9)
+                .frame(width: 60, alignment: .trailing)
             
             Text("최근 학습 일시")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Color.text3)
-                .frame(width: 110, alignment: .trailing)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+                .frame(width: 88, alignment: .trailing)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
@@ -100,7 +108,7 @@ extension HomeView {
         onNoteSelected: ((Note) -> Void)?,
         modelContext: ModelContext
     ) -> some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 6) {
             HStack(spacing: 12) {
                 thumbnailView(for: note)
                     .frame(width: 56, height: 56)
@@ -111,22 +119,22 @@ extension HomeView {
                     .foregroundStyle(Color.text1)
                     .lineLimit(1)
             }
-            .frame(minWidth: 260, maxWidth: .infinity, alignment: .leading)
+            .frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
             
             Text(NoteFormattingUtils.durationText(for: note))
                 .font(.system(size: 14))
                 .foregroundStyle(Color.text2)
-                .frame(width: 72, alignment: .trailing)
+                .frame(width: 60, alignment: .trailing)
             
             Text(NoteFormattingUtils.progressText(for: note))
                 .font(.system(size: 14))
                 .foregroundStyle(Color.text2)
-                .frame(width: 72, alignment: .trailing)
+                .frame(width: 60, alignment: .trailing)
             
             Text(NoteFormattingUtils.lastReadText(for: note))
                 .font(.system(size: 14))
                 .foregroundStyle(Color.text2)
-                .frame(width: 110, alignment: .trailing)
+                .frame(width: 88, alignment: .trailing)
         }
         .padding(.vertical, 10)
         .padding(.horizontal, 8)
@@ -170,7 +178,7 @@ extension HomeView {
                 selectedFolderName.wrappedValue = folder.name
                 headerSubtitle.wrappedValue = folder.name
             } label: {
-                HStack(spacing: 12) {
+                HStack(spacing: 6) {
                     HStack(spacing: 12) {
                         Image(systemName: "folder.fill")
                             .font(.system(size: 20, weight: .semibold))
@@ -187,14 +195,14 @@ extension HomeView {
                             .foregroundStyle(Color.text1)
                             .lineLimit(1)
                     }
-                    .frame(minWidth: 260, maxWidth: .infinity, alignment: .leading)
+                    .frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
                     
-                    Text("—").frame(width: 72, alignment: .trailing).foregroundStyle(Color.text3)
-                    Text("—").frame(width: 72, alignment: .trailing).foregroundStyle(Color.text3)
+                    Text("—").frame(width: 60, alignment: .trailing).foregroundStyle(Color.text3)
+                    Text("—").frame(width: 60, alignment: .trailing).foregroundStyle(Color.text3)
                     Text(NoteFormattingUtils.relativeDate(folder.createdAt))
                         .font(.system(size: 14))
                         .foregroundStyle(Color.text2)
-                        .frame(width: 110, alignment: .trailing)
+                        .frame(width: 88, alignment: .trailing)
                 }
                 .padding(.vertical, 10)
                 .padding(.horizontal, 8)

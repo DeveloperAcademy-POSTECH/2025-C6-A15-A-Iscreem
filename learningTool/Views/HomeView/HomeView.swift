@@ -91,7 +91,7 @@ struct HomeView: View {
                 addButtonModernIcon: horizontalSizeClass == .compact ? scaler.h(32) : scaler.h(28),
                 overlayPadding: scaler.uni(32),
                 menuButtonSide: scaler.h(36),
-                controlMinSide: scaler.uni(44),
+                controlMinSide: scaler.uni(92),
                 controlIconPadding: scaler.uni(6)
                 , overlayTrailingExtra: (horizontalSizeClass == .compact ? scaler.w(40) : 0)
             )
@@ -465,14 +465,15 @@ struct HomeView: View {
         } label: {
             Group {
                 if horizontalSizeClass == .compact {
-                    Image(systemName: "line.3.horizontal.decrease")
-                        .font(.system(size: 16, weight: .semibold))
-                        .padding(metrics.controlIconPadding)
-                        .foregroundStyle(Color.text2)
-                        .background(Color.background2.opacity(0.96), in: Circle())
-                        .frame(minWidth: metrics.controlMinSide, minHeight: metrics.controlMinSide)
-                        .contentShape(Circle())
-                        .clipShape(Circle())
+                    ZStack {
+                        Circle()
+                            .fill(Color.background2.opacity(0.96))
+                            .frame(width: metrics.controlMinSide, height: metrics.controlMinSide)
+                        Image(systemName: "line.3.horizontal.decrease")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundStyle(Color.text2)
+                    }
+                    .contentShape(Circle())
                 } else {
                     GlassEffectContainer(spacing: 0) {
                         Image(systemName: "line.3.horizontal.decrease")
@@ -710,12 +711,26 @@ struct HomeView: View {
                 }
             }
         } label: {
-            GlassEffectContainer(spacing: 0) {
-                Image(systemName: "line.3.horizontal")
-                    .font(.system(size: 18, weight: .semibold))
-                    .frame(width: metrics.menuButtonSide, height: metrics.menuButtonSide)
-                    .glassEffect()
-                    .glassEffectUnionCompat(id: "sidebar-menu", namespace: glassNS)
+            Group {
+                if horizontalSizeClass == .compact {
+                    ZStack {
+                        Circle()
+                            .fill(Color.background2.opacity(0.96))
+                            .frame(width: metrics.controlMinSide, height: metrics.controlMinSide)
+                        Image(systemName: "line.3.horizontal")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundStyle(Color.text2)
+                    }
+                    .contentShape(Circle())
+                } else {
+                    GlassEffectContainer(spacing: 0) {
+                        Image(systemName: "line.3.horizontal")
+                            .font(.system(size: 18, weight: .semibold))
+                            .frame(width: metrics.menuButtonSide, height: metrics.menuButtonSide)
+                            .glassEffect()
+                            .glassEffectUnionCompat(id: "sidebar-menu", namespace: glassNS)
+                    }
+                }
             }
         }
         .buttonStyle(.plain)
