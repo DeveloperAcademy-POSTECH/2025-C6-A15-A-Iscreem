@@ -6,23 +6,105 @@
 //
 
 import Foundation
+#if os(iOS)
+import UIKit
+#endif
 
 /// VTT/JSON3/TimedText XML 자막 파싱 유틸리티
 enum VTTParser {
     
     static func fetchFromBaseUrl(_ baseUrl: String) async throws -> [CaptionAnalyzer.VTTCue] {
+        #if os(iOS)
+        let isPhone = UIDevice.current.userInterfaceIdiom == .phone
+        if isPhone {
+            // iPhone: 새로운(오늘 추가된) 정규화/보정 로직
+            //  - HTML 엔티티(&amp;) 정리
+            //  - //로 시작하면 https: 접두
+            //  - /api…, api/timedtext… 상대 경로 → https://www.youtube.com 붙이기
+            let normalized = normalizeBaseUrl(baseUrl)
+            print("fetchFromBaseUrl: normalized=\(normalized)")
+            
+            guard normalized.lowercased().hasPrefix("http") else {
+                throw NSError(domain: "VTT", code: -11, userInfo: [NSLocalizedDescriptionKey: "잘못된 자막 URL"])
+            }
+            
+            // 1) 그대로 시도
+            if let url = URL(string: normalized) {
+                if let cues = try? await _downloadAndParse(url: url) { return cues }
+            }
+            
+            // 2) fmt 강제 변경 시도 (존재하면 교체, 없으면 추가)
+            func withParam(_ key: String, _ val: String) -> URL? {
+                guard var c = URLComponents(string: normalized) else { return nil }
+                var items = c.queryItems ?? []
+                if let idx = items.firstIndex(where: { $0.name == key }) {
+                    items[idx] = .init(name: key, value: val)
+                } else {
+                    items.append(.init(name: key, value: val))
+                }
+                c.queryItems = items
+                return c.url
+            }
+            
+            print("fetchFromBaseUrl: trying fmt=vtt")
+            if let u1 = withParam("fmt", "vtt"), let cues = try? await _downloadAndParse(url: u1) { return cues }
+            
+            print("fetchFromBaseUrl: trying fmt=json3")
+            if let u2 = withParam("fmt", "json3"), let cues = try? await _downloadAndParse(url: u2) { return cues }
+            
+            print("fetchFromBaseUrl: trying fmt=srv3")
+            if let u3 = withParam("fmt", "srv3"), let cues = try? await _downloadAndParse(url: u3) { return cues }
+            
+            throw NSError(domain: "VTT", code: -9, userInfo: [NSLocalizedDescriptionKey: "서명된 자막 URL에서 데이터를 가져오지 못했습니다."])
+        } else {
+            // iPad: 이전(기존에 잘 동작하던) 로직 유지
+            print("fetchFromBaseUrl: trying raw baseUrl=\(baseUrl)")
+            
+            guard baseUrl.lowercased().hasPrefix("http") else {
+                throw NSError(domain: "VTT", code: -11, userInfo: [NSLocalizedDescriptionKey: "잘못된 자막 URL"])
+            }
+            
+            // 1) 그대로 시도
+            if let url = URL(string: baseUrl) {
+                if let cues = try? await _downloadAndParse(url: url) { return cues }
+            }
+            
+            // 2) fmt 강제 변경 시도 (기존 방식: 없으면 추가, 있으면 교체)
+            func withParam(_ key: String, _ val: String) -> URL? {
+                guard var c = URLComponents(string: baseUrl) else { return nil }
+                var items = c.queryItems ?? []
+                if !items.contains(where: { $0.name == key }) {
+                    items.append(.init(name: key, value: val))
+                } else {
+                    items = items.map { $0.name == key ? .init(name: key, value: val) : $0 }
+                }
+                c.queryItems = items
+                return c.url
+            }
+            
+            print("fetchFromBaseUrl: trying fmt=vtt")
+            if let u1 = withParam("fmt", "vtt"), let cues = try? await _downloadAndParse(url: u1) { return cues }
+            
+            print("fetchFromBaseUrl: trying fmt=json3")
+            if let u2 = withParam("fmt", "json3"), let cues = try? await _downloadAndParse(url: u2) { return cues }
+            
+            print("fetchFromBaseUrl: trying fmt=srv3")
+            if let u3 = withParam("fmt", "srv3"), let cues = try? await _downloadAndParse(url: u3) { return cues }
+            
+            throw NSError(domain: "VTT", code: -9, userInfo: [NSLocalizedDescriptionKey: "서명된 자막 URL에서 데이터를 가져오지 못했습니다."])
+        }
+        #else
+        // 기타 플랫폼: iPad(이전) 로직과 동일하게 동작
         print("fetchFromBaseUrl: trying raw baseUrl=\(baseUrl)")
         
         guard baseUrl.lowercased().hasPrefix("http") else {
             throw NSError(domain: "VTT", code: -11, userInfo: [NSLocalizedDescriptionKey: "잘못된 자막 URL"])
         }
         
-        // 1) 그대로 시도
         if let url = URL(string: baseUrl) {
             if let cues = try? await _downloadAndParse(url: url) { return cues }
         }
         
-        // 2) fmt 강제 변경 시도
         func withParam(_ key: String, _ val: String) -> URL? {
             guard var c = URLComponents(string: baseUrl) else { return nil }
             var items = c.queryItems ?? []
@@ -45,6 +127,35 @@ enum VTTParser {
         if let u3 = withParam("fmt", "srv3"), let cues = try? await _downloadAndParse(url: u3) { return cues }
         
         throw NSError(domain: "VTT", code: -9, userInfo: [NSLocalizedDescriptionKey: "서명된 자막 URL에서 데이터를 가져오지 못했습니다."])
+        #endif
+    }
+    
+    /// YouTube captionTracks.baseUrl 정규화
+    /// - "&amp;" → "&"
+    /// - 따옴표/공백 제거
+    /// - //로 시작 → https: 접두
+    /// - /api… 또는 api/timedtext… → https://www.youtube.com 접두
+    private static func normalizeBaseUrl(_ raw: String) -> String {
+        var s = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        // 따옴표 래핑 제거
+        if (s.hasPrefix("\"") && s.hasSuffix("\"")) || (s.hasPrefix("'") && s.hasSuffix("'")) {
+            s = String(s.dropFirst().dropLast())
+        }
+        // HTML 엔티티 치환
+        s = s.replacingOccurrences(of: "&amp;", with: "&")
+        
+        // 프로토콜 상대 → https:
+        if s.hasPrefix("//") {
+            s = "https:" + s
+        }
+        
+        // 경로 상대 → www.youtube.com 붙이기
+        if s.hasPrefix("/api/") || s.hasPrefix("/timedtext") {
+            s = "https://www.youtube.com" + s
+        } else if s.lowercased().hasPrefix("api/") || s.lowercased().hasPrefix("timedtext") {
+            s = "https://www.youtube.com/" + s
+        }
+        return s
     }
     
     private static func _downloadAndParse(url: URL) async throws -> [CaptionAnalyzer.VTTCue] {

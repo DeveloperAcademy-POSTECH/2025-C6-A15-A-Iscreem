@@ -14,6 +14,7 @@ import SwiftData
 #if canImport(FoundationModels)
 import FoundationModels
 #endif
+import UIKit
 
 final class CaptionAnalyzer: ObservableObject {
     
@@ -85,20 +86,56 @@ final class CaptionAnalyzer: ObservableObject {
     private let summarizerEngine: SummarizerEngine
     private let keywordExtractor: KeywordExtractor
     
+    // iPhone / iPad 런타임 판별 헬퍼 (디버그 출력용)
+    private static var isIPhone: Bool {
+#if os(iOS)
+#if canImport(UIKit)
+        return UIDevice.current.userInterfaceIdiom == .phone
+#else
+        return false
+#endif
+#else
+        return false
+#endif
+    }
+    private static var isIPad: Bool {
+#if os(iOS)
+#if canImport(UIKit)
+        return UIDevice.current.userInterfaceIdiom == .pad
+#else
+        return false
+#endif
+#else
+        return false
+#endif
+    }
+    
     init() {
 #if canImport(FoundationModels)
         if #available(iOS 26.0, *) {
-            self.summarizer = try? AppleFMSummarizer()
+            // iPhone / iPad 공통: FoundationModels 사용 시도
+            let device = CaptionAnalyzer.isIPhone ? "iPhone" : (CaptionAnalyzer.isIPad ? "iPad" : "iOS-Other")
+            log.info("FM: attempting AppleFMSummarizer on \(device)")
+            do {
+                self.summarizer = try AppleFMSummarizer()
+                log.info("FM: AppleFMSummarizer initialized successfully.")
+            } catch {
+                let ns = error as NSError
+                self.summarizer = nil
+                log.error("FM: AppleFMSummarizer init failed: \(ns.localizedDescription, privacy: .public)")
+            }
+            if self.summarizer == nil {
+                log.info("FM: Summarizer unavailable at runtime; will use heuristic fallback.")
+            }
         } else {
+            // iOS 26 미만: 공통 폴백
             self.summarizer = nil
-        }
-        if summarizer != nil {
-            log.info("Summarizer available (AppleFM or HTTP)")
-        } else {
-            log.info("Summarizer unavailable; summaries will be disabled unless HTTP is wired")
+            log.info("FM: Unavailable on this OS; using heuristic fallback.")
         }
 #else
+        // 빌드 타임에 FoundationModels가 링크되지 않은 경우
         self.summarizer = nil
+        log.info("FM: FoundationModels not available at build time; using heuristic fallback.")
 #endif
         
         self.summarizerEngine = SummarizerEngine(logger: log)
@@ -153,9 +190,8 @@ final class CaptionAnalyzer: ObservableObject {
                 let c = Chapter(start: 0, end: 0, title: ch.title, gist: ch.bullets.joined(separator: " "))
                 rebuilt.append(c)
                 bulletsMap[c.id] = ch.bullets
-                keywordsMap[c.id] = ch.keywords // ✅ 저장된 키워드 복원
+                keywordsMap[c.id] = ch.keywords
                 
-                // 🔹 챕터별 키워드 누적 (중복 제거)
                 for kw in ch.keywords where !allKeywords.contains(kw) {
                     allKeywords.append(kw)
                 }
@@ -168,7 +204,9 @@ final class CaptionAnalyzer: ObservableObject {
             self.accumulatedKeywords = allKeywords
             self.summaryStatus = .ready
             
-            print("✅ bind() → 캐시 복원 완료: 챕터 \(rebuilt.count)개, 키워드 \(allKeywords.count)개")
+            if Self.isIPhone {
+                print("✅ bind() → 캐시 복원 완료: 챕터 \(rebuilt.count)개, 키워드 \(allKeywords.count)개")
+            }
         } else {
             self.summaryText = ""
             self.finalSummary = ""
@@ -205,7 +243,7 @@ final class CaptionAnalyzer: ObservableObject {
                             gist: (ch.bullets.first ?? ""))
             built.append(c)
             bulletsMap[c.id] = Array(ch.bullets.prefix(4))
-            keywordsMap[c.id] = ch.keywords // ✅ 키워드 복원
+            keywordsMap[c.id] = ch.keywords
             
             for kw in ch.keywords where !allKeywords.contains(kw) {
                 allKeywords.append(kw)
@@ -256,11 +294,11 @@ final class CaptionAnalyzer: ObservableObject {
             self.chapterTexts = [:]
             self.summaryDebug = SummaryDebug(runId: runId, processed: 0, total: 0, lastUpdate: Date())
         }
-
+        
         if sid != self.sessionId { return }
-
+        
+        // Summarizer가 존재하면 기기와 무관하게 AppleFM 경로 사용
         if let summarizer = self.summarizer {
-            // iOS 26+ (Apple Intelligence / FoundationModels 사용 가능 경로)
             await summarizerEngine.processCues(
                 cues: cues,
                 sessionId: sid,
@@ -313,11 +351,12 @@ final class CaptionAnalyzer: ObservableObject {
                     self.mergeFinalAsync(pieces: summaryLines, runTag: runId.uuidString.prefix(8), summarizer: summarizer, sessionId: sid)
                 }
             )
-        } else {
-            // iOS 18+ ~ 25.x: Summarizer(Apple Intelligence)가 없는 경우 휴리스틱 기반 Fallback
-            log.info("summarizeFromCues() fallback → using heuristic summarization (no Summarizer available)")
-            await fallbackSummarizeFromCues(cues, sid: sid, runId: runId)
+            return
         }
+        
+        // Summarizer가 없을 때: 휴리스틱 폴백 경로
+        log.info("summarizeFromCues() fallback → using heuristic summarization (Summarizer unavailable)")
+        await fallbackSummarizeFromCues(cues, sid: sid, runId: runId)
     }
     
     private func mergeFinalAsync(pieces: [String], runTag: Substring, summarizer: Summarizer, sessionId sid: UUID) {
@@ -342,9 +381,13 @@ final class CaptionAnalyzer: ObservableObject {
             } catch {
                 let ns = error as NSError
                 self.log.error("sum[\(runTag)] merge error: \(ns.localizedDescription, privacy: .public)")
+                // 병합 실패 → 폴백 텍스트로 대체
                 await MainActor.run {
                     guard sid == self.sessionId else { return }
                     self.isMergingFinal = false
+                    if self.finalSummary.isEmpty {
+                        self.finalSummary = self.summaryText
+                    }
                 }
             }
         }
@@ -366,15 +409,18 @@ final class CaptionAnalyzer: ObservableObject {
     
     @MainActor
     private func setChapterBullets(id: UUID, bullets: [String]) {
-        print("🟦 setChapterBullets called for \(id), bullets count=\(bullets.count)")
+        // 아이폰 전용 디버그 로그
+        if Self.isIPhone {
+            print("🟦 setChapterBullets called for \(id), bullets count=\(bullets.count)")
+        }
         chapterBullets[id] = bullets
         let chapterText = bullets.joined(separator: " ")
-
+        
         Task {
             let updateKeywords: ([String]) -> Void = { newKeywords in
                 Task { @MainActor in
                     self.chapterKeywords[id] = newKeywords
-
+                    
                     var allKeywords: [String] = []
                     for cid in self.chapters.map({ $0.id }) {
                         if let kws = self.chapterKeywords[cid] {
@@ -383,19 +429,22 @@ final class CaptionAnalyzer: ObservableObject {
                             }
                         }
                     }
-
+                    
                     self.displayKeywords = allKeywords
                     self.accumulatedKeywords = allKeywords
-
-                    print("✅ Chapter \(id) keywords updated → 총 \(allKeywords.count)개 단어 누적됨")
-                    print("🧩 현재 displayKeywords: \(self.displayKeywords)")
+                    
+                    // 아이폰 전용 디버그 로그
+                    if Self.isIPhone {
+                        print("✅ Chapter \(id) keywords updated → 총 \(allKeywords.count)개 단어 누적됨")
+                        print("🧩 현재 displayKeywords: \(self.displayKeywords)")
+                    }
                     
                     // ✅ 키워드가 업데이트될 때마다 즉시 저장
                     self.persistCacheToBoundNoteIfPossible()
                 }
             }
-
-            // KeywordExtractor에 위임
+            
+            // KeywordExtractor에 위임 (summarizer는 iPhone/iPad 공통으로 존재 가능)
             let finalKeywords = await self.keywordExtractor.extractChapterKeywords(
                 from: chapterText,
                 summarizer: self.summarizer
@@ -403,7 +452,10 @@ final class CaptionAnalyzer: ObservableObject {
             
             await MainActor.run {
                 updateKeywords(finalKeywords)
-                print("🟨 refined keywords -> \(finalKeywords)")
+                // 아이폰 전용 디버그 로그
+                if Self.isIPhone {
+                    print("🟨 refined keywords -> \(finalKeywords)")
+                }
             }
         }
     }
@@ -415,10 +467,10 @@ final class CaptionAnalyzer: ObservableObject {
         var snapshot: [CachedChapter] = []
         for ch in self.chapters {
             let bullets = self.chapterBullets[ch.id] ?? []
-            let keywords = self.chapterKeywords[ch.id] ?? [] // ✅ 챕터별 키워드 저장
+            let keywords = self.chapterKeywords[ch.id] ?? []
             snapshot.append(CachedChapter(title: ch.title,
                                           bullets: Array(bullets.prefix(4)),
-                                          keywords: keywords)) // ✅ keywords 파라미터 추가
+                                          keywords: keywords))
         }
         note.cachedChapters = snapshot
         
@@ -432,7 +484,9 @@ final class CaptionAnalyzer: ObservableObject {
         note.cachedFinalSummary = self.finalSummary.isEmpty ? nil : self.finalSummary
         note.cachedKeywords = self.extractedKeywords
         
-        print("💾 persistCacheToBoundNoteIfPossible: 챕터 \(snapshot.count)개 저장, 총 키워드 \(self.accumulatedKeywords.count)개")
+        if Self.isIPhone {
+            print("💾 persistCacheToBoundNoteIfPossible: 챕터 \(snapshot.count)개 저장, 총 키워드 \(self.accumulatedKeywords.count)개")
+        }
     }
     
     // MARK: - youtubei (player API) Prefetch
@@ -592,7 +646,7 @@ final class CaptionAnalyzer: ObservableObject {
             .map { $0.text }
             .joined(separator: " ")
             .replacingOccurrences(of: "\n", with: " ")
-
+        
         guard !fullText.isEmpty else {
             await MainActor.run {
                 guard sid == self.sessionId else { return }
@@ -600,81 +654,80 @@ final class CaptionAnalyzer: ObservableObject {
             }
             return
         }
-
+        
         // 자막 길이에 따라 2~6개 사이의 챕터로 단순 분할
         let estimatedChapterCount = max(2, min(6, max(1, fullText.count / 800)))
         let chapterCount = min(estimatedChapterCount, max(1, cues.count))
         let chunkSize = max(1, cues.count / chapterCount)
-
+        
         var chapters: [Chapter] = []
         var bulletsMap: [UUID: [String]] = [:]
-
+        
         let sentenceDelimiters = CharacterSet(charactersIn: ".?!。！？")
         let sentences = fullText
             .components(separatedBy: sentenceDelimiters)
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
-
+        
         for (index, startIndex) in stride(from: 0, to: cues.count, by: chunkSize).enumerated() {
             let endIndex = min(startIndex + chunkSize, cues.count)
             let slice = cues[startIndex..<endIndex]
             guard let first = slice.first, let last = slice.last else { continue }
-
+            
             let sliceText = slice
                 .map { $0.text }
                 .joined(separator: " ")
-
+            
             let sliceSentences = sliceText
                 .components(separatedBy: sentenceDelimiters)
                 .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
                 .filter { !$0.isEmpty }
-
+            
             let titleBase = sliceSentences.first ?? "챕터 \(index + 1)"
             let title = String(titleBase.prefix(40))
             let gist = sliceSentences.prefix(2).joined(separator: " / ")
             let bullets = Array(sliceSentences.prefix(4))
-
+            
             let chapter = Chapter(
                 start: first.start,
                 end: last.end,
                 title: title.isEmpty ? "챕터 \(index + 1)" : title,
                 gist: gist.isEmpty ? title : gist
             )
-
+            
             chapters.append(chapter)
             bulletsMap[chapter.id] = bullets
         }
-
+        
         let summarySentences = Array(sentences.prefix(10))
         let simpleSummary = summarySentences.joined(separator: " ")
-
+        
         // 키워드는 KeywordExtractor의 빈도 기반 로직 사용
         let keywords = self.keywordExtractor.extractKeywords(from: fullText, topN: 10)
-
+        
         await MainActor.run {
             guard sid == self.sessionId else { return }
-
+            
             self.chapters = chapters
             self.chapterBullets = bulletsMap
             self.chapterTexts = [:] // 휴리스틱 경로에서는 원문 맵을 사용하지 않음
             self.summaryText = simpleSummary.isEmpty ? fullText : simpleSummary
             self.finalSummary = self.summaryText
             self.summaryStatus = .ready
-
+            
             self.extractedKeywords = keywords
             self.displayKeywords = keywords
             self.accumulatedKeywords = keywords
-
+            
             self.summaryDebug = SummaryDebug(
                 runId: runId,
                 processed: summarySentences.count,
                 total: sentences.count,
                 lastUpdate: Date()
             )
-
+            
             self.persistCacheToBoundNoteIfPossible()
             self.log.info("fallbackSummarizeFromCues() done; chapters=\(chapters.count), keywords=\(keywords.count)")
         }
     }
 }
-
