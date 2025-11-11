@@ -92,8 +92,10 @@ struct HomeView: View {
                 overlayPadding: scaler.uni(32),
                 menuButtonSide: scaler.h(36),
                 controlMinSide: scaler.uni(92),
-                controlIconPadding: scaler.uni(6)
-                , overlayTrailingExtra: (horizontalSizeClass == .compact ? scaler.w(40) : 0)
+                controlIconPadding: scaler.uni(6),
+                compactHeaderRowSpacing: scaler.h(12),
+                compactHeaderBottomPadding: horizontalSizeClass == .compact ? scaler.h(12) : scaler.h(8),
+                overlayTrailingExtra: (horizontalSizeClass == .compact ? scaler.w(40) : 0)
             )
             
             NavigationSplitView(preferredCompactColumn: $preferredCompactColumn) {
@@ -329,13 +331,14 @@ struct HomeView: View {
     @ViewBuilder private func headerView(metrics: LayoutMetrics) -> some View {
         if horizontalSizeClass == .compact {
             // 📱 iPhone: 두 줄 레이아웃 (1행: 메뉴/제목/토글, 2행: 검색바 + 정렬)
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: metrics.compactHeaderRowSpacing) {
                 // Row 1: 메뉴 버튼 + 제목 + 보기 토글
                 HStack(spacing: 8) {
                     sidebarMenuButton(metrics: metrics)
                         .layoutPriority(2)
 
                     Text(headerSubtitle)
+                        .padding(.leading, 6) 
                         .font(.system(size: 22, weight: .semibold))
                         .foregroundStyle(Color.text1)
                         .lineLimit(1)
@@ -344,11 +347,15 @@ struct HomeView: View {
 
                     Spacer()
 
-                    ViewModeToggle(selection: $viewModel.selectedViewMode) { mode in
-                        viewModel.viewModeButtonTapped(mode)
+                    // Place toggle inside a fixed-width column, left-aligned with sort button below
+                    HStack {
+                        ViewModeToggle(selection: $viewModel.selectedViewMode) { mode in
+                            viewModel.viewModeButtonTapped(mode)
+                        }
+                        .frame(height: metrics.toggleHeight)
+                        .frame(width: max(metrics.toggleWidth, metrics.controlMinSide), alignment: .trailing)
+                        .layoutPriority(2)
                     }
-                    .frame(width: metrics.toggleWidth, height: metrics.toggleHeight)
-                    .layoutPriority(2)
                 }
 
                 // Row 2: 검색바 + 정렬 버튼 (정렬 버튼을 검색바 오른쪽에 배치)
@@ -357,15 +364,19 @@ struct HomeView: View {
                         .frame(maxWidth: .infinity)
                         .layoutPriority(1)
 
-                    sortButton(metrics: metrics)
-                        .layoutPriority(2)
+                    // Wrap sort button in a fixed-width trailing column
+                    HStack {
+                        sortButton(metrics: metrics)
+                            .frame(width: max(metrics.toggleWidth, metrics.controlMinSide), alignment: .trailing)
+                            .layoutPriority(2)
+                    }
                 }
                 .tagTarget(.searchCluster)
                 .tagPostHomeTarget(.searchCluster)
             }
             .padding(.horizontal, 16)
             .padding(.top, 6)
-            .padding(.bottom, 8)
+            .padding(.bottom, metrics.compactHeaderBottomPadding)
             .safeAreaPadding([.top, .horizontal])
         } else {
             // 💻 iPad/Regular: 기존 단일 행 레이아웃 유지
@@ -775,6 +786,8 @@ extension HomeView {
         var menuButtonSide: CGFloat = 100
         var controlMinSide: CGFloat = 44
         var controlIconPadding: CGFloat = 6
+        var compactHeaderRowSpacing: CGFloat = 8
+        var compactHeaderBottomPadding: CGFloat = 8
         var overlayTrailingExtra: CGFloat = 0
     }
 }
