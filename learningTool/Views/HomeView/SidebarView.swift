@@ -81,16 +81,14 @@ struct SidebarView: View {
                                 .tag(SortOption.dateDescending)
                         }
                     } label: {
-                        GlassEffectContainer(spacing: 0) {
-                            Image(systemName: "line.3.horizontal.decrease")
-                                .font(.system(size: 16, weight: .semibold))
-                                .frame(width: 36, height: 36)
-                                .glassEffect()
-                                .glassEffectUnionCompat(id: "sidebar-sort", namespace: glassNS)
-                        }
-                        .tint(Color.text2)
+                        Image(systemName: "arrow.up.arrow.down")
+                            .font(.system(size: 16, weight: .semibold))
+                            .padding(8)
+                            .frame(minWidth: 44, minHeight: 44)
+                            .contentShape(Circle())
+                            .clipShape(Circle())
+                            .tint(Color.text2)
                     }
-                    .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 2)
                 }
                 .padding(.horizontal, 20)
                 // 고정 50 → 안전영역을 고려한 top 패딩

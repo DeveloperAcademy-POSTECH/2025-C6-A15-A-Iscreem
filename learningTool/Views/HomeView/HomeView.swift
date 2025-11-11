@@ -89,7 +89,9 @@ struct HomeView: View {
                 addButtonLegacyIcon: scaler.uni(30),
                 addButtonModernSide: scaler.uni(44),
                 overlayPadding: scaler.uni(32),
-                menuButtonSide: scaler.uni(32)
+                menuButtonSide: scaler.uni(32),
+                controlMinSide: scaler.uni(44),
+                controlIconPadding: scaler.uni(6)
             )
             
             NavigationSplitView(preferredCompactColumn: $preferredCompactColumn) {
@@ -318,37 +320,84 @@ struct HomeView: View {
     }
     
     // MARK: - Header View
-    private func headerView(metrics: LayoutMetrics) -> some View {
-        HStack(spacing: 12) {
-            // 📱 Compact (iPhone / 좁은 폭)일 때: 좌측에 리퀴드 글래스 메뉴 버튼
-            if horizontalSizeClass == .compact {
-                sidebarMenuButton(metrics: metrics)
-            }
-            VStack(alignment: .leading, spacing: 4) {
-                Text("AIno")
-                    .font(.system(size: 28, weight: .semibold))
-                    .foregroundStyle(Color.text1)
+    @ViewBuilder private func headerView(metrics: LayoutMetrics) -> some View {
+        if horizontalSizeClass == .compact {
+            // 📱 iPhone: 두 줄 레이아웃 (1행: 메뉴/제목/토글, 2행: 검색바 + 정렬)
+            VStack(alignment: .leading, spacing: 8) {
+                // Row 1: 메뉴 버튼 + 제목 + 보기 토글
+                HStack(spacing: 8) {
+                    sidebarMenuButton(metrics: metrics)
+                        .layoutPriority(2)
 
-                Text(headerSubtitle)
-                    .font(.system(size: 22, weight: .medium))
-                    .foregroundStyle(Color.text2)
-            }
+                    Text(headerSubtitle)
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundStyle(Color.text1)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .minimumScaleFactor(0.85)
 
-            Spacer()
+                    Spacer()
 
-            HStack(spacing: 12) {
-                // 검색바를 정렬 버튼 바로 옆에 배치 (Liquid Glass)
-                searchBar(metrics: metrics)
-                sortButton(metrics: metrics)
-                ViewModeToggle(selection: $viewModel.selectedViewMode) { mode in
-                    viewModel.viewModeButtonTapped(mode)
+                    ViewModeToggle(selection: $viewModel.selectedViewMode) { mode in
+                        viewModel.viewModeButtonTapped(mode)
+                    }
+                    .frame(width: metrics.toggleWidth, height: metrics.toggleHeight)
+                    .layoutPriority(2)
                 }
-                .frame(width: metrics.toggleWidth, height: metrics.toggleHeight)
+
+                // Row 2: 검색바 + 정렬 버튼 (정렬 버튼을 검색바 오른쪽에 배치)
+                HStack(spacing: 8) {
+                    searchBar(metrics: metrics)
+                        .frame(maxWidth: .infinity)
+                        .layoutPriority(1)
+
+                    sortButton(metrics: metrics)
+                        .layoutPriority(2)
+                }
+                .tagTarget(.searchCluster)
+                .tagPostHomeTarget(.searchCluster)
             }
-            .tagTarget(.searchCluster)
-            .tagPostHomeTarget(.searchCluster)
+            .padding(.horizontal, 16)
+            .padding(.top, 6)
+            .padding(.bottom, 8)
+            .safeAreaPadding([.top, .horizontal])
+        } else {
+            // 💻 iPad/Regular: 기존 단일 행 레이아웃 유지
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    if horizontalSizeClass != .compact {
+                        Text("AIno")
+                            .font(.system(size: 28, weight: .semibold))
+                            .foregroundStyle(Color.text1)
+                    }
+                    Text(headerSubtitle)
+                        .font(.system(size: 22, weight: .medium))
+                        .foregroundStyle(Color.text2)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .minimumScaleFactor(0.85)
+                }
+
+                Spacer()
+
+                HStack(spacing: 8) {
+                    // 검색바를 정렬 버튼 바로 옆에 배치 (Liquid Glass)
+                    searchBar(metrics: metrics)
+                        .layoutPriority(0)
+                    sortButton(metrics: metrics)
+                        .layoutPriority(2)
+                    ViewModeToggle(selection: $viewModel.selectedViewMode) { mode in
+                        viewModel.viewModeButtonTapped(mode)
+                    }
+                    .frame(width: metrics.toggleWidth, height: metrics.toggleHeight)
+                    .layoutPriority(2)
+                }
+                .tagTarget(.searchCluster)
+                .tagPostHomeTarget(.searchCluster)
+            }
+            .padding()
+            .safeAreaPadding([.top, .horizontal])
         }
-        .padding()
     }
     
     // MARK: - 검색바
@@ -362,11 +411,15 @@ struct HomeView: View {
                     .lineLimit(1)
             }
             .padding(.horizontal, 12)
-            .frame(minWidth: metrics.searchMinWidth, maxWidth: metrics.searchMaxWidth)
+            .frame(
+                minWidth: horizontalSizeClass == .compact ? 0 : metrics.searchMinWidth,
+                maxWidth: horizontalSizeClass == .compact ? .infinity : metrics.searchMaxWidth
+            )
             .frame(height: metrics.searchHeight)
             .glassEffect()
             .glassEffectUnionCompat(id: "search", namespace: glassNS)
         }
+        .layoutPriority(0)
     }
     
     private func sortButton(metrics: LayoutMetrics) -> some View {
@@ -404,15 +457,28 @@ struct HomeView: View {
             .tint(Color.secondColor)
             .buttonStyle(.plain)
         } label: {
-            GlassEffectContainer(spacing: 0) {
-                Image(systemName: "line.3.horizontal.decrease")
-                    .font(.system(size: 16, weight: .semibold))
-                    .frame(width: metrics.sortButtonSize, height: metrics.sortButtonSize)
-                    .glassEffect()
-                    .glassEffectUnionCompat(id: "sort", namespace: glassNS)
+            Group {
+                if horizontalSizeClass == .compact {
+                    Image(systemName: "line.3.horizontal.decrease")
+                        .font(.system(size: 16, weight: .semibold))
+                        .padding(metrics.controlIconPadding)
+                        .foregroundStyle(Color.text2)
+                        .background(Color.background2.opacity(0.96), in: Circle())
+                        .frame(minWidth: metrics.controlMinSide, minHeight: metrics.controlMinSide)
+                        .contentShape(Circle())
+                        .clipShape(Circle())
+                } else {
+                    GlassEffectContainer(spacing: 0) {
+                        Image(systemName: "line.3.horizontal.decrease")
+                            .font(.system(size: 16, weight: .semibold))
+                            .frame(width: metrics.sortButtonSize, height: metrics.sortButtonSize)
+                            .glassEffect()
+                            .glassEffectUnionCompat(id: "sort", namespace: glassNS)
+                    }
+                }
             }
-            .tint(Color.text2)
         }
+        .tint(Color.text2)
         // 기존 버튼 그림자 느낌 유지
         .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 2)
     }
@@ -685,6 +751,8 @@ extension HomeView {
         var addButtonModernSide: CGFloat = 44
         var overlayPadding: CGFloat = 32
         var menuButtonSide: CGFloat = 32
+        var controlMinSide: CGFloat = 44
+        var controlIconPadding: CGFloat = 6
     }
 }
 
