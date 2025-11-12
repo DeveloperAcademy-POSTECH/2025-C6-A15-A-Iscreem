@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import Combine
 
 struct HomeView: View {
     @State var headerSubtitle: String = "최근 열어본 항목"
@@ -60,6 +61,17 @@ struct HomeView: View {
     // 휴지통 화면 표시
     @State private var isShowingTrash: Bool = false
 
+    // ✅ 사이드바 정렬 옵션을 Sidebar와 동일 키로 구독 → 변경 시 즉시 재계산
+    @AppStorage("sidebarSortOption") var sidebarSortOptionRaw: String = SortOption.dateAscending.rawValue
+
+    // Combine
+    @State private var cancellables = Set<AnyCancellable>()
+    // 정렬 변경 트리거(뷰 리렌더링 유도용)
+    @State private var sortChangeTick: Int = 0
+
+    // ✅ ‘되돌아가기’ 스택(컴팩트 뒤로가기 복원용, 깊이 무관)
+    @State private var backStack: [SelectionSnapshot] = []
+
     // Removed Environment usage for dynamic metrics; we’ll compute locally per-geometry.
 
     init(
@@ -102,17 +114,12 @@ struct HomeView: View {
             
             NavigationSplitView(columnVisibility: $splitVisibility, preferredCompactColumn: $preferredCompactColumn) {
                 SidebarView(onFolderSelected: { name in
-                    isShowingSettings = false
-                    isShowingTrash = false
                     if name == "__ALL__" {
-                        headerSubtitle = "전체 보기"
-                        selectedFolderName = "__ALL__"
+                        applySelection(folderName: "__ALL__", subtitle: "전체 보기")
                     } else if let name {
-                        headerSubtitle = name
-                        selectedFolderName = name
+                        applySelection(folderName: name, subtitle: name)
                     } else {
-                        headerSubtitle = "최근 열어본 항목"
-                        selectedFolderName = nil
+                        applySelection(folderName: nil, subtitle: "최근 열어본 항목")
                     }
                 }, isHelpPresented: $isHelpPresented, requestDeleteConfirmation: { ids in
                     folderIDsPendingDelete = ids
@@ -140,6 +147,7 @@ struct HomeView: View {
 
                             // 노트 그리드/리스트
                             contentView(metrics: metrics)
+                                .id(sortChangeTick) // ✅ 정렬 변경 시 안전한 리빌드 트리거
                                 .tagPostHomeTarget(.homeList)
                                 .overlay {
                                     if shouldShowEmptyState {
@@ -226,9 +234,12 @@ struct HomeView: View {
                 }
             )
             .onReceive(NotificationCenter.default.publisher(for: .showSettings)) { _ in
+                // 설정 화면으로 진입하기 직전 상태를 스택에 저장
+                pushCurrentSnapshot()
                 withAnimation(.easeInOut(duration: 0.2)) {
                     isShowingSettings = true
                     isShowingTrash = false
+                    headerSubtitle = "설정"
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: .hideSettings)) { _ in
@@ -237,9 +248,12 @@ struct HomeView: View {
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: .showTrash)) { _ in
+                // 휴지통으로 진입하기 직전 상태를 스택에 저장
+                pushCurrentSnapshot()
                 withAnimation(.easeInOut(duration: 0.2)) {
                     isShowingTrash = true
                     isShowingSettings = false
+                    headerSubtitle = "휴지통"
                 }
             }
             // ✅ 사이드바 숨김 토글 노티 수신 → 실제 표시 상태 토글
@@ -259,8 +273,8 @@ struct HomeView: View {
             .onAppear {
                 // 앱 시작 직후 ‘전체 보기’로 진입 → + 버튼 보이게
                 if selectedFolderName == nil {
-                    selectedFolderName = "__ALL__"
-                    headerSubtitle = "전체 보기"
+                    // 초기 진입은 스택에 기록하지 않음
+                    setSelection(folderName: "__ALL__", subtitle: "전체 보기")
                 }
                 // 1) 세션 생성(없으면)
                 _ = learningLogStore.bootstrapSessionsIfNeeded(currentNotes: notes)
@@ -278,6 +292,8 @@ struct HomeView: View {
                     shouldTriggerPostOnboarding = true
                     postOnboardingStep = .list
                 }
+                // ✅ Combine 파이프라인 설정
+                setupCombinePipelines()
             }
             .onChange(of: notes) { oldValue, newValue in
                 _ = learningLogStore.bootstrapSessionsIfNeeded(currentNotes: newValue)
@@ -298,6 +314,10 @@ struct HomeView: View {
                     folderSidebarStep = .list
                 }
                 lastFolderCount = newValue.count
+            }
+            // 🔁 Observe @AppStorage changes via SwiftUI instead of Combine on Binding
+            .onChange(of: sidebarSortOptionRaw) { _, _ in
+                sortChangeTick &+= 1
             }
             .sheet(isPresented: $showStudyHistory) {
                 StudyHistoryView()
@@ -340,8 +360,11 @@ struct HomeView: View {
         if horizontalSizeClass == .compact {
             // 📱 iPhone: 두 줄 레이아웃 (1행: 메뉴/제목/토글, 2행: 검색바 + 정렬)
             VStack(alignment: .leading, spacing: metrics.compactHeaderRowSpacing) {
-                // Row 1: 메뉴 버튼 + 제목 + 보기 토글
+                // Row 1: (뒤로가기) + 메뉴 버튼 + 제목 + 보기 토글
                 HStack(spacing: 8) {
+                    if showCompactBackButton {
+                        backButton(metrics: metrics)
+                    }
                     sidebarMenuButton(metrics: metrics)
                         .layoutPriority(2)
 
@@ -429,6 +452,78 @@ struct HomeView: View {
         }
     }
 
+    // ✅ 컴팩트 뒤로가기 버튼 노출 조건
+    private var showCompactBackButton: Bool {
+        guard horizontalSizeClass == .compact else { return false }
+        // 폴더 내부이거나(최근/전체 제외) 설정/휴지통 화면일 때 + 스택이 남아있을 때
+        let inFolder = (selectedFolderName != nil && selectedFolderName != "__ALL__")
+        let inOverlay = (isShowingSettings || isShowingTrash)
+        return (inFolder || inOverlay) && !backStack.isEmpty
+    }
+
+    // ✅ 컴팩트 뒤로가기 버튼
+    private func backButton(metrics: LayoutMetrics) -> some View {
+        Button {
+            guard let snap = backStack.popLast() else { return }
+            restore(from: snap)
+        } label: {
+            ZStack {
+                Circle()
+                    .fill(Color.background2.opacity(0.96))
+                    .frame(width: metrics.controlMinSide, height: metrics.controlMinSide)
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(Color.text2)
+            }
+            .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("뒤로가기")
+    }
+
+    // ✅ 현재 화면 상태를 스택에 저장
+    private func pushCurrentSnapshot() {
+        let snap = SelectionSnapshot(
+            folderName: selectedFolderName,
+            subtitle: headerSubtitle,
+            screen: PreviousScreenState(
+                searchText: viewModel.searchText,
+                viewMode: viewModel.selectedViewMode,
+                headerSort: headerSort,
+                splitVisibility: splitVisibility
+            )
+        )
+        backStack.append(snap)
+    }
+
+    // ✅ 선택 적용 유틸(현재 상태를 push → 새 선택 세팅)
+    func applySelection(folderName: String?, subtitle: String) {
+        // 현재 화면 상태 스냅샷을 스택에 push
+        pushCurrentSnapshot()
+        // 새 선택 적용
+        setSelection(folderName: folderName, subtitle: subtitle)
+    }
+
+    // ✅ 스냅샷 복원(스택 push 없이 상태만 복구)
+    private func restore(from snap: SelectionSnapshot) {
+        selectedFolderName = snap.folderName
+        headerSubtitle = snap.subtitle
+        viewModel.searchText = snap.screen.searchText
+        viewModel.selectedViewMode = snap.screen.viewMode
+        headerSort = snap.screen.headerSort
+        splitVisibility = snap.screen.splitVisibility
+        isShowingTrash = false
+        isShowingSettings = false
+    }
+
+    // ✅ 내부 세터(스택 관여 없이 현재 상태만 세팅)
+    private func setSelection(folderName: String?, subtitle: String) {
+        selectedFolderName = folderName
+        headerSubtitle = subtitle
+        isShowingTrash = false
+        isShowingSettings = false
+    }
+    
     // ✅ 사이드바 숨김/펼침 버튼
     private func sidebarToggleButton(metrics: LayoutMetrics) -> some View {
         Group {
@@ -702,22 +797,23 @@ struct HomeView: View {
         Menu {
             // 전체 보기
             Button {
-                headerSubtitle = "전체 보기"
-                selectedFolderName = "__ALL__"
-                isShowingTrash = false
-                isShowingSettings = false
+                applySelection(folderName: "__ALL__", subtitle: "전체 보기")
             } label: {
                 Label("전체 보기", systemImage: "square.grid.2x2")
             }
             
             // 최근 열어본 항목
             Button {
-                headerSubtitle = "최근 열어본 항목"
-                selectedFolderName = nil
-                isShowingTrash = false
-                isShowingSettings = false
+                applySelection(folderName: nil, subtitle: "최근 열어본 항목")
             } label: {
                 Label("최근 열어본 항목", systemImage: "clock")
+            }
+
+            // 폴더 추가
+            Button {
+                createNewFolderAndSelect()
+            } label: {
+                Label("새 폴더 만들기", systemImage: "folder.badge.plus")
             }
             
             // 폴더 목록
@@ -725,10 +821,7 @@ struct HomeView: View {
                 Section("폴더") {
                     ForEach(folders) { folder in
                         Button {
-                            headerSubtitle = folder.name
-                            selectedFolderName = folder.name
-                            isShowingTrash = false
-                            isShowingSettings = false
+                            applySelection(folderName: folder.name, subtitle: folder.name)
                         } label: {
                             Label(folder.name, systemImage: "folder")
                         }
@@ -739,27 +832,33 @@ struct HomeView: View {
             // 도움말 / 설정 / 휴지통
             Section {
                 Button {
-                    isHelpPresented = true
-                } label: {
-                    Label("도움말", systemImage: "questionmark.circle")
-                }
-                
-                Button {
+                    // 설정으로 들어가기 직전 push
+                    pushCurrentSnapshot()
                     withAnimation(.easeInOut(duration: 0.2)) {
                         isShowingSettings = true
                         isShowingTrash = false
+                        headerSubtitle = "설정"
                     }
                 } label: {
                     Label("설정", systemImage: "gearshape")
                 }
                 
                 Button {
+                    // 휴지통으로 들어가기 직전 push
+                    pushCurrentSnapshot()
                     withAnimation(.easeInOut(duration: 0.2)) {
                         isShowingTrash = true
                         isShowingSettings = false
+                        headerSubtitle = "휴지통"
                     }
                 } label: {
                     Label("휴지통", systemImage: "trash")
+                }
+                
+                Button {
+                    isHelpPresented = true
+                } label: {
+                    Label("도움말", systemImage: "questionmark.circle")
                 }
             }
         } label: {
@@ -808,6 +907,42 @@ struct HomeView: View {
         
         withAnimation(.easeInOut(duration: 0.2)) { showCreateNote = false }
     }
+
+    // 새 폴더 생성 후 즉시 선택
+    private func createNewFolderAndSelect() {
+        // 중복 방지 이름 생성
+        let existing = Set(folders.map { $0.name })
+        let base = "새 폴더"
+        var finalName = base
+        if existing.contains(finalName) {
+            var i = 1
+            while existing.contains("\(base) \(i)") { i += 1 }
+            finalName = "\(base) \(i)"
+        }
+        let folder = Folder(name: finalName)
+        modelContext.insert(folder)
+        try? modelContext.save()
+        // 생성 직전 화면 상태 스냅샷 + 선택 적용
+        applySelection(folderName: folder.name, subtitle: folder.name)
+    }
+
+    // MARK: - Combine pipelines
+    private func setupCombinePipelines() {
+        // 1) UserDefaults.didChange → sidebarSortOption 변경 감지
+        NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification, object: nil)
+            .map { _ in
+                UserDefaults.standard.string(forKey: "sidebarSortOption") ?? SortOption.dateAscending.rawValue
+            }
+            .removeDuplicates()
+            .sink { _ in
+                // 정렬 변경 → 안전한 리렌더 트리거
+                sortChangeTick &+= 1
+            }
+            .store(in: &cancellables)
+
+        // 2) Removed: @AppStorage Binding is not a Combine Publisher.
+        // Use .onChange(of: sidebarSortOptionRaw) in the view instead.
+    }
 }
 
 // MARK: - Dynamic metrics simple container (no Environment)
@@ -830,6 +965,21 @@ extension HomeView {
         var compactHeaderRowSpacing: CGFloat = 8
         var compactHeaderBottomPadding: CGFloat = 8
         var overlayTrailingExtra: CGFloat = 0
+    }
+
+    // 폴더 진입 직전 화면 스냅샷
+    struct PreviousScreenState {
+        var searchText: String
+        var viewMode: HomeViewModel.ViewMode
+        var headerSort: HeaderSortOption
+        var splitVisibility: NavigationSplitViewVisibility
+    }
+
+    // ✅ 선택 + 화면 상태를 함께 보관하는 스냅샷(되돌아가기 스택 요소)
+    struct SelectionSnapshot {
+        var folderName: String?
+        var subtitle: String
+        var screen: PreviousScreenState
     }
 }
 

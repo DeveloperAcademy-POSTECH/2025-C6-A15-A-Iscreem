@@ -50,6 +50,9 @@ struct SidebarView: View {
     // 256:762 비율 유지 (사이드바:메인)
     private let sidebarRatio: CGFloat = 256.0 / (256.0 + 762.0) // ≈ 0.2514
 
+    // ✅ 사이드바 정렬 옵션을 AppStorage로 공유(홈뷰에서 읽어 사용)
+    @AppStorage("sidebarSortOption") private var sidebarSortOptionRaw: String = SortOption.dateAscending.rawValue
+
     var body: some View {
         VStack(spacing: 0) {
             headerBar
@@ -75,6 +78,10 @@ struct SidebarView: View {
         }
         // ✅ 홈의 선택 상태/폴더 목록 변경 시 사이드바 하이라이트 동기화
         .onAppear {
+            // 정렬 옵션 복원(AppStorage → ViewModel)
+            if let saved = SortOption(rawValue: sidebarSortOptionRaw) {
+                viewModel.currentSortOption = saved
+            }
             viewModel.syncFromHomeSelection(selectedFolderName: selectedFolderName, folders: folders)
         }
         .onChange(of: selectedFolderName) { _, newValue in
@@ -82,6 +89,10 @@ struct SidebarView: View {
         }
         .onChange(of: folders) { _, newValue in
             viewModel.syncFromHomeSelection(selectedFolderName: selectedFolderName, folders: newValue)
+        }
+        // ✅ 정렬 옵션 변경 시 AppStorage에 저장(홈뷰에서 동일 기준 사용)
+        .onChange(of: viewModel.currentSortOption) { _, newValue in
+            sidebarSortOptionRaw = newValue.rawValue
         }
         .ignoresSafeArea(.keyboard, edges: .bottom)
         .compactScaled(base: CGSize(width: 390, height: 844), min: 0.9, max: 1.0)
@@ -555,3 +566,4 @@ extension View {
 extension Notification.Name {
     static let toggleSidebar = Notification.Name("ToggleSidebar")
 }
+
