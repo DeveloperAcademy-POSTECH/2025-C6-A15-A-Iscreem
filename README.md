@@ -35,13 +35,13 @@ Refs: Apple Newsroom availability notes.  [oai_citation:5‡Apple](https://www.a
 
 ## 👨🏻‍💻👩🏻‍💻
 
-| ![iPad 01](iPad/iPad Pro 11_ - 1.png) | ![iPad 02](iPad/iPad Pro 11_ - 2.png) | ![iPad 03](iPad/iPad Pro 11_ - 3.png) |
+| ![iPad 01](iPad/iPad%20Pro%2011_%20-%201.png) | ![iPad 02](iPad/iPad%20Pro%2011_%20-%202.png) | ![iPad 03](iPad/iPad%20Pro%2011_%20-%203.png) |
 |---|---|---|
-| ![iPad 04](iPad/iPad Pro 11_ - 4.png) | ![iPad 05](iPad/iPad Pro 11_ - 5.png) |  |
+| ![iPad 04](iPad/iPad%20Pro%2011_%20-%204.png) | ![iPad 05](iPad/iPad%20Pro%2011_%20-%205.png) |  |
 
-| ![iPhone 01](iPhone/iPhone 16 - 1.png) | ![iPhone 02](iPhone/iPhone 16 - 2.png) | ![iPhone 03](iPhone/iPhone 16 - 3.png) |
+| ![iPhone 01](iPhone/iPhone%2016%20-%201.png) | ![iPhone 02](iPhone/iPhone%2016%20-%202.png) | ![iPhone 03](iPhone/iPhone%2016%20-%203.png) |
 |---|---|---|
-| ![iPhone 04](iPhone/iPhone 16 - 4.png) | ![iPhone 05](iPhone/iPhone 16 - 5.png) |  |
+| ![iPhone 04](iPhone/iPhone%2016%20-%204.png) | ![iPhone 05](iPhone/iPhone%2016%20-%205.png) |  |
 
 ## :pushpin: Features
 
