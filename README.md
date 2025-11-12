@@ -73,6 +73,9 @@ https://github.com/user-attachments/assets/8d3b2d55-5ce6-4507-8468-94ee9e7dae59
 ## 🌿 Tree
 ```
 .
+├── architecture.svg
+├── data-model.svg
+├── flowchart-home-note-study-history-return.svg
 ├── learningTool
 │   ├── Assets.xcassets
 │   │   ├── AccentColor.colorset
@@ -118,6 +121,7 @@ https://github.com/user-attachments/assets/8d3b2d55-5ce6-4507-8468-94ee9e7dae59
 │   │   └── StudyViewModel.swift
 │   ├── Views
 │   │   ├── HomeView
+│   │   │   ├── BaseLayoutScaler.swift
 │   │   │   ├── CreateNoteView.swift
 │   │   │   ├── DestructiveConfirmAlertView.swift
 │   │   │   ├── FolderDeleteView.swift
@@ -153,10 +157,6 @@ https://github.com/user-attachments/assets/8d3b2d55-5ce6-4507-8468-94ee9e7dae59
 │       ├── YouTubeThumbnail.swift
 │       ├── YouTubeWebViewHost.swift
 │       └── YouTubeWebViewRepresentable..swift
-├── learningtool_all_swift_diagram.svg
-├── learningtool_class_diagram.svg
-├── learningtool_flowchart.svg
-├── learningtool_sequence_keyword_qa.svg
 ├── learningTool.xcodeproj
 │   ├── project.pbxproj
 │   ├── project.xcworkspace
@@ -179,31 +179,45 @@ https://github.com/user-attachments/assets/8d3b2d55-5ce6-4507-8468-94ee9e7dae59
 │           └── xcschemes
 │               └── xcschememanagement.plist
 ├── LICENSE
-└── README.md
+├── README.md
+├── sequenceDiagram.svg
+└── StudyView-flowchart.svg
+
 
 
 ```
 
-## 📊 Full Architecture Map
+# 📊 Diagrams
 
+빠르게 훑어보기:
+- [Architecture](#architecture)
+- [Data Model](#data-model)
+- [App Flow (Home→Note→Study→History→Return)](#app-flow-homenotenotestudyhistoryreturn)
+- [Sequence Diagram](#sequence-diagram)
+- [StudyView Flow](#studyview-flow)
 
-![All Swift Files](learningtool_all_swift_diagram.svg)
-
-
-
-## 📊 다이어그램
+---
 
 ## Architecture
+### 아키텍처(클래스/뷰/서비스) 다이어그램 소스
+![Architecture Diagram](./architecture.svg "Architecture")
 
-![Flow](learningtool_flowchart.svg)
+## Data Model
+### 데이터/모델 다이어그램 소스
+![Data Model Diagram](./data-model.svg "Data Model")
 
-## Keyword → Q&A Flow
+## App Flow (Home→Note→Study→History→Return)
+### 홈 → 노트 선택 → 스터디(미디어/요약/키워드/질문) → 학습기록/복귀 흐름
+![App Flow Diagram](./flowchart-home-note-study-history-return.svg "App Flow")
 
-![Sequence](learningtool_sequence_keyword_qa.svg)
+## StudyView Flow
+### 자막 확보부터 요약·키워드·학습기록 저장까지
+![StudyView Flowchart](./StudyView-flowchart.svg "StudyView Flow")
 
-## Class Diagram
+## Sequence Diagram
+### 홈 → 노트 선택 → 스터디(미디어/요약/키워드/질문) → 학습기록/복귀
+![Sequence Diagram](./sequenceDiagram.svg "Sequence Diagram")
 
-![Classes](learningtool_class_diagram.svg)
 
 
 
