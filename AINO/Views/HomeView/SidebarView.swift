@@ -14,15 +14,19 @@ struct SidebarView: View {
     @Binding var isHelpPresented: Bool
     /// 부모(HomeView)에서 전체화면 오버레이로 삭제 확인을 띄우기 위한 콜백
     let requestDeleteConfirmation: ((Set<PersistentIdentifier>) -> Void)?
+    // ✅ 홈에서 현재 선택된 카테고리(전체/최근/특정 폴더 이름)를 바인딩으로 전달받아 동기화
+    @Binding var selectedFolderName: String?
 
     init(
         onFolderSelected: ((String?) -> Void)? = nil,
         isHelpPresented: Binding<Bool> = .constant(false),
-        requestDeleteConfirmation: ((Set<PersistentIdentifier>) -> Void)? = nil
+        requestDeleteConfirmation: ((Set<PersistentIdentifier>) -> Void)? = nil,
+        selectedFolderName: Binding<String?> = .constant(nil)
     ) {
         self.onFolderSelected = onFolderSelected
         self._isHelpPresented = isHelpPresented
         self.requestDeleteConfirmation = requestDeleteConfirmation
+        self._selectedFolderName = selectedFolderName
     }
     
     @StateObject private var viewModel = SidebarViewModel()
@@ -46,213 +50,20 @@ struct SidebarView: View {
     // 256:762 비율 유지 (사이드바:메인)
     private let sidebarRatio: CGFloat = 256.0 / (256.0 + 762.0) // ≈ 0.2514
 
+    // ✅ 사이드바 정렬 옵션을 AppStorage로 공유(홈뷰에서 읽어 사용)
+    @AppStorage("sidebarSortOption") private var sidebarSortOptionRaw: String = SortOption.dateAscending.rawValue
+
     var body: some View {
         VStack(spacing: 0) {
-            // 상단 폴더 섹션
-            VStack(spacing: 0) {
-                HStack(spacing: 16) {
-                    // 폴더 추가 (+ 심볼, 기존 컬러 유지)
-                    Button {
-                        isDeletingFolders = false
-                        selectedFolderIDs.removeAll()
-                        isAddingFolder = true
-                        newFolderName = ""
-                        DispatchQueue.main.async { newFolderFieldFocused = true }
-                    } label: {
-                        Image(systemName: "plus")
-                            .foregroundStyle(Color.secondColor)
-                            .font(.system(size: 20, weight: .bold))
-                    }
-                    .buttonStyle(.plain)
-                    .tagTarget(.plusFolder)
+            headerBar
 
-                    Spacer()
+            allItemsRow
 
-                    // 홈뷰 스타일의 정렬 버튼 (Menu + Picker, Glass 스타일)
-                    Menu {
-                        Picker("정렬 기준", selection: $viewModel.currentSortOption) {
-                            Label("가나다 순(↑)", systemImage: "a.circle")
-                                .tag(SortOption.nameAscending)
-                            Label("가나다 순(↓)", systemImage: "a.circle")
-                                .tag(SortOption.nameDescending)
-                            Label("생성일(↑)", systemImage: "clock")
-                                .tag(SortOption.dateAscending)
-                            Label("생성일(↓)", systemImage: "clock")
-                                .tag(SortOption.dateDescending)
-                        }
-                    } label: {
-                        Image(systemName: "arrow.up.arrow.down")
-                            .font(.system(size: 16, weight: .semibold))
-                            .padding(8)
-                            .frame(minWidth: 44, minHeight: 44)
-                            .contentShape(Circle())
-                            .clipShape(Circle())
-                            .tint(Color.text2)
-                    }
-                }
-                .padding(.horizontal, 20)
-                // 고정 50 → 안전영역을 고려한 top 패딩
-                .safeAreaPadding(.top, 12)
-                .padding(.bottom, 16)
-                .contentShape(Rectangle())
-
-                // 구분선
-                HStack { Rectangle().fill(Color.borderColor).frame(height: 1) }
-                    .padding(.horizontal, 20)
-            }
-            .background(Color.clear)
-            // 고정 '전체 보기' 행 (스크롤 영역 바깥)
-            Button {
-                viewModel.allViewTapped()
-                onFolderSelected?("__ALL__")
-                // 설정 오버레이 닫기 → 홈의 + 버튼 다시 보이게
-                NotificationCenter.default.post(name: .hideSettings, object: nil)
-            } label: {
-                HStack(spacing: 12) {
-                    Image(systemName: "square.grid.2x2.fill").foregroundStyle(Color.text2).font(.system(size: 20))
-                    Text("전체 보기").foregroundStyle(Color.text2).font(.buttonText)
-                    Spacer()
-                }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 8)
-            }
-            .buttonStyle(.plain)
-
-            // 중간 스크롤 영역
-            List {
-                // 폴더 목록
-                Section {
-                    ForEach(sortedFolders, id: \.persistentModelID) { folder in
-                        if isDeletingFolders {
-                            Button {
-                                let id = folder.persistentModelID
-                                if selectedFolderIDs.contains(id) {
-                                    selectedFolderIDs.remove(id)
-                                } else {
-                                    selectedFolderIDs.insert(id)
-                                }
-                            } label: {
-                                HStack(spacing: 12) {
-                                    // Checkbox on the LEFT
-                                    Image(systemName: selectedFolderIDs.contains(folder.persistentModelID) ? "checkmark.circle.fill" : "circle")
-                                        .font(.system(size: 18))
-                                        .foregroundStyle(selectedFolderIDs.contains(folder.persistentModelID) ? Color.secondColor : Color.text3)
-                                    Image(systemName: "folder.fill")
-                                        .foregroundStyle(Color.text2)
-                                        .font(.system(size: 20))
-                                    Text(folder.name)
-                                        .foregroundStyle(Color.text2)
-                                        .font(.buttonText)
-                                    Spacer()
-                                }
-                        }
-                            .buttonStyle(.plain)
-                            .listRowBackground(Color.clear)
-                            .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
-                        } else {
-                            Button {
-                                viewModel.selectedItem = folder.persistentModelID
-                                onFolderSelected?(folder.name)
-                            } label: {
-                                HStack(spacing: 12) {
-                                    Image(systemName: "folder.fill")
-                                        .foregroundStyle(Color.text2)
-                                        .font(.system(size: 20))
-                                    Text(folder.name)
-                                        .foregroundStyle(Color.text2)
-                                        .font(.buttonText)
-                                    Spacer()
-                                }
-                            }
-                            .buttonStyle(.plain)
-                            .listRowBackground(Color.clear)
-                            .listRowInsets(EdgeInsets(top: 6, leading: 32, bottom: 6, trailing: 20))
-                            // 길게 누르기(컨텍스트 메뉴)로 이름 변경/삭제 제공
-                            .contextMenu {
-                                Button {
-                                    // 이름 변경 진입
-                                    folderToRename = folder
-                                    folderRenameText = folder.name
-                                    isRenamingSheet = true
-                                } label: {
-                                    Label("이름 변경", systemImage: "pencil")
-                                }
-                                Button(role: .destructive) {
-                                    // 단일 폴더 삭제 확인 요청
-                                    let id = folder.persistentModelID
-                                    requestDeleteConfirmation?(Set([id]))
-                                } label: {
-                                    Label("삭제", systemImage: "trash")
-                                }
-                            }
-                            // 스와이프 액션: 왼쪽(이름 변경), 오른쪽(삭제)
-                            .swipeActions(edge: .leading, allowsFullSwipe: false) {
-                                Button {
-                                    folderToRename = folder
-                                    folderRenameText = folder.name
-                                    isRenamingSheet = true
-                                } label: {
-                                    Label("이름 변경", systemImage: "pencil")
-                                }
-                                .tint(Color.secondColor)
-                            }
-                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                Button(role: .destructive) {
-                                    let id = folder.persistentModelID
-                                    requestDeleteConfirmation?(Set([id]))
-                                } label: {
-                                    Label("삭제", systemImage: "trash")
-                                }
-                            }
-                        }
-                    }
-                    if isAddingFolder {
-                        HStack(spacing: 12) {
-                            Image(systemName: "folder.fill")
-                                .foregroundStyle(Color.text2)
-                                .font(.system(size: 20))
-                            TextField("새 폴더 이름", text: $newFolderName)
-                                .font(.buttonText)
-                                .textFieldStyle(.plain)
-                                .focused($newFolderFieldFocused)
-                                .submitLabel(.done)
-                                .onSubmit { commitNewFolder() }
-                                .onAppear { newFolderFieldFocused = true }
-                            Spacer()
-                        }
-                        .listRowBackground(Color.clear)
-                        .listRowInsets(EdgeInsets(top: 6, leading: 32, bottom: 6, trailing: 20))
-                    }
-                }
-
-                // 최근 열어본 항목
-                Section {
-                    Button {
-                        viewModel.recentItemsTapped()
-                        onFolderSelected?(nil)
-                    } label: {
-                        HStack(spacing: 12) {
-                            Image(systemName: "clock.fill").foregroundStyle(Color.secondColor).font(.system(size: 20))
-                            Text("최근 열어본 항목").foregroundStyle(Color.secondColor).font(.buttonText)
-                            Spacer()
-                        }
-                    }
-                    .buttonStyle(.plain)
-                    .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 8, trailing: 20))
-                }
-            }
-            .listStyle(.sidebar)
-            .scrollContentBackground(.hidden)
-            .background(Color.clear)
-            .padding(.horizontal, 12)
-            .contentShape(Rectangle())
+            listArea
 
             // 하단 구분선
             HStack { Rectangle().fill(Color.borderColor).frame(height: 1) }
                 .padding(.horizontal, 20)
-
-            // 하단 고정 메뉴 (이전 VStack 삭제, 아래에서 overlay로 대체)
         }
         .safeAreaInset(edge: .bottom) {
             bottomBar
@@ -265,6 +76,24 @@ struct SidebarView: View {
                 viewModel.isHelpPresented = false
             }
         }
+        // ✅ 홈의 선택 상태/폴더 목록 변경 시 사이드바 하이라이트 동기화
+        .onAppear {
+            // 정렬 옵션 복원(AppStorage → ViewModel)
+            if let saved = SortOption(rawValue: sidebarSortOptionRaw) {
+                viewModel.currentSortOption = saved
+            }
+            viewModel.syncFromHomeSelection(selectedFolderName: selectedFolderName, folders: folders)
+        }
+        .onChange(of: selectedFolderName) { _, newValue in
+            viewModel.syncFromHomeSelection(selectedFolderName: newValue, folders: folders)
+        }
+        .onChange(of: folders) { _, newValue in
+            viewModel.syncFromHomeSelection(selectedFolderName: selectedFolderName, folders: newValue)
+        }
+        // ✅ 정렬 옵션 변경 시 AppStorage에 저장(홈뷰에서 동일 기준 사용)
+        .onChange(of: viewModel.currentSortOption) { _, newValue in
+            sidebarSortOptionRaw = newValue.rawValue
+        }
         .ignoresSafeArea(.keyboard, edges: .bottom)
         .compactScaled(base: CGSize(width: 390, height: 844), min: 0.9, max: 1.0)
         // 폴더 이름 변경 시트
@@ -273,30 +102,301 @@ struct SidebarView: View {
             folderToRename = nil
             folderRenameText = ""
         }) {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("폴더 이름 변경").font(.title3)
-                TextField("폴더 이름", text: $folderRenameText)
-                    .textFieldStyle(.roundedBorder)
-                    .submitLabel(.done)
-                    .focused($renameFieldFocused)
-                    .onAppear { renameFieldFocused = true }
-                    .onSubmit { saveRename() }
-                HStack {
-                    Spacer()
-                    Button("취소") {
-                        isRenamingSheet = false
-                    }
-                    Button("저장") {
-                        saveRename()
-                    }
-                    .buttonStyle(.borderedProminent)
-                }
-            }
-            .padding()
+            renameSheet
         }
     }
+}
+
+// MARK: - Pieces
+
+private extension SidebarView {
+    // 상단 헤더(+ 버튼, 정렬 메뉴, 구분선)
+    var headerBar: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 16) {
+                addFolderButton
+
+                Spacer()
+
+                // ✅ 숨김 버튼을 정렬 버튼 왼쪽에, 5pt 간격으로 항상 표시
+                hideSidebarButton
+                    .padding(.trailing, 5)
+
+                sortMenu
+            }
+            .padding(.horizontal, 20)
+            // 고정 50 → 안전영역을 고려한 top 패딩
+            .safeAreaPadding(.top, 12)
+            .padding(.bottom, 16)
+            .contentShape(Rectangle())
+
+            // 구분선
+            HStack { Rectangle().fill(Color.borderColor).frame(height: 1) }
+                .padding(.horizontal, 20)
+        }
+        .background(Color.clear)
+    }
+
+    var addFolderButton: some View {
+        Button {
+            isDeletingFolders = false
+            selectedFolderIDs.removeAll()
+            isAddingFolder = true
+            newFolderName = ""
+            DispatchQueue.main.async { newFolderFieldFocused = true }
+        } label: {
+            Image(systemName: "plus")
+                .foregroundStyle(Color.secondColor)
+                .font(.system(size: 20, weight: .bold))
+        }
+        .buttonStyle(.plain)
+        .tagTarget(.plusFolder)
+    }
+
+    // ✅ 사이드바 숨김 버튼 (정렬 버튼과 동일한 높이/스타일 느낌)
+    var hideSidebarButton: some View {
+        Button {
+            // 부모(HomeView)에서 이 노티를 받아 실제 사이드바 토글 처리
+            NotificationCenter.default.post(name: .toggleSidebar, object: nil)
+        } label: {
+            Image(systemName: "sidebar.left")
+                .font(.system(size: 16, weight: .semibold))
+                .padding(8)
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(Circle())
+                .clipShape(Circle())
+                .tint(Color.text2)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("사이드바 숨기기")
+    }
+
+    var sortMenu: some View {
+        Menu {
+            Picker("정렬 기준", selection: $viewModel.currentSortOption) {
+                Label("가나다 순(↑)", systemImage: "a.circle")
+                    .tag(SortOption.nameAscending)
+                Label("가나다 순(↓)", systemImage: "a.circle")
+                    .tag(SortOption.nameDescending)
+                Label("생성일(↑)", systemImage: "clock")
+                    .tag(SortOption.dateAscending)
+                Label("생성일(↓)", systemImage: "clock")
+                    .tag(SortOption.dateDescending)
+            }
+        } label: {
+            Image(systemName: "arrow.up.arrow.down")
+                .font(.system(size: 16, weight: .semibold))
+                .padding(8)
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(Circle())
+                .clipShape(Circle())
+                .tint(Color.text2)
+        }
+    }
+
+    // 고정 '전체 보기' 행
+    var allItemsRow: some View {
+        Button {
+            viewModel.allViewTapped()
+            onFolderSelected?("__ALL__")
+            // 설정 오버레이 닫기 → 홈의 + 버튼 다시 보이게
+            NotificationCenter.default.post(name: .hideSettings, object: nil)
+        } label: {
+            let isSelected = (viewModel.selection == .all)
+            HStack(spacing: 12) {
+                Image(systemName: "square.grid.2x2.fill")
+                    .foregroundStyle(isSelected ? Color.secondColor : Color.text2)
+                    .font(.system(size: 20))
+                Text("전체 보기")
+                    .foregroundStyle(isSelected ? Color.secondColor : Color.text2)
+                    .font(.buttonText)
+                Spacer()
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 8)
+        }
+        .buttonStyle(.plain)
+    }
+
+    // 중간 스크롤 영역(List)
+    var listArea: some View {
+        List {
+            foldersSection
+            recentSection
+        }
+        .listStyle(.sidebar)
+        .scrollContentBackground(.hidden)
+        .background(Color.clear)
+        .padding(.horizontal, 12)
+        .contentShape(Rectangle())
+    }
+
+    var foldersSection: some View {
+        Section {
+            ForEach(sortedFolders, id: \.persistentModelID) { folder in
+                if isDeletingFolders {
+                    deletingFolderRow(folder)
+                } else {
+                    normalFolderRow(folder)
+                }
+            }
+            if isAddingFolder {
+                addingFolderRow
+            }
+        }
+    }
+
+    func deletingFolderRow(_ folder: Folder) -> some View {
+        Button {
+            let id = folder.persistentModelID
+            if selectedFolderIDs.contains(id) {
+                selectedFolderIDs.remove(id)
+            } else {
+                selectedFolderIDs.insert(id)
+            }
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: selectedFolderIDs.contains(folder.persistentModelID) ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 18))
+                    .foregroundStyle(selectedFolderIDs.contains(folder.persistentModelID) ? Color.secondColor : Color.text3)
+                Image(systemName: "folder.fill")
+                    .foregroundStyle(Color.text2)
+                    .font(.system(size: 20))
+                Text(folder.name)
+                    .foregroundStyle(Color.text2)
+                    .font(.buttonText)
+                Spacer()
+            }
+        }
+        .buttonStyle(.plain)
+        .listRowBackground(Color.clear)
+        .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
+    }
+
+    func normalFolderRow(_ folder: Folder) -> some View {
+        Button {
+            viewModel.selectFolder(folder.persistentModelID)
+            onFolderSelected?(folder.name)
+        } label: {
+            let isSelected: Bool = {
+                if case .folder(let id) = viewModel.selection {
+                    return id == folder.persistentModelID
+                }
+                return false
+            }()
+            HStack(spacing: 12) {
+                Image(systemName: "folder.fill")
+                    .foregroundStyle(isSelected ? Color.secondColor : Color.text2)
+                    .font(.system(size: 20))
+                Text(folder.name)
+                    .foregroundStyle(isSelected ? Color.secondColor : Color.text2)
+                    .font(.buttonText)
+                Spacer()
+            }
+        }
+        .buttonStyle(.plain)
+        .listRowBackground(Color.clear)
+        .listRowInsets(EdgeInsets(top: 6, leading: 32, bottom: 6, trailing: 20))
+        .contextMenu {
+            Button {
+                folderToRename = folder
+                folderRenameText = folder.name
+                isRenamingSheet = true
+            } label: {
+                Label("이름 변경", systemImage: "pencil")
+            }
+            Button(role: .destructive) {
+                let id = folder.persistentModelID
+                requestDeleteConfirmation?(Set([id]))
+            } label: {
+                Label("삭제", systemImage: "trash")
+            }
+        }
+        .swipeActions(edge: .leading, allowsFullSwipe: false) {
+            Button {
+                folderToRename = folder
+                folderRenameText = folder.name
+                isRenamingSheet = true
+            } label: {
+                Label("이름 변경", systemImage: "pencil")
+            }
+            .tint(Color.secondColor)
+        }
+        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+            Button(role: .destructive) {
+                let id = folder.persistentModelID
+                requestDeleteConfirmation?(Set([id]))
+            } label: {
+                Label("삭제", systemImage: "trash")
+            }
+        }
+    }
+
+    var addingFolderRow: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "folder.fill")
+                .foregroundStyle(Color.text2)
+                .font(.system(size: 20))
+            TextField("새 폴더 이름", text: $newFolderName)
+                .font(.buttonText)
+                .textFieldStyle(.plain)
+                .focused($newFolderFieldFocused)
+                .submitLabel(.done)
+                .onSubmit { commitNewFolder() }
+                .onAppear { newFolderFieldFocused = true }
+            Spacer()
+        }
+        .listRowBackground(Color.clear)
+        .listRowInsets(EdgeInsets(top: 6, leading: 32, bottom: 6, trailing: 20))
+    }
+
+    var recentSection: some View {
+        Section {
+            Button {
+                viewModel.recentItemsTapped()
+                onFolderSelected?(nil)
+            } label: {
+                let isSelected = (viewModel.selection == .recent)
+                HStack(spacing: 12) {
+                    Image(systemName: "clock.fill")
+                        .foregroundStyle(isSelected ? Color.secondColor : Color.text2)
+                        .font(.system(size: 20))
+                    Text("최근 열어본 항목")
+                        .foregroundStyle(isSelected ? Color.secondColor : Color.text2)
+                        .font(.buttonText)
+                    Spacer()
+                }
+            }
+            .buttonStyle(.plain)
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 8, trailing: 20))
+        }
+    }
+
+    var renameSheet: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("폴더 이름 변경").font(.title3)
+            TextField("폴더 이름", text: $folderRenameText)
+                .textFieldStyle(.roundedBorder)
+                .submitLabel(.done)
+                .focused($renameFieldFocused)
+                .onAppear { renameFieldFocused = true }
+                .onSubmit { saveRename() }
+            HStack {
+                Spacer()
+                Button("취소") {
+                    isRenamingSheet = false
+                }
+                Button("저장") {
+                    saveRename()
+                }
+                .buttonStyle(.borderedProminent)
+            }
+        }
+        .padding()
+    }
     
-    private var bottomBar: some View {
+    var bottomBar: some View {
         VStack(spacing: 0) {
             Button { viewModel.helpTapped() } label: {
                 HStack(spacing: 12) {
@@ -309,7 +409,7 @@ struct SidebarView: View {
             }
             .buttonStyle(.plain)
 
-            Button { viewModel.settingsTapped() } label: {
+            Button { NotificationCenter.default.post(name: .showSettings, object: nil) } label: {
                 HStack(spacing: 12) {
                     Image(systemName: "gearshape.fill").foregroundStyle(Color.text2).font(.system(size: 20))
                     Text("설정").foregroundStyle(Color.text2).font(.buttonText)
@@ -320,7 +420,7 @@ struct SidebarView: View {
             }
             .buttonStyle(.plain)
 
-            Button { viewModel.trashTapped() } label: {
+            Button { NotificationCenter.default.post(name: .showTrash, object: nil) } label: {
                 HStack(spacing: 12) {
                     Image(systemName: "trash").foregroundStyle(Color.errorColor).font(.system(size: 20))
                     Text("휴지통").foregroundStyle(Color.errorColor).font(.buttonText)
@@ -337,8 +437,11 @@ struct SidebarView: View {
         .padding(.horizontal, 12)
         .contentShape(Rectangle())
     }
-    
-    private var sortedFolders: [Folder] {
+}
+
+// MARK: - Helpers
+private extension SidebarView {
+    var sortedFolders: [Folder] {
         switch viewModel.currentSortOption {
         case .nameAscending:
             return folders.sorted { $0.name.localizedCompare($1.name) == .orderedAscending }
@@ -351,7 +454,7 @@ struct SidebarView: View {
         }
     }
 
-    private func saveRename() {
+    func saveRename() {
         guard let folder = folderToRename else {
             isRenamingSheet = false
             return
@@ -383,8 +486,7 @@ struct SidebarView: View {
         isRenamingSheet = false
     }
 
-    
-    private func commitNewFolder() {
+    func commitNewFolder() {
         let trimmed = newFolderName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
             cancelAdd()
@@ -404,15 +506,14 @@ struct SidebarView: View {
         cancelAdd()
     }
 
-    private func cancelAdd() {
+    func cancelAdd() {
         isAddingFolder = false
         newFolderName = ""
         newFolderFieldFocused = false
         isDeletingFolders = false
     }
 
-    
-    private func nextFolderName(existing: [String]) -> String {
+    func nextFolderName(existing: [String]) -> String {
         let base = "새 폴더"
         if !existing.contains(base) { return base }
         var i = 1
@@ -428,7 +529,7 @@ struct SidebarView: View {
         let h = geometry.size.height - insets.top - insets.bottom
         
         NavigationSplitView {
-            SidebarView(isHelpPresented: .constant(false))
+            SidebarView(isHelpPresented: .constant(false), selectedFolderName: .constant("__ALL__"))
                 .frame(height: h)
                 .navigationSplitViewColumnWidth(
                     min: w * 0.25,
@@ -460,3 +561,9 @@ extension View {
         }
     }
 }
+
+// 라우팅용 노티(사이드바 토글)
+extension Notification.Name {
+    static let toggleSidebar = Notification.Name("ToggleSidebar")
+}
+

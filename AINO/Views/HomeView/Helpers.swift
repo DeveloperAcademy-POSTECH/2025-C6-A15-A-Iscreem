@@ -54,28 +54,61 @@ extension HomeView {
         case note(Note)
     }
     
+    // ✅ 사이드바 정렬 옵션(AppStorage)을 읽어옵니다.
+    private func currentSidebarSortOption() -> SortOption {
+        let key = "sidebarSortOption"
+        let raw = UserDefaults.standard.string(forKey: key) ?? SortOption.dateAscending.rawValue
+        return SortOption(rawValue: raw) ?? .dateAscending
+    }
+    
+    // ✅ 폴더 정렬(사이드바와 동일 기준)
+    private func sortFolders(_ input: [Folder], by option: SortOption) -> [Folder] {
+        switch option {
+        case .nameAscending:
+            return input.sorted { $0.name.localizedCompare($1.name) == .orderedAscending }
+        case .nameDescending:
+            return input.sorted { $0.name.localizedCompare($1.name) == .orderedDescending }
+        case .dateAscending:
+            return input.sorted { $0.createdAt < $1.createdAt }
+        case .dateDescending:
+            return input.sorted { $0.createdAt > $1.createdAt }
+        }
+    }
+    
     var allItems: [HomeItem] {
         // 휴지통 제외
-        let folderItems = folders.filter { !$0.isTrashed }.map { HomeItem.folder($0) }
-        let unfiledNotes = notes.filter { !$0.isTrashed && $0.folder == nil }.map { HomeItem.note($0) }
-        let combined = folderItems + unfiledNotes
-        return combined.sorted { createdDate(for: $0) > createdDate(for: $1) }
+        let sidebarOption = currentSidebarSortOption()
+        let foldersSorted = sortFolders(folders.filter { !$0.isTrashed }, by: sidebarOption)
+            .map { HomeItem.folder($0) }
+        
+        // ‘전체 보기’에서는 기존 정책대로 “폴더 + 폴더에 속하지 않은 노트”를 보여줍니다.
+        let unfiledNotes = notes.filter { !$0.isTrashed && $0.folder == nil }
+        let notesSorted = NoteFormattingUtils.sortNotes(unfiledNotes, by: headerSort)
+            .map { HomeItem.note($0) }
+        
+        // ✅ 폴더 먼저 → 노트 다음
+        return foldersSorted + notesSorted
     }
     
     var allItemsFiltered: [HomeItem] {
         let q = searchQuery
         guard !q.isEmpty else { return allItems }
         
+        let sidebarOption = currentSidebarSortOption()
+        
+        // 검색 매칭된 폴더/노트를 각각 정렬한 뒤 결합
         let matchedFolders = folders
             .filter { !$0.isTrashed && KoreanSearchUtils.matches($0.name, query: q) }
+        let foldersSorted = sortFolders(matchedFolders, by: sidebarOption)
             .map { HomeItem.folder($0) }
         
         let matchedNotes = notes
             .filter { !$0.isTrashed && KoreanSearchUtils.matches($0.title, query: q) }
+        let notesSorted = NoteFormattingUtils.sortNotes(matchedNotes, by: headerSort)
             .map { HomeItem.note($0) }
         
-        let combined = matchedFolders + matchedNotes
-        return combined.sorted { createdDate(for: $0) > createdDate(for: $1) }
+        // ✅ 폴더 먼저 → 노트 다음
+        return foldersSorted + notesSorted
     }
     
     func createdDate(for item: HomeItem) -> Date {
@@ -126,9 +159,8 @@ private struct CompactScaleModifier: ViewModifier {
                             inferredBase = size
                         }
                     }
-                    .onChange(of: size) { _, newSize in
-                        // 가로/세로 전환 시 기준을 다시 잡고 싶다면 여기에서 조정 가능
-                        // 현재는 최초 캡처만 유지하여 동일 회전 내 비율을 안정적으로 유지
+                    .onChange(of: size) { _, _ in
+                        // 필요 시 회전 대응 조정 가능
                     }
                 } else {
                     // 세로 모드에서는 스케일 미적용
@@ -214,3 +246,4 @@ struct ScaledContainer<Content: View>: View {
         }
     }
 }
+

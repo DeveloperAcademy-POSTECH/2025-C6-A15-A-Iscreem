@@ -80,8 +80,8 @@ extension HomeView {
         switch item {
         case .folder(let folder):
             Button {
-                selectedFolderName.wrappedValue = folder.name
-                headerSubtitle.wrappedValue = folder.name
+                // ✅ 폴더 진입 전 상태 스냅샷을 저장하고 선택 적용
+                applySelection(folderName: folder.name, subtitle: folder.name)
             } label: {
                 VStack(alignment: .leading, spacing: 8) {
                     Image(systemName: "folder.fill")
@@ -125,3 +125,4 @@ extension HomeView {
         }
     }
 }
+
