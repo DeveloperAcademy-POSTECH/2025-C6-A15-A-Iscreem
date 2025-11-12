@@ -70,10 +70,7 @@ Refs: Apple Newsroom availability notes.  [oai_citation:5‡Apple](https://www.a
 ## 🌿 Tree
 ```
 .
-├── architecture.svg
-├── data-model.svg
-├── flowchart-home-note-study-history-return.svg
-├── learningTool
+├── AINO
 │   ├── Assets.xcassets
 │   │   ├── AccentColor.colorset
 │   │   │   └── Contents.json
@@ -154,7 +151,7 @@ Refs: Apple Newsroom availability notes.  [oai_citation:5‡Apple](https://www.a
 │       ├── YouTubeThumbnail.swift
 │       ├── YouTubeWebViewHost.swift
 │       └── YouTubeWebViewRepresentable..swift
-├── learningTool.xcodeproj
+├── AINO.xcodeproj
 │   ├── project.pbxproj
 │   ├── project.xcworkspace
 │   │   ├── contents.xcworkspacedata
@@ -175,10 +172,26 @@ Refs: Apple Newsroom availability notes.  [oai_citation:5‡Apple](https://www.a
 │       └── mumin.xcuserdatad
 │           └── xcschemes
 │               └── xcschememanagement.plist
+├── architecture.svg
+├── data-model.svg
+├── flowchart-home-note-study-history-return.svg
+├── iPad
+│   ├── iPad Pro 11_ - 1.png
+│   ├── iPad Pro 11_ - 2.png
+│   ├── iPad Pro 11_ - 3.png
+│   ├── iPad Pro 11_ - 4.png
+│   └── iPad Pro 11_ - 5.png
+├── iPhone
+│   ├── iPhone 16 - 1.png
+│   ├── iPhone 16 - 2.png
+│   ├── iPhone 16 - 3.png
+│   ├── iPhone 16 - 4.png
+│   └── iPhone 16 - 5.png
 ├── LICENSE
 ├── README.md
 ├── sequenceDiagram.svg
 └── StudyView-flowchart.svg
+
 
 
 
