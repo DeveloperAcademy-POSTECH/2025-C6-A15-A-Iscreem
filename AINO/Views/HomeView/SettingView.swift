@@ -33,7 +33,7 @@ struct SettingsDetailView: View {
             // 헤더
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("SWAI")
+                    Text("AINO")
                         .font(.system(size: 28, weight: .semibold))
                         .foregroundStyle(Color.text1)
                     
@@ -70,7 +70,7 @@ struct SettingsDetailView: View {
                                 Text("테마")
                                     .font(.system(size: 16, weight: .medium))
                                     .foregroundStyle(Color.text1)
-                                Text("내 기기에서 SWAI의 모습을 바꿔보세요!")
+                                Text("내 기기에서 AINO의 모습을 바꿔보세요!")
                                     .font(.system(size: 14, weight: .regular))
                                     .foregroundStyle(Color.text3)
                             }
@@ -86,7 +86,7 @@ struct SettingsDetailView: View {
                                 Text("언어")
                                     .font(.system(size: 16, weight: .medium))
                                     .foregroundStyle(Color.text1)
-                                Text("SWAI로 학습할 언어를 설정하세요!")
+                                Text("AINO로 학습할 언어를 설정하세요!")
                                     .font(.system(size: 14, weight: .regular))
                                     .foregroundStyle(Color.text3)
                             }
@@ -154,7 +154,7 @@ struct SettingsDetailView: View {
                             Text("노트 초기화")
                                 .font(.system(size: 16, weight: .medium))
                                 .foregroundStyle(Color.text1)
-                            Text("SWAI에서 작성한 모든 노트가 초기화 됩니다.")
+                            Text("AINO에서 작성한 모든 노트가 초기화 됩니다.")
                                 .font(.system(size: 14, weight: .regular))
                                 .foregroundStyle(Color.text3)
                         }

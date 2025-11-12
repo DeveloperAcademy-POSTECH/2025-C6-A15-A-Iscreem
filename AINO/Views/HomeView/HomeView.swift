@@ -383,7 +383,7 @@ struct HomeView: View {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
                     if horizontalSizeClass != .compact {
-                        Text("AIno")
+                        Text("AINO")
                             .font(.system(size: 28, weight: .semibold))
                             .foregroundStyle(Color.text1)
                     }
