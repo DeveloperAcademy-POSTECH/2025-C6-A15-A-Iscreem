@@ -36,6 +36,8 @@ struct HomeView: View {
     @State var headerSort: HeaderSortOption = .recentlyOpenedDesc
     @State var showNoteSortMenu = false
     @State private var preferredCompactColumn: NavigationSplitViewColumn = .detail
+    // ✅ 사이드바 표시/숨김 제어
+    @State private var splitVisibility: NavigationSplitViewVisibility = .all
     
     let columns = [GridItem(.adaptive(minimum: 200, maximum: 250), spacing: 16)]
     
@@ -98,7 +100,7 @@ struct HomeView: View {
                 overlayTrailingExtra: (horizontalSizeClass == .compact ? scaler.w(40) : 0)
             )
             
-            NavigationSplitView(preferredCompactColumn: $preferredCompactColumn) {
+            NavigationSplitView(columnVisibility: $splitVisibility, preferredCompactColumn: $preferredCompactColumn) {
                 SidebarView(onFolderSelected: { name in
                     isShowingSettings = false
                     isShowingTrash = false
@@ -117,7 +119,7 @@ struct HomeView: View {
                     withAnimation(.easeInOut(duration: 0.2)) {
                         isFolderDeletePresented = true
                     }
-                })
+                }, selectedFolderName: $selectedFolderName) // ✅ Pass binding so Sidebar syncs highlight
                 .navigationSplitViewColumnWidth(
                     min: sidebarWidth,
                     ideal: sidebarWidth,
@@ -238,6 +240,12 @@ struct HomeView: View {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     isShowingTrash = true
                     isShowingSettings = false
+                }
+            }
+            // ✅ 사이드바 숨김 토글 노티 수신 → 실제 표시 상태 토글
+            .onReceive(NotificationCenter.default.publisher(for: .toggleSidebar)) { _ in
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    splitVisibility = (splitVisibility == .all) ? .detailOnly : .all
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: .returnedFromStudyView)) { _ in
@@ -383,7 +391,7 @@ struct HomeView: View {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
                     if horizontalSizeClass != .compact {
-                        Text("AIno")
+                        Text("AINO")
                             .font(.system(size: 28, weight: .semibold))
                             .foregroundStyle(Color.text1)
                     }
@@ -401,8 +409,12 @@ struct HomeView: View {
                     // 검색바를 정렬 버튼 바로 옆에 배치 (Liquid Glass)
                     searchBar(metrics: metrics)
                         .layoutPriority(0)
+
+                    // ✅ 사이드바 숨김/펼침 버튼 (정렬 버튼 왼쪽, 간격 5)
+
                     sortButton(metrics: metrics)
                         .layoutPriority(2)
+
                     ViewModeToggle(selection: $viewModel.selectedViewMode) { mode in
                         viewModel.viewModeButtonTapped(mode)
                     }
@@ -414,6 +426,35 @@ struct HomeView: View {
             }
             .padding()
             .safeAreaPadding([.top, .horizontal])
+        }
+    }
+
+    // ✅ 사이드바 숨김/펼침 버튼
+    private func sidebarToggleButton(metrics: LayoutMetrics) -> some View {
+        Group {
+            // 컴팩트 사이즈에서는 제외
+            if horizontalSizeClass == .compact {
+                EmptyView()
+            } else {
+                GlassEffectContainer(spacing: 0) {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            // .all ↔︎ .detailOnly 토글
+                            splitVisibility = (splitVisibility == .all) ? .detailOnly : .all
+                        }
+                    } label: {
+                        // 심볼: 사이드바 토글 느낌
+                        Image(systemName: "sidebar.left")
+                            .font(.system(size: 16, weight: .semibold))
+                            .frame(width: metrics.sortButtonSize, height: metrics.sortButtonSize)
+                    }
+                    .buttonStyle(.plain)
+                    .tint(Color.text2)
+                    .glassEffect()
+                    .glassEffectUnionCompat(id: "sidebar-toggle", namespace: glassNS)
+                    .accessibilityLabel(splitVisibility == .all ? "사이드바 숨기기" : "사이드바 보이기")
+                }
+            }
         }
     }
     
@@ -1347,3 +1388,4 @@ struct SidebarCoachOverlay: View {
         }
     }
 }
+
