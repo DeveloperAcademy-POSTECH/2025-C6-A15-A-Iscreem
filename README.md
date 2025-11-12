@@ -33,7 +33,15 @@ This app’s AI summarization uses Apple’s on-device foundation model (Apple I
 
 Refs: Apple Newsroom availability notes.  [oai_citation:5‡Apple](https://www.apple.com/newsroom/2025/06/apple-elevates-the-iphone-experience-with-ios-26/)
 
+## 👨🏻‍💻👩🏻‍💻
 
+| ![iPad 01](iPad/ipad-01.png) | ![iPad 02](iPad/ipad-02.png) | ![iPad 03](iPad/ipad-03.png) |
+|---|---|---|
+| ![iPad 04](iPad/ipad-04.png) | ![iPad 05](iPad/ipad-05.png) |  |
+
+| ![iPhone 01](iPhone/iphone-01.png) | ![iPhone 02](iPhone/iphone-02.png) | ![iPhone 03](iPhone/iphone-03.png) |
+|---|---|---|
+| ![iPhone 04](iPhone/iphone-04.png) | ![iPhone 05](iPhone/iphone-05.png) |  |
 
 ## :pushpin: Features
 
