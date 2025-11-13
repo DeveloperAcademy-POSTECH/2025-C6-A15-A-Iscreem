@@ -74,6 +74,16 @@ struct HomeView: View {
 
     // Removed Environment usage for dynamic metrics; we’ll compute locally per-geometry.
 
+    // ✅ 테마 적용을 위한 AppStorage (설정과 동일 키/값 사용)
+    @AppStorage("selectedTheme") private var selectedTheme: String = "system"
+    private var colorScheme: ColorScheme? {
+        switch selectedTheme {
+        case "light": return .light
+        case "dark":  return .dark
+        default:      return nil // 시스템
+        }
+    }
+
     init(
         onNoteSelected: ((Note) -> Void)? = nil,
         onNoteCreated: ((Note) -> Void)? = nil
@@ -353,6 +363,8 @@ struct HomeView: View {
                 }
             }
         }
+        // ✅ 설정의 테마를 홈에도 적용
+        .preferredColorScheme(colorScheme)
     }
     
     // MARK: - Header View
@@ -988,6 +1000,16 @@ extension HomeView {
     struct AppRootView: View {
         @State private var selectedNote: Note?
         @State private var showStudyView = false
+
+        // ✅ 설정 테마를 AppRoot에도 적용(StudyView 포함 전체에 반영)
+        @AppStorage("selectedTheme") private var selectedTheme: String = "system"
+        private var colorScheme: ColorScheme? {
+            switch selectedTheme {
+            case "light": return .light
+            case "dark":  return .dark
+            default:      return nil
+            }
+        }
         
         var body: some View {
             ScaledContainer(baseSize: CGSize(width: 1366, height: 1024),
@@ -1017,6 +1039,7 @@ extension HomeView {
                 }
             }
             .keyboardOverlay()
+            .preferredColorScheme(colorScheme)
         }
     }
 }
