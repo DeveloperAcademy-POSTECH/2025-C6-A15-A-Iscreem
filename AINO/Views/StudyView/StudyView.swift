@@ -13,15 +13,10 @@ struct StudyView: View {
     @StateObject private var viewModel: StudyViewModel
     @Environment(\.modelContext) private var modelContext
     let onDismiss: (() -> Void)?
-    @State private var showingAPISettings = false
     
     @EnvironmentObject private var captionAnalyzer: CaptionAnalyzer
     @EnvironmentObject private var learningLogStore: LearningLogStore
     @Query private var notes: [Note]
-    // ▼ 전역 질문 입력 바 상태 (키보드 상단 바)
-    @StateObject private var questionVM = QuestionViewModel()
-    @State private var showGlobalQuestionBar = false
-    @FocusState private var globalQuestionFocus: Bool
     
     @AppStorage("hasSeenStudyOnboarding") private var hasSeenStudyOnboarding: Bool = false
     @State private var studyOnboardingStep: StudyOnboardingStep = .media
@@ -35,11 +30,11 @@ struct StudyView: View {
     private let mainWidthRatio: CGFloat = 0.65          // 메인 영역(좌측)
     private let rightSidebarWidthRatio: CGFloat = 0.35  // 우측 사이드바(기본 펼침)
     private let mainTopMediaHeightRatio: CGFloat = 0.6  // 메인 내부: Media(상) 비율
-    private let mainBottomQuestionHeightRatio: CGFloat = 0.4 // 메인 내부: Question(하) 비율
+    private let mainBottomKeywordHeightRatio: CGFloat = 0.4 // 메인 내부: Keyword(하) 비율
 
     // iPhone 고정 높이
     private let phoneSummaryHeight: CGFloat = 250
-    private let phoneQuestionHeight: CGFloat = 300
+    private let phoneKeywordHeight: CGFloat = 300
 
     // iPad 레이아웃 기준 해상도 (13인치 가로형 1366x1024)
     private let baseIPadLandscapeSize = CGSize(width: 1366, height: 1024)
@@ -49,7 +44,8 @@ struct StudyView: View {
         case keywords = "키워드"
         case summary = "요약"
     }
-    @State private var sidebarTab: SidebarTab = .keywords
+    // 변경: 기본값을 .summary로 설정하여 요약이 우선 보이도록 함
+    @State private var sidebarTab: SidebarTab = .summary
     // 사이드바 접힘 상태
     @State private var isSidebarCollapsed: Bool = false
     
@@ -60,7 +56,7 @@ struct StudyView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // MARK: 헤더 (유지)
+            // MARK: 헤더
             HStack {
                 Button(action: {
                     viewModel.closeButtonTapped()
@@ -98,14 +94,8 @@ struct StudyView: View {
                 
                 Spacer()
                 
-                Button(action: {
-                    showingAPISettings = true
-                }) {
-                    Image(systemName: "gearshape")
-                        .font(.system(size: 20))
-                        .foregroundStyle(Color.text2)
-                }
-                .buttonStyle(.plain)
+                // 설정 버튼 및 API 설정 시트 제거 (외부 API 의존 제거)
+                // Button(action: { showingAPISettings = true }) { ... }
             }
             .padding()
             .background(Color.background1)
@@ -124,39 +114,6 @@ struct StudyView: View {
         }
         .background(Color.background2)
         .keyboardOverlay()
-        // ▼ 전역 입력 바: 키보드 상단(StudyView 전체 너비) — 키보드 높이에 맞춰 자동 패딩
-        .overlay(alignment: .bottom) {
-            if showGlobalQuestionBar {
-                VStack(spacing: 0) {
-                    Divider().background(Color.borderColor)
-                    QuestionInputBar(
-                        text: $questionVM.currentMessage,
-                        isEnabled: GeminiAPIService.shared.isAPIKeyConfigured() && !questionVM.isLoading,
-                        isSending: questionVM.isLoading,
-                        isGenerating: false,
-                        focus: $globalQuestionFocus,
-                        placeholder: GeminiAPIService.shared.isAPIKeyConfigured() ? "메시지를 입력하세요" : "API 키를 먼저 설정해주세요",
-                        onTapLightbulb: { /* 전역 전구 버튼 필요 시 구현 */ },
-                        onSend: {
-                            if GeminiAPIService.shared.isAPIKeyConfigured() {
-                                questionVM.sendMessage()
-                                // 전송/접기 시 전역 바 닫기
-                                globalQuestionFocus = false
-                                showGlobalQuestionBar = false
-                            }
-                        }
-                    )
-                    .padding(16)
-                }
-                .background(Color.background1)
-                .keyboardAdaptivePadding() // 키보드 높이만큼 위로 올리기
-                .zIndex(1000)
-                .onAppear { globalQuestionFocus = true } // 전역 바 등장 시 포커스
-                .onChange(of: globalQuestionFocus) { _, focused in // 키보드 접힘 → 전역 바 닫기
-                    if !focused { showGlobalQuestionBar = false }
-                }
-            }
-        }
         .overlayPreferenceValue(StudyTargetBoundsKey.self) { map in
             if !hasSeenStudyOnboarding {
                 StudyCoachOverlay(step: $studyOnboardingStep, map: map) {
@@ -171,9 +128,6 @@ struct StudyView: View {
                 // 컨텍스트를 저장하여 영구화
                 try? modelContext.save()
             }
-        }
-        .sheet(isPresented: $showingAPISettings) {
-            APISettingsView()
         }
     }
     
@@ -238,31 +192,29 @@ struct StudyView: View {
             // MAIN (좌측)
             VStack(spacing: 0) {
                 let mediaH = totalH * mainTopMediaHeightRatio
-                let questionH = max(0, totalH - mediaH)
+                let keywordH = max(0, totalH - mediaH)
                 
                 // 사이드바가 접혀도 임베드(플레이어) 너비는
                 // "사이드바 펼침 시의 메인 영역 너비"를 유지
                 let embedBaseWidthWhenSidebarOpen = totalW * mainWidthRatio
                 let embedWidth = isSidebarCollapsed ? embedBaseWidthWhenSidebarOpen : mainW
                 
-                // MediaView를 고정 임베드 너비로 중앙 배치
+                // MediaView
                 ZStack {
                     MediaView(note: viewModel.currentNote, videoURL: resolvedVideoURL)
                         .frame(width: embedWidth, height: mediaH)
-                        .clipped() // 임베드 영역 밖 컨텐츠 숨김(보강)
+                        .clipped()
                         .tagStudyTarget(.media)
                 }
                 .frame(width: mainW, height: mediaH, alignment: .center)
                 .frame(maxWidth: .infinity, alignment: .top)
                 
-                QuestionView(
-                    studyViewModel: viewModel,
-                    viewModel: questionVM,
-                    isGlobalInputActive: $showGlobalQuestionBar
-                )
-                .frame(width: mainW, height: questionH)
-                .frame(maxWidth: .infinity, alignment: .bottom)
-                .tagStudyTarget(.question)
+                // KeywordView (QuestionView 대체)
+                KeywordView(analyzer: captionAnalyzer, studyViewModel: viewModel)
+                    .frame(width: mainW, height: keywordH)
+                    .frame(maxWidth: .infinity, alignment: .bottom)
+                    .background(Color.background1)
+                    .tagStudyTarget(.question) // 온보딩 하이라이트를 재사용
             }
             .frame(width: mainW, height: totalH)
             
@@ -272,7 +224,6 @@ struct StudyView: View {
                     // 상단 바: Segmented(요약, 키워드) + 접기 버튼
                     HStack(spacing: 8) {
                         Picker("", selection: $sidebarTab) {
-                            // 요구: "요약", "키워드" 순서
                             Text(SidebarTab.summary.rawValue).tag(SidebarTab.summary)
                             Text(SidebarTab.keywords.rawValue).tag(SidebarTab.keywords)
                         }
@@ -316,7 +267,7 @@ struct StudyView: View {
             }
         }
         .frame(width: totalW, height: totalH)
-        // 접힌 상태에서 펼치기 버튼(우측 상단, 사이드바 상단바 높이에 맞춤)
+        // 접힌 상태에서 펼치기 버튼
         .overlay(alignment: .topTrailing) {
             if isSidebarCollapsed {
                 Button {
@@ -332,7 +283,7 @@ struct StudyView: View {
                     }
                     .foregroundStyle(Color.text2)
                     .padding(.horizontal, 10)
-                    .frame(height: sidebarControlHeight) // 숨김 버튼과 동일 높이
+                    .frame(height: sidebarControlHeight)
                     .background(Color.background1)
                     .overlay(
                         RoundedRectangle(cornerRadius: 10).stroke(Color.borderColor, lineWidth: 1)
@@ -342,14 +293,14 @@ struct StudyView: View {
                 }
                 .buttonStyle(.plain)
                 .padding(.trailing, 10)
-                .padding(.top, sidebarTopBarVPad) // 상단 바의 세로 패딩과 동일 높이에서 표시
+                .padding(.top, sidebarTopBarVPad)
                 .transition(.move(edge: .trailing).combined(with: .opacity))
             }
         }
         .animation(.easeInOut(duration: 0.2), value: isSidebarCollapsed)
     }
     
-    // MARK: - iPhone Layout (기존 단일 컬럼 유지)
+    // MARK: - iPhone Layout (단일 컬럼)
     @ViewBuilder
     private func iPhoneLayout(geometry: GeometryProxy) -> some View {
         let totalHeight = geometry.size.height
@@ -358,44 +309,37 @@ struct StudyView: View {
         // 가로 모드 감지 (너비 > 높이)
         let isLandscape = totalWidth > totalHeight
         
-        // MediaView 높이 계산 (가로/세로 모드에 따라 다르게)
+        // MediaView 높이 계산
         let mediaHeight: CGFloat = {
             if isLandscape {
-                // 가로 모드: 화면 높이의 50% 사용, 최소 200pt 보장
                 return max(totalHeight * 0.5, 200)
             } else {
-                // 세로 모드: 16:9 비율 또는 화면 높이의 30%
                 return min(totalHeight * 0.3, totalWidth * 9 / 16)
             }
         }()
         
         ScrollView {
             VStack(spacing: 0) {
-                // MARK: MediaView (상단)
+                // MediaView (상단)
                 MediaView(note: viewModel.currentNote, videoURL: resolvedVideoURL)
                     .frame(height: mediaHeight)
                     .frame(maxWidth: .infinity)
                 
-                // MARK: KeywordView (중간)
+                // KeywordView (중간)
                 KeywordView(analyzer: captionAnalyzer, studyViewModel: viewModel)
                     .frame(minHeight: 200)
                     .frame(maxWidth: .infinity)
                     .tagStudyTarget(.sidebar)
                 
-                // MARK: SummaryView (하단 1)
+                // SummaryView (하단)
                 SummaryView()
                     .frame(maxWidth: .infinity)
                     .frame(height: phoneSummaryHeight)
                 
-                // MARK: QuestionView (하단 2)
-                QuestionView(
-                    studyViewModel: viewModel,
-                    viewModel: questionVM,
-                    isGlobalInputActive: $showGlobalQuestionBar
-                )
-                .frame(maxWidth: .infinity)
-                .frame(height: phoneQuestionHeight)
-                .tagStudyTarget(.question)
+                // 기존 QuestionView 영역 제거
+                Color.clear
+                    .frame(height: phoneKeywordHeight)
+                    .hidden()
             }
         }
     }
@@ -419,204 +363,6 @@ struct StudyView: View {
         return nil
     }
 }
-
-struct APISettingsView: View {
-    @Environment(\.dismiss) private var dismiss
-    @State private var apiKey: String = ""
-    @State private var showingSuccessAlert = false
-    @State private var showingErrorAlert = false
-    @State private var errorMessage = ""
-    
-    var body: some View {
-        VStack(spacing: 0) {
-            /// 헤더
-            HStack {
-                Text("AI 설정")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(Color.text1)
-                
-                Spacer()
-                
-                Button(action: { dismiss() }) {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 16))
-                        .foregroundStyle(Color.text2)
-                }
-                .buttonStyle(.plain)
-            }
-            .padding(20)
-            
-            Divider()
-                .background(Color.borderColor)
-            
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    /// API 키 입력 섹션
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Gemini API 키")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(Color.text1)
-                        
-                        Text("Google AI Studio에서 Gemini API 키를 발급받아 입력하세요.")
-                            .font(.system(size: 13))
-                            .foregroundStyle(Color.text3)
-                        
-                        SecureField("API 키를 입력하세요", text: $apiKey)
-                            .font(.system(size: 14))
-                            .padding(12)
-                            .background(Color.background2)
-                            .cornerRadius(8)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color.borderColor, lineWidth: 1)
-                            )
-                    }
-                    
-                    /// 안내 섹션
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("API 키 발급 방법")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(Color.text1)
-                        
-                        VStack(alignment: .leading, spacing: 8) {
-                            InfoRow(number: "1", text: "Google AI Studio (ai.google.dev)에 접속")
-                            InfoRow(number: "2", text: "Google 계정으로 로그인")
-                            InfoRow(number: "3", text: "'Get API key' 버튼 클릭")
-                            InfoRow(number: "4", text: "생성된 API 키 복사 후 위에 입력")
-                        }
-                    }
-                    
-                    /// 현재 상태
-                    HStack {
-                        Image(systemName: GeminiAPIService.shared.isAPIKeyConfigured()
-                              ? "checkmark.circle.fill"
-                              : "exclamationmark.circle.fill")
-                        .foregroundStyle(GeminiAPIService.shared.isAPIKeyConfigured()
-                                         ? Color.green
-                                         : Color.orange)
-                        
-                        Text(GeminiAPIService.shared.isAPIKeyConfigured()
-                             ? "API 키가 설정되어 있습니다"
-                             : "API 키가 설정되지 않았습니다")
-                        .font(.system(size: 13))
-                        .foregroundStyle(Color.text2)
-                        
-                        Spacer()
-                    }
-                    .padding(12)
-                    .background(Color.background2)
-                    .cornerRadius(8)
-                    
-                    Spacer()
-                }
-                .padding(20)
-            }
-            
-            Divider()
-                .background(Color.borderColor)
-            
-            /// 버튼 영역
-            HStack(spacing: 12) {
-                if GeminiAPIService.shared.isAPIKeyConfigured() {
-                    Button(action: deleteAPIKey) {
-                        Text("API 키 삭제")
-                            .font(.system(size: 15, weight: .medium))
-                            .foregroundStyle(Color.errorColor)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .background(Color.errorColor.opacity(0.1))
-                            .cornerRadius(8)
-                    }
-                    .buttonStyle(.plain)
-                }
-                
-                Button(action: saveAPIKey) {
-                    Text("저장")
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(apiKey.isEmpty ? Color.text3 : Color.primaryColor)
-                        .cornerRadius(8)
-                }
-                .buttonStyle(.plain)
-                .disabled(apiKey.isEmpty)
-            }
-            .padding(20)
-        }
-        .frame(width: 500, height: 600)
-        .background(Color.background1)
-        .onAppear {
-            if let existingKey = GeminiAPIService.shared.getAPIKey() {
-                apiKey = existingKey
-            }
-        }
-        .alert("저장 완료", isPresented: $showingSuccessAlert) {
-            Button("확인", role: .cancel) {
-                dismiss()
-            }
-        } message: {
-            Text("API 키가 성공적으로 저장되었습니다.")
-        }
-        .alert("오류", isPresented: $showingErrorAlert) {
-            Button("확인", role: .cancel) {}
-        } message: {
-            Text(errorMessage)
-        }
-    }
-    
-    private func saveAPIKey() {
-        let trimmedKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedKey.isEmpty else {
-            errorMessage = "API 키를 입력해주세요."
-            showingErrorAlert = true
-            return
-        }
-        
-        GeminiAPIService.shared.saveAPIKey(trimmedKey)
-        showingSuccessAlert = true
-    }
-    
-    private func deleteAPIKey() {
-        GeminiAPIService.shared.deleteAPIKey()
-        apiKey = ""
-        errorMessage = "API 키가 삭제되었습니다."
-        showingErrorAlert = true
-    }
-}
-
-struct InfoRow: View {
-    let number: String
-    let text: String
-    
-    var body: some View {
-        HStack(alignment: .top, spacing: 8) {
-            Text(number)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(.white)
-                .frame(width: 20, height: 20)
-                .background(Color.secondColor)
-                .clipShape(Circle())
-            
-            Text(text)
-                .font(.system(size: 13))
-                .foregroundStyle(Color.text2)
-            
-            Spacer()
-        }
-    }
-}
-
-#Preview(traits: .landscapeLeft) {
-    StudyView(
-        note: Note(
-            title: "데이터통신 제1장",
-            lastRead: Date()
-        )
-    )
-    .environmentObject(CaptionAnalyzer())
-}
-
 
 // MARK: - Study Onboarding Coach Marks
 
@@ -769,3 +515,4 @@ struct StudyCoachOverlay: View {
         CGRect(x: proxy.size.width/2 - 80, y: proxy.size.height/2 - 40, width: 160, height: 80)
     }
 }
+

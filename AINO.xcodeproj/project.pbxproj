@@ -29,7 +29,6 @@
 		68B08B6F2EB083F50067AD9E /* ChatMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68B08B432EB083F50067AD9E /* ChatMessage.swift */; };
 		68B08B702EB083F50067AD9E /* Folder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68B08B442EB083F50067AD9E /* Folder.swift */; };
 		68B08B712EB083F50067AD9E /* Note.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68B08B452EB083F50067AD9E /* Note.swift */; };
-		68B08B722EB083F50067AD9E /* GeminiAPIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68B08B472EB083F50067AD9E /* GeminiAPIService.swift */; };
 		68B08B732EB083F50067AD9E /* AppleFMSummarizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68B08B492EB083F50067AD9E /* AppleFMSummarizer.swift */; };
 		68B08B742EB083F50067AD9E /* CaptionAnalyzerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68B08B4A2EB083F50067AD9E /* CaptionAnalyzerViewModel.swift */; };
 		68B08B752EB083F50067AD9E /* HTTPSummarizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68B08B4B2EB083F50067AD9E /* HTTPSummarizer.swift */; };
@@ -88,7 +87,6 @@
 		68B08B432EB083F50067AD9E /* ChatMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatMessage.swift; sourceTree = "<group>"; };
 		68B08B442EB083F50067AD9E /* Folder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Folder.swift; sourceTree = "<group>"; };
 		68B08B452EB083F50067AD9E /* Note.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Note.swift; sourceTree = "<group>"; };
-		68B08B472EB083F50067AD9E /* GeminiAPIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeminiAPIService.swift; sourceTree = "<group>"; };
 		68B08B492EB083F50067AD9E /* AppleFMSummarizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleFMSummarizer.swift; sourceTree = "<group>"; };
 		68B08B4A2EB083F50067AD9E /* CaptionAnalyzerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptionAnalyzerViewModel.swift; sourceTree = "<group>"; };
 		68B08B4B2EB083F50067AD9E /* HTTPSummarizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPSummarizer.swift; sourceTree = "<group>"; };
@@ -191,7 +189,6 @@
 		68B08B482EB083F50067AD9E /* Services */ = {
 			isa = PBXGroup;
 			children = (
-				68B08B472EB083F50067AD9E /* GeminiAPIService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -405,7 +402,6 @@
 				6AC9C8622EB09A780050A812 /* FolderDeleteView.swift in Sources */,
 				68AE7A142EB2788B008FF275 /* QuestionInputBar.swift in Sources */,
 				68AE7A1E2EB28785008FF275 /* SuggestionsSheetView.swift in Sources */,
-				68B08B722EB083F50067AD9E /* GeminiAPIService.swift in Sources */,
 				68B08B732EB083F50067AD9E /* AppleFMSummarizer.swift in Sources */,
 				68B08B742EB083F50067AD9E /* CaptionAnalyzerViewModel.swift in Sources */,
 				68B08B752EB083F50067AD9E /* HTTPSummarizer.swift in Sources */,
