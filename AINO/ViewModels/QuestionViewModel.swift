@@ -13,9 +13,7 @@ class QuestionViewModel: ObservableObject {
     @Published var currentMessage = ""
     @Published var isLoading = false
     
-    init() {
-        // 샘플 메시지 로드 제거 - 빈 상태로 시작
-    }
+    init() { }
     
     /// 메시지 전송
     func sendMessage() {
@@ -29,39 +27,10 @@ class QuestionViewModel: ObservableObject {
         )
         messages.append(userMessage)
         
-        let question = currentMessage
+        // 외부 API 호출을 제거하므로, 여기서 질문을 소비하고 입력만 초기화
         currentMessage = ""
-        
-        sendToLLMAPI(question: question)
     }
     
-    /// LLM API 호출
-    private func sendToLLMAPI(question: String) {
-        isLoading = true
-        
-        Task {
-            do {
-                // Gemini API에 메시지 전송 (대화 히스토리 포함)
-                let response = try await GeminiAPIService.shared
-                    .sendMessage(question, conversationHistory: messages)
-                
-                await MainActor.run {
-                    let aiMessage = ChatMessage(
-                        text: response,
-                        isUser: false
-                    )
-                    messages.append(aiMessage)
-                    isLoading = false
-                }
-            } catch {
-                await MainActor.run {
-                    handleError(error)
-                }
-            }
-        }
-    }
-    
-    /// 에러 처리
     private func handleError(_ error: Error) {
         isLoading = false
         let errorMessage = ChatMessage(
@@ -71,10 +40,8 @@ class QuestionViewModel: ObservableObject {
         messages.append(errorMessage)
     }
     
-    /// 대화 초기화
     func clearMessages() {
         messages.removeAll()
     }
-    
 }
 
