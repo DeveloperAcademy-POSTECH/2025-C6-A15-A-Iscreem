@@ -47,3 +47,6 @@ fastlane/test_output
 /*.gcno
 **/xcshareddata/WorkspaceSettings.xcsettings
 *.env
+
+# ⚠️ API 키 및 시크릿 정보 (절대 커밋하지 마세요!)
+AINO/Config/APIKeys.swift

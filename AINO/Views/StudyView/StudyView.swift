@@ -49,6 +49,9 @@ struct StudyView: View {
     // 사이드바 접힘 상태
     @State private var isSidebarCollapsed: Bool = false
     
+    // 전역 입력 상태 관리
+    @State private var isGlobalInputActive: Bool = false
+    
     init(note: Note? = nil, onDismiss: (() -> Void)? = nil) {
         _viewModel = StateObject(wrappedValue: StudyViewModel(note: note))
         self.onDismiss = onDismiss
@@ -93,9 +96,6 @@ struct StudyView: View {
                 }
                 
                 Spacer()
-                
-                // 설정 버튼 및 API 설정 시트 제거 (외부 API 의존 제거)
-                // Button(action: { showingAPISettings = true }) { ... }
             }
             .padding()
             .background(Color.background1)
@@ -209,12 +209,16 @@ struct StudyView: View {
                 .frame(width: mainW, height: mediaH, alignment: .center)
                 .frame(maxWidth: .infinity, alignment: .top)
                 
-                // KeywordView (QuestionView 대체)
-                KeywordView(analyzer: captionAnalyzer, studyViewModel: viewModel)
-                    .frame(width: mainW, height: keywordH)
-                    .frame(maxWidth: .infinity, alignment: .bottom)
-                    .background(Color.background1)
-                    .tagStudyTarget(.question) // 온보딩 하이라이트를 재사용
+                // QuestionView (원복)
+                QuestionView(
+                    studyViewModel: viewModel,
+                    viewModel: viewModel.questionViewModel,
+                    isGlobalInputActive: $isGlobalInputActive
+                )
+                .frame(width: mainW, height: keywordH)
+                .frame(maxWidth: .infinity, alignment: .bottom)
+                .background(Color.background1)
+                .tagStudyTarget(.question)
             }
             .frame(width: mainW, height: totalH)
             
@@ -325,21 +329,22 @@ struct StudyView: View {
                     .frame(height: mediaHeight)
                     .frame(maxWidth: .infinity)
                 
-                // KeywordView (중간)
-                KeywordView(analyzer: captionAnalyzer, studyViewModel: viewModel)
-                    .frame(minHeight: 200)
-                    .frame(maxWidth: .infinity)
-                    .tagStudyTarget(.sidebar)
-                
-                // SummaryView (하단)
+                // SummaryView (중간)
                 SummaryView()
                     .frame(maxWidth: .infinity)
                     .frame(height: phoneSummaryHeight)
+                    .tagStudyTarget(.sidebar)
                 
-                // 기존 QuestionView 영역 제거
-                Color.clear
-                    .frame(height: phoneKeywordHeight)
-                    .hidden()
+                // QuestionView (하단 - 원복)
+                QuestionView(
+                    studyViewModel: viewModel,
+                    viewModel: viewModel.questionViewModel,
+                    isGlobalInputActive: $isGlobalInputActive
+                )
+                .frame(maxWidth: .infinity)
+                .frame(height: phoneKeywordHeight)
+                .background(Color.background1)
+                .tagStudyTarget(.question)
             }
         }
     }

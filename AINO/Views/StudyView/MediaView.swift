@@ -265,7 +265,7 @@ struct MediaView: View {
     private func urlByEmbeddingStart(_ urlString: String, seconds: Double) -> String {
         guard var url = URL(string: urlString), seconds > 0.5 else { return urlString }
         var comps = URLComponents(url: url, resolvingAgainstBaseURL: false) ?? URLComponents()
-        let host = (comps.host ?? "").lowercased()
+        let _ = (comps.host ?? "").lowercased()
         var path = comps.path
         
         // shorts → watch로 정규화

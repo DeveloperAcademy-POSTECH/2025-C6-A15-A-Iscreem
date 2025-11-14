@@ -17,28 +17,27 @@ struct ChatAreaView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(spacing: 16) {
-                    // ⛔️ 외부 API 키 유도 문구 제거: 심사 버전에서는 항상 일반 안내만 노출
-                    /* if !isAPIKeyConfigured {
+                    if !isAPIKeyConfigured {
                         VStack(spacing: 12) {
-                            Image(systemName: "key.fill")
+                            Image(systemName: "exclamationmark.triangle.fill")
                                 .font(.system(size: 40))
-                                .foregroundStyle(Color.secondColor.opacity(0.6))
-                            Text("API 키가 설정되지 않았습니다")
+                                .foregroundStyle(Color.orange.opacity(0.6))
+                            Text("AI 기능을 사용할 수 없습니다")
                                 .font(.system(size: 16, weight: .semibold))
                                 .foregroundStyle(Color.text3)
-                            Text("우측 상단의 톱니바퀴 버튼을 눌러\nGemini API 키를 설정해주세요.")
+                            Text("ChatGPT API 키를 확인해주세요.\n개발자에게 문의하시기 바랍니다.")
                                 .font(.system(size: 13))
                                 .foregroundStyle(Color.text3.opacity(0.8))
                                 .multilineTextAlignment(.center)
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .padding(40)
-                    } else */ if messages.isEmpty && !isLoading {
+                    } else if messages.isEmpty && !isLoading {
                         VStack(spacing: 12) {
                             Image(systemName: "bubble.left.and.bubble.right.fill")
                                 .font(.system(size: 40))
                                 .foregroundStyle(Color.secondColor.opacity(0.6))
-                            Text("질문을 입력하고 엔터 또는\n보내기 버튼을 눌러주세요")
+                            Text("AI에게 학습 관련 질문을 해보세요!\n간결하고 명확한 답변을 받을 수 있습니다.")
                                 .font(.system(size: 14))
                                 .foregroundStyle(Color.text3.opacity(0.8))
                                 .multilineTextAlignment(.center)

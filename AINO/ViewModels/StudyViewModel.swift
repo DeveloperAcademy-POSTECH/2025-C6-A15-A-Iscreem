@@ -12,6 +12,9 @@ class StudyViewModel: ObservableObject {
     @Published var selectedTab = StudyTab.media
     @Published var currentNote: Note?
     
+    // 질문 기능을 위한 QuestionViewModel
+    @Published var questionViewModel = QuestionViewModel()
+    
     // 키워드 선택 및 질문 자동 입력을 위한 프로퍼티
     @Published var selectedKeyword: String?
     @Published var shouldInsertKeyword: Bool = false
