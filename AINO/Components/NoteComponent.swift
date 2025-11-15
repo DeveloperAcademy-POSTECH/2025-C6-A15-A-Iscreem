@@ -9,15 +9,18 @@ import SwiftUI
 
 struct NoteComponent: View {
     let note: Note
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
+        let isDark = (colorScheme == .dark)
+        
         VStack(alignment: .leading, spacing: 8) {
-            /// 썸네일 이미지 (YouTube 링크에서 자동 추출)
+            // 썸네일 이미지 (YouTube 링크에서 자동 추출)
             if let url = YouTubeThumbnail.thumbnailURL(from: note.thumbnailURL) {
                 AsyncImage(url: url) { phase in
                     switch phase {
                     case .empty:
-                        placeholderThumbnail.overlay(ProgressView())
+                        placeholderThumbnail(isDark: isDark).overlay(ProgressView())
                     case .success(let image):
                         image
                             .resizable()
@@ -27,40 +30,45 @@ struct NoteComponent: View {
                             .clipped()
                             .cornerRadius(8)
                     case .failure:
-                        placeholderThumbnail
+                        placeholderThumbnail(isDark: isDark)
                     @unknown default:
-                        placeholderThumbnail
+                        placeholderThumbnail(isDark: isDark)
                     }
                 }
             } else {
-                placeholderThumbnail
+                placeholderThumbnail(isDark: isDark)
             }
             
-            /// 제목
+            // 제목
             Text(note.title)
                 .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(Color.text1)
+                .foregroundStyle(isDark ? Color.white : Color.text1)
                 .lineLimit(2)
             
-            /// 시간 정보
+            // 시간 정보
             Text("최근 읽음 : \(timeAgoString)")
                 .font(.system(size: 13, weight: .regular))
-                .foregroundStyle(Color.text2)
+                .foregroundStyle(isDark ? Color.white : Color.text1)
         }
         .padding(12)
-        .background(Color.background1)
+        .background(isDark ? Color.background3 : Color.background1)
         .cornerRadius(12)
-        .shadow(color: Color.text1.opacity(0.1), radius: 4, x: 0, y: 2)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(isDark ? Color.white.opacity(0.12) : Color.black.opacity(0.06), lineWidth: 0.5)
+        )
+        .shadow(color: (isDark ? Color.white.opacity(0.06) : Color.black.opacity(0.1)),
+                radius: 4, x: 0, y: 2)
     }
 
-    private var placeholderThumbnail: some View {
+    private func placeholderThumbnail(isDark: Bool) -> some View {
         Rectangle()
-            .fill(Color.background2)
+            .fill(isDark ? Color.black.opacity(0.35) : Color.background2)
             .aspectRatio(16/9, contentMode: .fit)
             .overlay(
                 Image(systemName: "play.rectangle.fill")
                     .font(.system(size: 40))
-                    .foregroundStyle(Color.text3)
+                    .foregroundStyle(isDark ? Color.white.opacity(0.8) : Color.text3)
             )
             .cornerRadius(8)
     }
