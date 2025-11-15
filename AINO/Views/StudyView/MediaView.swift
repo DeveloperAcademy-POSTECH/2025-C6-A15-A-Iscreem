@@ -233,27 +233,26 @@ struct MediaView: View {
     
     // 학습 로그 → 노트 순으로 재개 위치를 결정
     private func bestResumePosition() -> Double? {
-        // 메모리에 방금 업데이트된 값이 있다면 그 값을 우선 사용
+        // 0) 메모리 상 마지막 위치가 있으면 우선 사용
         if let mem = lastKnownPosition, mem > 0.5 {
             return mem
         }
-        // 1) 학습 로그에 저장된 마지막 재생 위치(식별자 우선, 없으면 제목+URL 규칙)
-        if let n = note {
-            let nid = String(describing: n.id)
-            let url = n.videoURL ?? videoURL
-            if let s = learningLogStore.sessions.first(where: { sess in
-                if let sid = sess.noteIdentifier, sid == nid { return true }
-                if sess.noteTitle == n.title {
-                    if let v1 = sess.videoURL, let v2 = url, v1 == v2 { return true }
-                    if url == nil { return true }
-                }
-                return false
-            }) {
-                if let lp = s.lastPosition, lp > 0.5 { return lp }
-            }
-            // 2) 노트에 저장된 위치
-            if let lp = n.lastPositionSeconds, lp > 0.5 { return lp }
+        guard let n = note else { return nil }
+
+        let nid = String(describing: n.id)
+
+        // 1) 동일 식별자(noteIdentifier) 세션에서만 이어보기 허용
+        if let s = learningLogStore.sessions.first(where: { $0.noteIdentifier == nid }),
+           let lp = s.lastPosition, lp > 0.5 {
+            return lp
         }
+
+        // 2) 노트 자체에 저장된 위치가 있으면 사용 (이 노트를 이전에 열었던 경우)
+        if let lp = n.lastPositionSeconds, lp > 0.5 {
+            return lp
+        }
+
+        // 3) 새로 만든 노트 등: 00:00부터 시작
         return nil
     }
     

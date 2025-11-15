@@ -158,17 +158,23 @@ struct StudyHistoryView: View {
     // 1) Note.cachedChaptersUpToCurrent (영구 저장) — 재실행 보장
     // 2) LearningLogStore의 메모리 맵(chapterSummariesUpToCurrentByNoteID)
     private func chaptersUpToCurrent(for s: StudySession) -> [CachedChapter] {
+        // 1) Persisted identifier 우선: SwiftData Note에서 직접 조회
         if let nid = s.noteIdentifier,
            let note = notes.first(where: { String(describing: $0.id) == nid }) {
-            let upTo = note.cachedChaptersUpToCurrent
-            if !upTo.isEmpty { return upTo }
+            return note.cachedChaptersUpToCurrent
         }
-        if
-            let nid = s.noteIdentifier,
-            let chapters = learningLogStore.chapterSummariesUpToCurrentByNoteID[nid],
-            !chapters.isEmpty
-        {
-            return chapters
+        // 2) 제목 + URL(또는 썸네일 URL)로 폴백 매칭
+        let titleMatches = notes.filter { $0.title == s.noteTitle }
+        if !titleMatches.isEmpty {
+            if let url = s.videoURL, !url.isEmpty {
+                if let note = titleMatches.first(where: { ($0.videoURL ?? "") == url || ($0.thumbnailURL ?? "") == url }) {
+                    return note.cachedChaptersUpToCurrent
+                }
+            }
+            // URL 정보가 없거나 직접 매칭되지 않으면 제목으로만 첫 노트를 사용
+            if let note = titleMatches.first {
+                return note.cachedChaptersUpToCurrent
+            }
         }
         return []
     }
@@ -439,3 +445,4 @@ private struct FlexibleView<Data: RandomAccessCollection, Content: View>: View w
         .environmentObject(LearningLogStore.previewStore())
 }
 #endif
+
