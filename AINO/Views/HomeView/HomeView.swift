@@ -272,6 +272,12 @@ struct HomeView: View {
                     splitVisibility = (splitVisibility == .all) ? .detailOnly : .all
                 }
             }
+            .onReceive(NotificationCenter.default.publisher(for: .goBack)) { _ in
+                // 동일 로직: 뒤로가기 버튼 탭 시와 동일하게 스택에서 복원
+                if let snap = backStack.popLast() {
+                    restore(from: snap)
+                }
+            }
             .onReceive(NotificationCenter.default.publisher(for: .returnedFromStudyView)) { _ in
                 // 사용자가 StudyView에서 홈으로 돌아왔을 때,
                 // 아직 포스트 온보딩을 보지 않았다면 다시 표시되도록 재무장
@@ -426,9 +432,7 @@ struct HomeView: View {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
                     if horizontalSizeClass != .compact {
-                        Text("AINO")
-                            .font(.system(size: 28, weight: .semibold))
-                            .foregroundStyle(Color.text1)
+                        
                     }
                     Text(headerSubtitle)
                         .font(.system(size: 22, weight: .medium))
@@ -467,10 +471,12 @@ struct HomeView: View {
     // ✅ 컴팩트 뒤로가기 버튼 노출 조건
     private var showCompactBackButton: Bool {
         guard horizontalSizeClass == .compact else { return false }
-        // 폴더 내부이거나(최근/전체 제외) 설정/휴지통 화면일 때 + 스택이 남아있을 때
+        // 폴더 내부이거나(최근/전체 제외) 설정/휴지통 화면일 때 노출
         let inFolder = (selectedFolderName != nil && selectedFolderName != "__ALL__")
         let inOverlay = (isShowingSettings || isShowingTrash)
-        return (inFolder || inOverlay) && !backStack.isEmpty
+        // 오버레이(설정/휴지통)는 항상 뒤로가기 노출, 폴더는 스택이 있을 때만 노출
+        if inOverlay { return true }
+        return inFolder && !backStack.isEmpty
     }
 
     // ✅ 컴팩트 뒤로가기 버튼
@@ -1196,7 +1202,7 @@ struct CoachOverlay: View {
         case .fab:
             return "우하단 버튼을 누르면 ‘노트 생성’과 ‘학습 기록’이 나타나요. 첫 노트를 만들어 보세요."
         case .searchCluster:
-            return "이름으로 검색하고, 노트 정렬과 리스트/그리드를 여기서 바꿔요."
+            return "이름으로 검색하고, 노트 정렬과 리스트/그리드 보기로 여기서 바꿔요."
         case .done:
             return ""
         }

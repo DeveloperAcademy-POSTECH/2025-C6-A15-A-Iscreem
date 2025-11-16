@@ -34,6 +34,9 @@ struct SidebarView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var folders: [Folder]
 
+    // Non-trashed folders only for sidebar display
+    private var activeFolders: [Folder] { folders.filter { !$0.isTrashed } }
+
     @State private var folderToRename: Folder?
     @State private var folderRenameText: String = ""
     @State private var isRenamingSheet = false
@@ -43,6 +46,8 @@ struct SidebarView: View {
     @FocusState private var renameFieldFocused: Bool
     @State private var isDeletingFolders = false
     @State private var selectedFolderIDs = Set<PersistentIdentifier>()
+    @State private var showDeleteAlert = false
+    @State private var pendingDeleteFolderIDs = Set<PersistentIdentifier>()
 
     // Glass 효과 유니온용 네임스페이스 (HomeView와 동일 스타일)
     @Namespace private var glassNS
@@ -82,13 +87,13 @@ struct SidebarView: View {
             if let saved = SortOption(rawValue: sidebarSortOptionRaw) {
                 viewModel.currentSortOption = saved
             }
-            viewModel.syncFromHomeSelection(selectedFolderName: selectedFolderName, folders: folders)
+            viewModel.syncFromHomeSelection(selectedFolderName: selectedFolderName, folders: activeFolders)
         }
         .onChange(of: selectedFolderName) { _, newValue in
             viewModel.syncFromHomeSelection(selectedFolderName: newValue, folders: folders)
         }
         .onChange(of: folders) { _, newValue in
-            viewModel.syncFromHomeSelection(selectedFolderName: selectedFolderName, folders: newValue)
+            viewModel.syncFromHomeSelection(selectedFolderName: selectedFolderName, folders: newValue.filter { !$0.isTrashed })
         }
         // ✅ 정렬 옵션 변경 시 AppStorage에 저장(홈뷰에서 동일 기준 사용)
         .onChange(of: viewModel.currentSortOption) { _, newValue in
@@ -103,6 +108,33 @@ struct SidebarView: View {
             folderRenameText = ""
         }) {
             renameSheet
+        }
+        .alert(isPresented: $showDeleteAlert) {
+            let count = pendingDeleteFolderIDs.count
+            let title = Text("삭제를 진행합니다")
+            let message: Text = {
+                if count <= 1 { return Text("선택한 폴더를 삭제합니다. 되돌릴 수 없습니다.") }
+                else { return Text("선택한 \(count)개의 폴더를 삭제합니다. 되돌릴 수 없습니다.") }
+            }()
+            return Alert(
+                title: title,
+                message: message,
+                primaryButton: .destructive(Text("삭제")) {
+                    // 실제 삭제 처리: 휴지통으로 이동 또는 즉시 삭제 정책에 맞게 구현
+                    for id in pendingDeleteFolderIDs {
+                        if let folder = folders.first(where: { $0.persistentModelID == id }) {
+                            // 기본 정책: 휴지통으로 이동 (isTrashed = true)
+                            folder.isTrashed = true
+                        }
+                    }
+                    try? modelContext.save()
+                    pendingDeleteFolderIDs.removeAll()
+                    isDeletingFolders = false
+                },
+                secondaryButton: .cancel(Text("취소")) {
+                    pendingDeleteFolderIDs.removeAll()
+                }
+            )
         }
     }
 }
@@ -243,6 +275,23 @@ private extension SidebarView {
             if isAddingFolder {
                 addingFolderRow
             }
+            if isDeletingFolders, !selectedFolderIDs.isEmpty {
+                Button {
+                    pendingDeleteFolderIDs = selectedFolderIDs
+                    showDeleteAlert = true
+                } label: {
+                    HStack {
+                        Spacer()
+                        Text("선택 삭제")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(Color.errorColor)
+                            .padding(.vertical, 6)
+                        Spacer()
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
         }
     }
 
@@ -307,7 +356,8 @@ private extension SidebarView {
             }
             Button(role: .destructive) {
                 let id = folder.persistentModelID
-                requestDeleteConfirmation?(Set([id]))
+                pendingDeleteFolderIDs = Set([id])
+                showDeleteAlert = true
             } label: {
                 Label("삭제", systemImage: "trash")
             }
@@ -325,7 +375,8 @@ private extension SidebarView {
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             Button(role: .destructive) {
                 let id = folder.persistentModelID
-                requestDeleteConfirmation?(Set([id]))
+                pendingDeleteFolderIDs = Set([id])
+                showDeleteAlert = true
             } label: {
                 Label("삭제", systemImage: "trash")
             }
@@ -444,13 +495,13 @@ private extension SidebarView {
     var sortedFolders: [Folder] {
         switch viewModel.currentSortOption {
         case .nameAscending:
-            return folders.sorted { $0.name.localizedCompare($1.name) == .orderedAscending }
+            return activeFolders.sorted { $0.name.localizedCompare($1.name) == .orderedAscending }
         case .nameDescending:
-            return folders.sorted { $0.name.localizedCompare($1.name) == .orderedDescending }
+            return activeFolders.sorted { $0.name.localizedCompare($1.name) == .orderedDescending }
         case .dateAscending:
-            return folders.sorted { $0.createdAt < $1.createdAt }
+            return activeFolders.sorted { $0.createdAt < $1.createdAt }
         case .dateDescending:
-            return folders.sorted { $0.createdAt > $1.createdAt }
+            return activeFolders.sorted { $0.createdAt > $1.createdAt }
         }
     }
 

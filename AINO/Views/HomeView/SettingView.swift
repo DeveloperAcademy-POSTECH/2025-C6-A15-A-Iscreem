@@ -30,23 +30,22 @@ struct SettingsDetailView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // 헤더
-            HStack {
+            // 헤더 (HomeView와 일관된 스타일)
+            HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("AINO")
-                        .font(.system(size: 28, weight: .semibold))
-                        .foregroundStyle(Color.text1)
-                    
                     Text("설정")
                         .font(.system(size: 22, weight: .medium))
                         .foregroundStyle(Color.text2)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .minimumScaleFactor(0.85)
                 }
-                
                 Spacer()
             }
-            .padding(.horizontal, 24)
-            .padding(.top, 12)
-            .padding(.bottom, 16)
+            .padding()
+            .safeAreaPadding([.top, .horizontal])
+            
+            Divider().background(Color.borderColor)
             
             // 메인 설정 영역
             ScrollView {

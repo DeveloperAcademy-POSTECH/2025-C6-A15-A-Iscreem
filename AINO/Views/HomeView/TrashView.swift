@@ -2,6 +2,10 @@
 import SwiftUI
 import SwiftData
 
+extension Notification.Name {
+    static let goBack = Notification.Name("GoBack")
+}
+
 struct TrashView: View {
     @Environment(\.modelContext) private var context
     @EnvironmentObject private var learningLogStore: LearningLogStore
@@ -13,11 +17,11 @@ struct TrashView: View {
     @State private var selectedFolders = Set<PersistentIdentifier>()
     @State private var selectionMode = false
     
-    @State private var showConfirm = false
-    @State private var confirmAction: (() -> Void)?
-    @State private var confirmTitle = "삭제를 진행합니다"
-    @State private var confirmMessage = "이 작업은 실행 이후 복구할 수 없습니다."
-    @State private var confirmButtonTitle = "영구 삭제"
+    @State private var showAlert = false
+    private enum TrashAlertKind { case deleteSelected, deleteAll, deleteSingleNote, deleteSingleFolder }
+    @State private var alertKind: TrashAlertKind? = nil
+    @State private var pendingNoteForDeletion: Note? = nil
+    @State private var pendingFolderForDeletion: Folder? = nil
     
     private var trashedNotes: [Note] { allNotes.filter { $0.isTrashed } }
     private var trashedFolders: [Folder] { allFolders.filter { $0.isTrashed } }
@@ -58,65 +62,189 @@ struct TrashView: View {
                 .padding(16)
             }
         }
-        .overlay {
-            if showConfirm {
-                Color.black.opacity(0.35)
-                    .ignoresSafeArea()
-                    .onTapGesture { withAnimation { showConfirm = false } }
-                DestructiveConfirmAlertView(
-                    title: confirmTitle,
-                    message: confirmMessage,
-                    confirmTitle: confirmButtonTitle,
-                    onConfirm: {
-                        confirmAction?()
-                        withAnimation { showConfirm = false }
-                    },
-                    onCancel: {
-                        withAnimation { showConfirm = false }
-                    }
-                )
-                .frame(maxWidth: 360)
-            }
-        }
         .onAppear {
             // 선택: 7일 지난 항목 자동 영구 삭제
             service.purgeExpired(days: 7)
         }
-    }
-    
-    private var header: some View {
-        HStack {
-            Text("휴지통")
-                .font(.system(size: 22, weight: .semibold))
-                .foregroundStyle(Color.text1)
-            Spacer()
-            if selectionMode {
-                Button("선택 해제") { selectionMode = false; selectedNotes.removeAll(); selectedFolders.removeAll() }
-                Button("선택 삭제") {
-                    guard !(selectedNotes.isEmpty && selectedFolders.isEmpty) else { return }
-                    confirm(title: "삭제를 진행합니다", message: "선택한 항목을 영구 삭제합니다. 이 작업은 되돌릴 수 없습니다.", button: "영구 삭제") {
+        .alert(isPresented: $showAlert) {
+            switch alertKind {
+            case .deleteSelected:
+                return Alert(
+                    title: Text("삭제를 진행합니다"),
+                    message: Text("선택한 항목을 영구 삭제합니다. 이 작업은 되돌릴 수 없습니다."),
+                    primaryButton: .destructive(Text("영구 삭제")) {
                         let notes = trashedNotes.filter { selectedNotes.contains($0.persistentModelID) }
                         let folders = trashedFolders.filter { selectedFolders.contains($0.persistentModelID) }
                         service.deletePermanently(notes: notes)
                         for f in folders { service.deletePermanently(f) }
                         selectedNotes.removeAll()
                         selectedFolders.removeAll()
-                    }
-                }
-                .tint(Color.errorColor)
-            } else {
-                Button("선택") { selectionMode = true }
-                Button("전체 삭제") {
-                    confirm(title: "삭제를 진행합니다", message: "휴지통의 모든 항목을 영구 삭제합니다. 이 작업은 되돌릴 수 없습니다.", button: "모두 영구 삭제") {
+                    },
+                    secondaryButton: .cancel(Text("취소"))
+                )
+            case .deleteAll:
+                return Alert(
+                    title: Text("삭제를 진행합니다"),
+                    message: Text("휴지통의 모든 항목을 영구 삭제합니다. 이 작업은 되돌릴 수 없습니다."),
+                    primaryButton: .destructive(Text("모두 영구 삭제")) {
                         service.deleteAllPermanently()
+                    },
+                    secondaryButton: .cancel(Text("취소"))
+                )
+            case .deleteSingleNote:
+                let title = Text("삭제를 진행합니다")
+                let message = Text("이 노트를 영구 삭제합니다. 되돌릴 수 없습니다.")
+                return Alert(
+                    title: title,
+                    message: message,
+                    primaryButton: .destructive(Text("영구 삭제")) {
+                        if let note = pendingNoteForDeletion { service.deletePermanently(note) }
+                        pendingNoteForDeletion = nil
+                    },
+                    secondaryButton: .cancel(Text("취소")) {
+                        pendingNoteForDeletion = nil
                     }
-                }
-                .tint(Color.errorColor)
+                )
+            case .deleteSingleFolder:
+                let title = Text("삭제를 진행합니다")
+                let message = Text("이 폴더를 영구 삭제합니다. 되돌릴 수 없습니다.")
+                return Alert(
+                    title: title,
+                    message: message,
+                    primaryButton: .destructive(Text("영구 삭제")) {
+                        if let folder = pendingFolderForDeletion { service.deletePermanently(folder) }
+                        pendingFolderForDeletion = nil
+                    },
+                    secondaryButton: .cancel(Text("취소")) {
+                        pendingFolderForDeletion = nil
+                    }
+                )
+            case .none:
+                return Alert(title: Text(""))
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
-        .background(Color.background1)
+    }
+    
+    private var header: some View {
+        VStack(spacing: 0) {
+            // 홈뷰와 일치하는 헤더 바
+            HStack(spacing: 12) {
+                // .compact 환경에서 뒤로가기 버튼 제공
+                #if os(iOS)
+                if UIDevice.current.userInterfaceIdiom == .phone {
+                    Button {
+                        NotificationCenter.default.post(name: .goBack, object: nil)
+                    } label: {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 18, weight: .semibold))
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("뒤로가기")
+                }
+                #endif
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("휴지통")
+                        .font(.system(size: 22, weight: .medium))
+                        .foregroundStyle(Color.text2)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .minimumScaleFactor(0.85)
+                }
+                Spacer()
+                // 기존 우측 컨트롤(선택/삭제 토글)을 유지
+                if selectionMode {
+                    Button {
+                        selectionMode = false; selectedNotes.removeAll(); selectedFolders.removeAll()
+                    } label: {
+                        GlassEffectContainer(spacing: 0) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "xmark.circle")
+                                    .font(.system(size: 13, weight: .semibold))
+                                Text("선택 해제")
+                                    .font(.system(size: 13, weight: .semibold))
+                            }
+                            .padding(.horizontal, 12)
+                            .frame(height: 32)
+                            .glassEffect()
+                            .clipShape(Capsule())
+                            .overlay(Capsule().stroke(Color.white.opacity(0.28), lineWidth: 0.6))
+                            .shadow(color: Color.black.opacity(0.08), radius: 6, x: 0, y: 3)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    Button {
+                        guard !(selectedNotes.isEmpty && selectedFolders.isEmpty) else { return }
+                        alertKind = .deleteSelected
+                        showAlert = true
+                    } label: {
+                        GlassEffectContainer(spacing: 0) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "trash")
+                                    .font(.system(size: 13, weight: .semibold))
+                                Text("선택 삭제")
+                                    .font(.system(size: 13, weight: .semibold))
+                            }
+                            .foregroundStyle(Color.errorColor)
+                            .padding(.horizontal, 12)
+                            .frame(height: 32)
+                            .glassEffect()
+                            .clipShape(Capsule())
+                            .overlay(Capsule().stroke(Color.white.opacity(0.28), lineWidth: 0.6))
+                            .shadow(color: Color.black.opacity(0.08), radius: 6, x: 0, y: 3)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    Button {
+                        selectionMode = true
+                    } label: {
+                        GlassEffectContainer(spacing: 0) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "checkmark.circle")
+                                    .font(.system(size: 13, weight: .semibold))
+                                Text("선택")
+                                    .font(.system(size: 13, weight: .semibold))
+                            }
+                            .padding(.horizontal, 12)
+                            .frame(height: 32)
+                            .glassEffect()
+                            .clipShape(Capsule())
+                            .overlay(Capsule().stroke(Color.white.opacity(0.28), lineWidth: 0.6))
+                            .shadow(color: Color.black.opacity(0.08), radius: 6, x: 0, y: 3)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    Button {
+                        alertKind = .deleteAll
+                        showAlert = true
+                    } label: {
+                        GlassEffectContainer(spacing: 0) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "trash.fill")
+                                    .font(.system(size: 13, weight: .semibold))
+                                Text("전체 삭제")
+                                    .font(.system(size: 13, weight: .semibold))
+                            }
+                            .foregroundStyle(Color.errorColor)
+                            .padding(.horizontal, 12)
+                            .frame(height: 32)
+                            .glassEffect()
+                            .clipShape(Capsule())
+                            .overlay(Capsule().stroke(Color.white.opacity(0.28), lineWidth: 0.6))
+                            .shadow(color: Color.black.opacity(0.08), radius: 6, x: 0, y: 3)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding()
+            .safeAreaPadding([.top, .horizontal])
+
+            Divider().background(Color.borderColor)
+        }
     }
     
     private func sectionHeader(_ title: String) -> some View {
@@ -148,9 +276,9 @@ struct TrashView: View {
         .contextMenu {
             Button("복원") { service.restore(f) }
             Button(role: .destructive) {
-                confirm(title: "삭제를 진행합니다", message: "이 폴더를 영구 삭제합니다. 되돌릴 수 없습니다.", button: "영구 삭제") {
-                    service.deletePermanently(f)
-                }
+                pendingFolderForDeletion = f
+                alertKind = .deleteSingleFolder
+                showAlert = true
             } label: {
                 Label("영구 삭제", systemImage: "trash")
             }
@@ -180,9 +308,9 @@ struct TrashView: View {
         .contextMenu {
             Button("복원") { service.restore(n) }
             Button(role: .destructive) {
-                confirm(title: "삭제를 진행합니다", message: "이 노트를 영구 삭제합니다. 되돌릴 수 없습니다.", button: "영구 삭제") {
-                    service.deletePermanently(n)
-                }
+                pendingNoteForDeletion = n
+                alertKind = .deleteSingleNote
+                showAlert = true
             } label: {
                 Label("영구 삭제", systemImage: "trash")
             }
@@ -200,12 +328,5 @@ struct TrashView: View {
         let id = f.persistentModelID
         if selectedFolders.contains(id) { selectedFolders.remove(id) } else { selectedFolders.insert(id) }
     }
-    
-    private func confirm(title: String, message: String, button: String, action: @escaping () -> Void) {
-        confirmTitle = title
-        confirmMessage = message
-        confirmButtonTitle = button
-        confirmAction = action
-        withAnimation(.easeInOut(duration: 0.2)) { showConfirm = true }
-    }
 }
+
