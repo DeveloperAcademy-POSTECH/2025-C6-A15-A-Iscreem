@@ -482,8 +482,15 @@ struct HomeView: View {
     // ✅ 컴팩트 뒤로가기 버튼
     private func backButton(metrics: LayoutMetrics) -> some View {
         Button {
-            guard let snap = backStack.popLast() else { return }
-            restore(from: snap)
+            if let snap = backStack.popLast() {
+                restore(from: snap)
+            } else {
+                // 스택이 없으면 오버레이만 닫기 (설정/휴지통에서 뒤로가기 동작 보장)
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    if isShowingSettings { isShowingSettings = false }
+                    if isShowingTrash { isShowingTrash = false }
+                }
+            }
         } label: {
             ZStack {
                 Circle()
