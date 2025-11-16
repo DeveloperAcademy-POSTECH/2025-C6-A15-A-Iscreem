@@ -5,6 +5,7 @@ import SwiftData
 struct TrashView: View {
     @Environment(\.modelContext) private var context
     @EnvironmentObject private var learningLogStore: LearningLogStore
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     
     @Query private var allNotes: [Note]
     @Query private var allFolders: [Folder]
@@ -86,9 +87,30 @@ struct TrashView: View {
     
     private var header: some View {
         HStack {
+            // 닫기/뒤로가기 버튼: 컴팩트에서만 노출 (사이드바가 없는 환경)
+            if horizontalSizeClass == .compact {
+                Button(action: {
+                    // 홈으로 복귀(되돌아가기) 요청: HomeView에서 스냅샷 복원 처리
+                    NotificationCenter.default.post(name: .homeBackRequested, object: nil)
+                }) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.background2.opacity(0.96))
+                            .frame(width: 44, height: 44)
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundStyle(Color.text2)
+                    }
+                    .contentShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("뒤로가기")
+            }
+
             Text("휴지통")
                 .font(.system(size: 22, weight: .semibold))
                 .foregroundStyle(Color.text1)
+                .padding(.leading, 8)
             Spacer()
             if selectionMode {
                 Button("선택 해제") { selectionMode = false; selectedNotes.removeAll(); selectedFolders.removeAll() }
@@ -114,9 +136,8 @@ struct TrashView: View {
                 .tint(Color.errorColor)
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
         .background(Color.background1)
+        .modifier(CompactHeaderPadding(isCompact: horizontalSizeClass == .compact))
     }
     
     private func sectionHeader(_ title: String) -> some View {
@@ -208,4 +229,28 @@ struct TrashView: View {
         confirmAction = action
         withAnimation(.easeInOut(duration: 0.2)) { showConfirm = true }
     }
+}
+
+private struct CompactHeaderPadding: ViewModifier {
+    let isCompact: Bool
+    func body(content: Content) -> some View {
+        if isCompact {
+            content
+                .padding(.horizontal, 16)
+                .padding(.top, 30)
+                .padding(.bottom, 12)
+                .safeAreaPadding([.top, .horizontal])
+        } else {
+            content
+                .padding(.horizontal, 16)
+                .padding(.top, 6)
+                .padding(.bottom, 8)
+                .safeAreaPadding([.top, .horizontal])
+        }
+    }
+}
+
+extension Notification.Name {
+    static let hideTrash = Notification.Name("HideTrash")
+    static let homeBackRequested = Notification.Name("HomeBackRequested")
 }

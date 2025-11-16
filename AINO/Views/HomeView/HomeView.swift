@@ -280,6 +280,24 @@ struct HomeView: View {
                     postOnboardingStep = .list
                 }
             }
+            .onReceive(NotificationCenter.default.publisher(for: .homeBackRequested)) { _ in
+                if let snap = backStack.popLast() {
+                    restore(from: snap)
+                } else {
+                    // 안전망: 스택이 비어있다면 Trash/Settings를 닫고 기본 화면으로
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        isShowingTrash = false
+                        isShowingSettings = false
+                        if selectedFolderName == "__ALL__" {
+                            headerSubtitle = "전체 보기"
+                        } else if selectedFolderName == nil {
+                            headerSubtitle = "최근 열어본 항목"
+                        } else {
+                            headerSubtitle = selectedFolderName ?? ""
+                        }
+                    }
+                }
+            }
             .onAppear {
                 // 앱 시작 직후 ‘전체 보기’로 진입 → + 버튼 보이게
                 if selectedFolderName == nil {
@@ -805,98 +823,104 @@ struct HomeView: View {
     }
     
     // MARK: - Sidebar Compact Menu Button (Liquid Glass)
+    @ViewBuilder
     private func sidebarMenuButton(metrics: LayoutMetrics) -> some View {
-        Menu {
-            // 전체 보기
-            Button {
-                applySelection(folderName: "__ALL__", subtitle: "전체 보기")
-            } label: {
-                Label("전체 보기", systemImage: "square.grid.2x2")
-            }
-            
-            // 최근 열어본 항목
-            Button {
-                applySelection(folderName: nil, subtitle: "최근 열어본 항목")
-            } label: {
-                Label("최근 열어본 항목", systemImage: "clock")
-            }
+        if horizontalSizeClass == .compact && (isShowingSettings || isShowingTrash) {
+            // 컴팩트에서 설정/휴지통 진입 시: 폴더와 동일한 뒤로가기 로직을 사용하는 버튼을 반환
+            backButton(metrics: metrics)
+        } else {
+            Menu {
+                // 전체 보기
+                Button {
+                    applySelection(folderName: "__ALL__", subtitle: "전체 보기")
+                } label: {
+                    Label("전체 보기", systemImage: "square.grid.2x2")
+                }
 
-            // 폴더 추가
-            Button {
-                createNewFolderAndSelect()
+                // 최근 열어본 항목
+                Button {
+                    applySelection(folderName: nil, subtitle: "최근 열어본 항목")
+                } label: {
+                    Label("최근 열어본 항목", systemImage: "clock")
+                }
+
+                // 폴더 추가
+                Button {
+                    createNewFolderAndSelect()
+                } label: {
+                    Label("새 폴더 만들기", systemImage: "folder.badge.plus")
+                }
+
+                // 폴더 목록
+                if !folders.isEmpty {
+                    Section("폴더") {
+                        ForEach(folders) { folder in
+                            Button {
+                                applySelection(folderName: folder.name, subtitle: folder.name)
+                            } label: {
+                                Label(folder.name, systemImage: "folder")
+                            }
+                        }
+                    }
+                }
+
+                // 도움말 / 설정 / 휴지통
+                Section {
+                    Button {
+                        // 설정으로 들어가기 직전 push
+                        pushCurrentSnapshot()
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            isShowingSettings = true
+                            isShowingTrash = false
+                            headerSubtitle = "설정"
+                        }
+                    } label: {
+                        Label("설정", systemImage: "gearshape")
+                    }
+
+                    Button {
+                        // 휴지통으로 들어가기 직전 push
+                        pushCurrentSnapshot()
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            isShowingTrash = true
+                            isShowingSettings = false
+                            headerSubtitle = "휴지통"
+                        }
+                    } label: {
+                        Label("휴지통", systemImage: "trash")
+                    }
+
+                    Button {
+                        isHelpPresented = true
+                    } label: {
+                        Label("도움말", systemImage: "questionmark.circle")
+                    }
+                }
             } label: {
-                Label("새 폴더 만들기", systemImage: "folder.badge.plus")
-            }
-            
-            // 폴더 목록
-            if !folders.isEmpty {
-                Section("폴더") {
-                    ForEach(folders) { folder in
-                        Button {
-                            applySelection(folderName: folder.name, subtitle: folder.name)
-                        } label: {
-                            Label(folder.name, systemImage: "folder")
+                Group {
+                    if horizontalSizeClass == .compact {
+                        ZStack {
+                            Circle()
+                                .fill(Color.background2.opacity(0.96))
+                                .frame(width: metrics.controlMinSide, height: metrics.controlMinSide)
+                            Image(systemName: "line.3.horizontal")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundStyle(Color.text2)
+                        }
+                        .contentShape(Circle())
+                    } else {
+                        GlassEffectContainer(spacing: 0) {
+                            Image(systemName: "line.3.horizontal")
+                                .font(.system(size: 18, weight: .semibold))
+                                .frame(width: metrics.menuButtonSide, height: metrics.menuButtonSide)
+                                .glassEffect()
+                                .glassEffectUnionCompat(id: "sidebar-menu", namespace: glassNS)
                         }
                     }
                 }
             }
-            
-            // 도움말 / 설정 / 휴지통
-            Section {
-                Button {
-                    // 설정으로 들어가기 직전 push
-                    pushCurrentSnapshot()
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        isShowingSettings = true
-                        isShowingTrash = false
-                        headerSubtitle = "설정"
-                    }
-                } label: {
-                    Label("설정", systemImage: "gearshape")
-                }
-                
-                Button {
-                    // 휴지통으로 들어가기 직전 push
-                    pushCurrentSnapshot()
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        isShowingTrash = true
-                        isShowingSettings = false
-                        headerSubtitle = "휴지통"
-                    }
-                } label: {
-                    Label("휴지통", systemImage: "trash")
-                }
-                
-                Button {
-                    isHelpPresented = true
-                } label: {
-                    Label("도움말", systemImage: "questionmark.circle")
-                }
-            }
-        } label: {
-            Group {
-                if horizontalSizeClass == .compact {
-                    ZStack {
-                        Circle()
-                            .fill(Color.background2.opacity(0.96))
-                            .frame(width: metrics.controlMinSide, height: metrics.controlMinSide)
-                        Image(systemName: "line.3.horizontal")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundStyle(Color.text2)
-                    }
-                    .contentShape(Circle())
-                } else {
-                    GlassEffectContainer(spacing: 0) {
-                        Image(systemName: "line.3.horizontal")
-                            .font(.system(size: 18, weight: .semibold))
-                            .frame(width: metrics.menuButtonSide, height: metrics.menuButtonSide)
-                            .glassEffect()
-                            .glassEffectUnionCompat(id: "sidebar-menu", namespace: glassNS)
-                    }
-                }
-            }
+            .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
     }
     
     // MARK: - Actions

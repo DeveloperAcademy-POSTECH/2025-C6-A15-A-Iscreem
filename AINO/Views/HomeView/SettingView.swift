@@ -18,6 +18,7 @@ struct SettingsDetailView: View {
     @Query private var folders: [Folder]
     @Query private var notes: [Note]
     @EnvironmentObject private var learningLogStore: LearningLogStore
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     
     // 테마를 ColorScheme으로 변환
     private var colorScheme: ColorScheme? {
@@ -31,22 +32,59 @@ struct SettingsDetailView: View {
     var body: some View {
         VStack(spacing: 0) {
             // 헤더
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("AINO")
-                        .font(.system(size: 28, weight: .semibold))
-                        .foregroundStyle(Color.text1)
-                    
-                    Text("설정")
-                        .font(.system(size: 22, weight: .medium))
-                        .foregroundStyle(Color.text2)
+            Group {
+                if horizontalSizeClass == .compact {
+                    // 📱 iPhone 스타일: 뒤로가기 + 제목 한 줄, 홈뷰 컴팩트 헤더 여백과 유사
+                    HStack(spacing: 8) {
+                        // 뒤로가기 버튼
+                        Button {
+                            NotificationCenter.default.post(name: .homeBackRequested, object: nil)
+                        } label: {
+                            ZStack {
+                                Circle()
+                                    .fill(Color.background2.opacity(0.96))
+                                    .frame(width: 44, height: 44)
+                                Image(systemName: "chevron.left")
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundStyle(Color.text2)
+                            }
+                            .contentShape(Circle())
+                        }
+                        .buttonStyle(.plain)
+
+                        Text("설정")
+                            .font(.system(size: 22, weight: .semibold))
+                            .foregroundStyle(Color.text1)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                            .minimumScaleFactor(0.85)
+
+                        Spacer()
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 30) // 컴팩트에서 윈도우 버튼 고려한 상단 여백
+                    .padding(.bottom, 12)
+                    .safeAreaPadding([.top, .horizontal])
+                } else {
+                    // 💻 iPad/Regular: 기존 헤더 유지
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("AINO")
+                                .font(.system(size: 28, weight: .semibold))
+                                .foregroundStyle(Color.text1)
+
+                            Text("설정")
+                                .font(.system(size: 22, weight: .medium))
+                                .foregroundStyle(Color.text2)
+                        }
+
+                        Spacer()
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.top, 12)
+                    .padding(.bottom, 16)
                 }
-                
-                Spacer()
             }
-            .padding(.horizontal, 24)
-            .padding(.top, 12)
-            .padding(.bottom, 16)
             
             // 메인 설정 영역
             ScrollView {
