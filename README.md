@@ -1,4 +1,11 @@
 ### ℹ️📋 [learningTool/AINO]
+
+## 📲 Download
+
+| 플랫폼 | 링크 |
+|--------|------|
+| iOS / iPadOS | [![Download on the App Store](https://tools.applemediaservices.com/api/badges/download-on-the-app-store/black/ko-kr?size=200x66)](https://apps.apple.com/kr/app/aino-%EC%95%84%EC%9D%B4%EB%85%B8-ai-%ED%95%99%EC%8A%B5%EB%85%B8%ED%8A%B8/id6754547683) |
+
 ## [Logo/Cover Image]
 ![Main](https://github.com/user-attachments/assets/1ec39b2d-e1db-4db9-9c27-77a1559c7cf5)
 
@@ -17,6 +24,13 @@
 ## [App statement][Eng]
 
 An app designed for university students studying with YouTube lectures on iPad — it helps maintain focus by using AI to summarize content, highlight key concepts, and enable instant questions without breaking immersion.
+
+
+
+## 📘 AINO - 아이노, AI 학습노트
+
+유튜브 강의로 공부하는 대학생을 위한 **AI 학습노트 앱**입니다.  
+Apple Intelligence 기반 자동 요약 + 키워드 추출 + 질문/채팅까지 한 번에 지원합니다.
 
 
 
