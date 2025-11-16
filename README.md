@@ -27,14 +27,6 @@ An app designed for university students studying with YouTube lectures on iPad �
 
 
 
-## 📘 AINO - 아이노, AI 학습노트
-
-유튜브 강의로 공부하는 대학생을 위한 **AI 학습노트 앱**입니다.  
-Apple Intelligence 기반 자동 요약 + 키워드 추출 + 질문/채팅까지 한 번에 지원합니다.
-
-
-
-
 ### 📞 Apple Intelligence (On-Device) Requirements
 This app’s AI summarization uses Apple’s on-device foundation model (Apple Intelligence).
 
@@ -46,6 +38,14 @@ This app’s AI summarization uses Apple’s on-device foundation model (Apple I
 > On devices that don’t meet these requirements, the app may fall back to server summarization (if configured) or disable summarization.
 
 Refs: Apple Newsroom availability notes.  [oai_citation:5‡Apple](https://www.apple.com/newsroom/2025/06/apple-elevates-the-iphone-experience-with-ios-26/)
+
+
+## 📘 AINO - 아이노, AI 학습노트
+
+유튜브 강의로 공부하는 대학생을 위한 **AI 학습노트 앱**입니다.  
+Apple Intelligence 기반 자동 요약 + 키워드 추출 + 질문/채팅까지 한 번에 지원합니다.
+
+
 
 ## 👨🏻‍💻👩🏻‍💻
 
@@ -282,6 +282,12 @@ https://github.com/user-attachments/assets/8d3b2d55-5ce6-4507-8468-94ee9e7dae59
 ![WebKit](https://img.shields.io/badge/WebKit-WKWebView-1F8A70)
 
 
+
+## 📲 Download
+
+| 플랫폼 | 링크 |
+|--------|------|
+| iOS / iPadOS | [![Download on the App Store](https://tools.applemediaservices.com/api/badges/download-on-the-app-store/black/ko-kr?size=200x66)](https://apps.apple.com/kr/app/aino-%EC%95%84%EC%9D%B4%EB%85%B8-ai-%ED%95%99%EC%8A%B5%EB%85%B8%ED%8A%B8/id6754547683) |
 
 
 ## 👥 Team
