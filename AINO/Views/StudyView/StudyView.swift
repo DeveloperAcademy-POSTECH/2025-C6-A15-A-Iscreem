@@ -35,6 +35,7 @@ struct StudyView: View {
     // iPhone 고정 높이
     private let phoneSummaryHeight: CGFloat = 250
     private let phoneKeywordHeight: CGFloat = 300
+    private let phoneQuestionHeight: CGFloat = 360
 
     // iPad 레이아웃 기준 해상도 (13인치 가로형 1366x1024)
     private let baseIPadLandscapeSize = CGSize(width: 1366, height: 1024)
@@ -335,6 +336,12 @@ struct StudyView: View {
                     .frame(height: phoneSummaryHeight)
                     .tagStudyTarget(.sidebar)
                 
+                // KeywordView (요약 아래)
+                KeywordView(analyzer: captionAnalyzer, studyViewModel: viewModel)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: phoneKeywordHeight)
+                    .background(Color.background1)
+                
                 // QuestionView (하단 - 원복)
                 QuestionView(
                     studyViewModel: viewModel,
@@ -342,7 +349,7 @@ struct StudyView: View {
                     isGlobalInputActive: $isGlobalInputActive
                 )
                 .frame(maxWidth: .infinity)
-                .frame(height: phoneKeywordHeight)
+                .frame(height: phoneQuestionHeight)
                 .background(Color.background1)
                 .tagStudyTarget(.question)
             }
