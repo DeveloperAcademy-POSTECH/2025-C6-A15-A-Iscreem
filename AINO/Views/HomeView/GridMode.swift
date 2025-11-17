@@ -83,13 +83,17 @@ extension HomeView {
                 // ✅ 폴더 진입 전 상태 스냅샷을 저장하고 선택 적용
                 applySelection(folderName: folder.name, subtitle: folder.name)
             } label: {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .center, spacing: 8) {
                     Image(systemName: "folder.fill")
-                        .font(.system(size: 28, weight: .semibold))
+                        .resizable()
+                        .scaledToFit()
+                        .frame(maxWidth: .infinity)
+                        .aspectRatio(16/9, contentMode: .fit)
                         .foregroundStyle(Color.text2)
                     Text(folder.name)
                         .font(.system(size: 16, weight: .medium))
                         .foregroundStyle(Color.text1)
+                        .multilineTextAlignment(.center)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(14)
@@ -125,4 +129,3 @@ extension HomeView {
         }
     }
 }
-
