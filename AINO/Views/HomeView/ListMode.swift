@@ -126,7 +126,7 @@ extension HomeView {
             }
             .frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
             
-            Text(NoteFormattingUtils.durationText(for: note))
+            Text(formatDurationString(note.totalDurationSeconds))
                 .font(.system(size: 14))
                 .foregroundStyle(Color.text2)
                 .frame(width: 60, alignment: .trailing)
@@ -290,4 +290,3 @@ extension HomeView {
         .shadow(color: .black.opacity(0.06), radius: 4, x: 0, y: 1)
     }
 }
-

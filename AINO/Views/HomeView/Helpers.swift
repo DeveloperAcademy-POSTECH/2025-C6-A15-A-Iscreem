@@ -8,6 +8,20 @@
 import SwiftUI
 import SwiftData
 
+// MARK: - Global Duration Formatting
+func formatDurationString(_ seconds: Double?) -> String {
+    guard let s = seconds, s > 0 else { return "—" }
+    let total = Int(s.rounded())
+    let h = total / 3600
+    let m = (total % 3600) / 60
+    let sec = total % 60
+    if h > 0 {
+        return String(format: "%d:%02d:%02d", h, m, sec)
+    } else {
+        return String(format: "%d:%02d", m, sec)
+    }
+}
+
 // MARK: - HomeView Helpers
 extension HomeView {
     
@@ -110,6 +124,7 @@ extension HomeView {
         // ✅ 폴더 먼저 → 노트 다음
         return foldersSorted + notesSorted
     }
+    
     
     func createdDate(for item: HomeItem) -> Date {
         switch item {

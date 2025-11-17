@@ -123,10 +123,23 @@ struct StudyView: View {
             }
         }
         .onAppear { captionAnalyzer.autoSummarizeEnabled = true }
+        
+        // ✅ 1) 자막(VTT)이 준비된 순간 전체 길이 저장
+        .onChange(of: captionAnalyzer.vttStatus) { _, newValue in
+            if case .ready = newValue {
+                if let note = viewModel.currentNote {
+                    let total = captionAnalyzer.vttCues.map(\.end).max()
+                    note.totalDurationSeconds = total
+                    // 이 시점에 한 번 저장
+                    try? modelContext.save()
+                }
+            }
+        }
+        
+        // ✅ 2) 요약/챕터/키워드가 모두 준비되면 캐시까지 포함해서 저장
         .onChange(of: captionAnalyzer.summaryStatus) { _, newValue in
             if case .ready = newValue {
-                // CaptionAnalyzer가 바인딩된 Note에 캐시를 써 둔 뒤,
-                // 컨텍스트를 저장하여 영구화
+                // CaptionAnalyzer가 Note에 써둔 요약/챕터/키워드를 포함해 영구 저장
                 try? modelContext.save()
             }
         }
@@ -134,12 +147,10 @@ struct StudyView: View {
     
     // MARK: - Header Helpers
     private var headerProgressText: String {
-        // 1) 학습 로그에 저장된 마지막 재생 위치 우선
         let last = lastPositionFromLogs() ?? viewModel.currentNote?.lastPositionSeconds
-        // 2) 전체 시간: 자막 큐가 준비된 경우, 가장 큰 end 값을 사용
         let total = captionAnalyzer.vttCues.map(\.end).max()
-        let leftText = formatTime(last)
-        let rightText = formatTime(total)
+        let leftText = formatDurationString(last)
+        let rightText = formatDurationString(total)
         return "마지막 학습 시간: \(leftText) / 전체 학습 시간: \(rightText)"
     }
     
@@ -161,18 +172,6 @@ struct StudyView: View {
         return nil
     }
     
-    private func formatTime(_ seconds: Double?) -> String {
-        guard let s = seconds, s > 0 else { return "—" }
-        let total = Int(s.rounded())
-        let h = total / 3600
-        let m = (total % 3600) / 60
-        let sec = total % 60
-        if h > 0 {
-            return String(format: "%d:%02d:%02d", h, m, sec)
-        } else {
-            return String(format: "%d:%02d", m, sec)
-        }
-    }
     
     // MARK: - iPad Layout
     @ViewBuilder
