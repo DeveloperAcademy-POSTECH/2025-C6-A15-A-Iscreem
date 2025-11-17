@@ -98,10 +98,6 @@ extension HomeView {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(14)
                 .background(Color.clear, in: RoundedRectangle(cornerRadius: 16))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .strokeBorder(.white.opacity(0.2), lineWidth: 0.5)
-                )
             }
             .buttonStyle(.plain)
             .contextMenu {

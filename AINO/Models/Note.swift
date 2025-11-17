@@ -30,6 +30,9 @@ final class Note {
 
     // ✅ 마지막 시청 위치(초)
     var lastPositionSeconds: Double?
+    
+    // 전체 학습 시간(초) — 영상 전체 길이
+    var totalDurationSeconds: Double?
 
     // ✅ 요약/키워드/챕터 캐시
     var cachedFinalSummary: String?
@@ -70,6 +73,7 @@ final class Note {
         createdAt: Date = .now,
         videoURL: String? = nil,
         lastPositionSeconds: Double? = nil,
+        totalDurationSeconds: Double? = nil,
         cachedFinalSummary: String? = nil,
         cachedSummaryLines: [String] = [],
         cachedKeywords: [String] = [],
@@ -83,6 +87,7 @@ final class Note {
         self.createdAt = createdAt
         self.videoURL = videoURL
         self.lastPositionSeconds = lastPositionSeconds
+        self.totalDurationSeconds = totalDurationSeconds
         self.cachedFinalSummary = cachedFinalSummary
         self.cachedSummaryLines = cachedSummaryLines
         self.cachedKeywords = cachedKeywords
