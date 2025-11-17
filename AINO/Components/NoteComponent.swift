@@ -46,7 +46,7 @@ struct NoteComponent: View {
                 .lineLimit(2)
             
             // 시간 정보
-            Text("최근 읽음 : \(timeAgoString)")
+            Text("최근 학습 : \(timeAgoString)")
                 .font(.system(size: 13, weight: .regular))
                 .foregroundStyle(isDark ? Color.white : Color.text1)
         }
