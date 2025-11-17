@@ -65,12 +65,17 @@ extension HomeView {
     
     @ViewBuilder
     func listHeaderRow() -> some View {
+        let thumbWidth: CGFloat = 56
+        let titleSpacing: CGFloat = 12
+        let rowHorizontalPadding: CGFloat = 8
+        
         HStack(spacing: 6) {
             Text("제목")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Color.text3)
                 .lineLimit(1)
                 .minimumScaleFactor(0.9)
+                .padding(.leading, rowHorizontalPadding + thumbWidth + titleSpacing)
                 .frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
             
             Text("강의 길이")
@@ -182,9 +187,9 @@ extension HomeView {
                     HStack(spacing: 12) {
                         Image(systemName: "folder.fill")
                             .font(.system(size: 20, weight: .semibold))
-                            .foregroundStyle(Color.text2)
+                            .foregroundStyle(Color.secondColor)
                             .frame(width: 56, height: 56)
-                            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10))
+                            .background(Color.clear, in: RoundedRectangle(cornerRadius: 10))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 10)
                                     .strokeBorder(.white.opacity(0.2), lineWidth: 0.5)
@@ -244,14 +249,16 @@ extension HomeView {
     // MARK: - Thumbnail View
     @ViewBuilder
     func thumbnailView(for note: Note) -> some View {
-        if let url = NoteFormattingUtils.thumbnailURL(for: note) {
+        if let url = YouTubeThumbnail.thumbnailURL(from: note.thumbnailURL) {
             AsyncImage(url: url) { phase in
                 switch phase {
                 case .success(let image):
                     image
                         .resizable()
                         .scaledToFill()
-                case .empty, .failure(_):
+                case .empty:
+                    placeholderThumbnail
+                case .failure(_):
                     placeholderThumbnail
                 @unknown default:
                     placeholderThumbnail
@@ -283,3 +290,4 @@ extension HomeView {
         .shadow(color: .black.opacity(0.06), radius: 4, x: 0, y: 1)
     }
 }
+

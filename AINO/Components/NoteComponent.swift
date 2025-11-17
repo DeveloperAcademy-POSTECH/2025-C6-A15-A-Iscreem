@@ -53,12 +53,12 @@ struct NoteComponent: View {
                 .multilineTextAlignment(.center)
         }
         .padding(12)
-        .background(isDark ? Color.background3 : Color.background1)
+        .background(Color.clear)
         .cornerRadius(12)
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(isDark ? Color.white.opacity(0.12) : Color.black.opacity(0.06), lineWidth: 0.5)
-        )
+//        .overlay(
+//            RoundedRectangle(cornerRadius: 12)
+//                .stroke(isDark ? Color.white.opacity(0.12) : Color.black.opacity(0.06), lineWidth: 0.5)
+//        )
         .shadow(color: (isDark ? Color.white.opacity(0.06) : Color.black.opacity(0.1)),
                 radius: 4, x: 0, y: 2)
     }

@@ -89,7 +89,7 @@ extension HomeView {
                         .scaledToFit()
                         .frame(maxWidth: .infinity)
                         .aspectRatio(16/9, contentMode: .fit)
-                        .foregroundStyle(Color.text2)
+                        .foregroundStyle(Color.secondColor)
                     Text(folder.name)
                         .font(.system(size: 16, weight: .medium))
                         .foregroundStyle(Color.text1)
@@ -97,7 +97,7 @@ extension HomeView {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(14)
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+                .background(Color.clear, in: RoundedRectangle(cornerRadius: 16))
                 .overlay(
                     RoundedRectangle(cornerRadius: 16)
                         .strokeBorder(.white.opacity(0.2), lineWidth: 0.5)
