@@ -172,6 +172,15 @@ struct HomeView: View {
                             .background(Color(.systemBackground))
                     }
                 }
+                .overlay(alignment: .topLeading) {
+                    // ✅ iPad에서 compact 사이즈일 때, 설정/휴지통 화면 상단 좌측에 뒤로가기 버튼 표시
+                    if horizontalSizeClass == .compact && (isShowingSettings || isShowingTrash) {
+                        backButton(metrics: metrics)
+                            .padding(.leading, 16)
+                            .padding(.top, 12)
+                            .safeAreaPadding(.top)
+                    }
+                }
                 .navigationBarBackButtonHidden(horizontalSizeClass == .compact)
             }
             .overlay(alignment: .bottomTrailing) {
