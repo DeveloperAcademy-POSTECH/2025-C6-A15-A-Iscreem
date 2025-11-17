@@ -22,6 +22,23 @@ func formatDurationString(_ seconds: Double?) -> String {
     }
 }
 
+/// 학습 진행률을 퍼센트 문자열로 포맷합니다.
+/// - Note: totalDurationSeconds와 lastPositionSeconds가 모두 유효할 때만 퍼센트를 계산하고,
+///         그렇지 않으면 "—"를 반환합니다.
+func formatProgressPercent(for note: Note) -> String {
+    guard
+        let total = note.totalDurationSeconds, total > 0,
+        let last = note.lastPositionSeconds, last >= 0
+    else {
+        return "—"
+    }
+    
+    // 0.0 ~ 1.0 사이로 클램프
+    let ratio = min(max(last / total, 0), 1)
+    let percent = Int((ratio * 100).rounded())
+    return "\(percent)%"
+}
+
 // MARK: - HomeView Helpers
 extension HomeView {
     
