@@ -58,6 +58,9 @@ struct SidebarView: View {
     // ✅ 사이드바 정렬 옵션을 AppStorage로 공유(홈뷰에서 읽어 사용)
     @AppStorage("sidebarSortOption") private var sidebarSortOptionRaw: String = SortOption.dateAscending.rawValue
 
+    // ✅ 드롭 호버링 시각 효과용 상태
+    @State private var dropHoveringFolderID: PersistentIdentifier?
+
     var body: some View {
         VStack(spacing: 0) {
             headerBar
@@ -333,12 +336,13 @@ private extension SidebarView {
                 }
                 return false
             }()
+            let isHoveringDrop = dropHoveringFolderID == folder.persistentModelID
             HStack(spacing: 12) {
                 Image(systemName: "folder.fill")
-                    .foregroundStyle(isSelected ? Color.secondColor : Color.text2)
+                    .foregroundStyle((isSelected || isHoveringDrop) ? Color.secondColor : Color.text2)
                     .font(.system(size: 20))
                 Text(folder.name)
-                    .foregroundStyle(isSelected ? Color.secondColor : Color.text2)
+                    .foregroundStyle((isSelected || isHoveringDrop) ? Color.secondColor : Color.text2)
                     .font(.buttonText)
                 Spacer()
             }
@@ -380,6 +384,25 @@ private extension SidebarView {
             } label: {
                 Label("삭제", systemImage: "trash")
             }
+        }
+        // ✅ 노트 드롭을 받아서 해당 폴더로 이동
+        .dropDestination(for: NoteDragItem.self) { items, _ in
+            var handled = false
+            for payload in items {
+                if let moved = try? modelContext.model(for: payload.id) as? Note {
+                    guard !moved.isTrashed, !folder.isTrashed else { continue }
+                    moved.folder = folder
+                    handled = true
+                }
+            }
+            if handled {
+                do { try modelContext.save() } catch {
+                    print("⚠️ Sidebar drop save failed: \(error)")
+                }
+            }
+            return handled
+        } isTargeted: { hovering in
+            dropHoveringFolderID = hovering ? folder.persistentModelID : nil
         }
     }
 
@@ -617,4 +640,3 @@ extension View {
 extension Notification.Name {
     static let toggleSidebar = Notification.Name("ToggleSidebar")
 }
-

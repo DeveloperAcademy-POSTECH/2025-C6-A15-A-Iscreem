@@ -149,6 +149,8 @@ extension HomeView {
         )
         .contentShape(Rectangle())
         .onTapGesture { onNoteSelected?(note) }
+        // ✅ 사이드바/폴더 행으로 드래그할 수 있도록 페이로드 추가
+        .draggable(NoteDragItem(id: note.persistentModelID))
         .contextMenu {
             Button {
                 noteToRename.wrappedValue = note
@@ -234,6 +236,23 @@ extension HomeView {
                 }
             }
             .shadow(color: .black.opacity(0.04), radius: 4, x: 0, y: 1)
+            // ✅ 리스트 모드의 폴더 행에서도 노트 드롭을 받아 이동 처리
+            .dropDestination(for: NoteDragItem.self) { items, _ in
+                var handled = false
+                for payload in items {
+                    if let moved = try? modelContext.model(for: payload.id) as? Note {
+                        guard !moved.isTrashed, !folder.isTrashed else { continue }
+                        moved.folder = folder
+                        handled = true
+                    }
+                }
+                if handled {
+                    do { try modelContext.save() } catch {
+                        print("⚠️ List folder drop save failed: \(error)")
+                    }
+                }
+                return handled
+            }
             
         case .note(let n):
             noteRow(
