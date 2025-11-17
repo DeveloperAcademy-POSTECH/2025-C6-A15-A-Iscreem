@@ -100,6 +100,22 @@ extension HomeView {
                 )
             }
             .buttonStyle(.plain)
+            .contextMenu {
+                Button {
+                    noteToRename.wrappedValue = nil
+                    renameText.wrappedValue = folder.name
+                } label: {
+                    Label("이름 변경", systemImage: "pencil")
+                }
+
+                Button {
+                    folder.isTrashed = true
+                    folder.trashedAt = Date()
+                    try? modelContext.save()
+                } label: {
+                    Label("휴지통으로 이동", systemImage: "trash")
+                }
+            }
             .shadow(color: .black.opacity(0.06), radius: 8, x: 0, y: 2)
             
         case .note(let note):
@@ -125,4 +141,3 @@ extension HomeView {
         }
     }
 }
-
