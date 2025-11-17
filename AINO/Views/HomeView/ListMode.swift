@@ -131,7 +131,7 @@ extension HomeView {
                 .foregroundStyle(Color.text2)
                 .frame(width: 60, alignment: .trailing)
             
-            Text(NoteFormattingUtils.progressText(for: note))
+            Text(formatProgressPercent(for: note))
                 .font(.system(size: 14))
                 .foregroundStyle(Color.text2)
                 .frame(width: 60, alignment: .trailing)
