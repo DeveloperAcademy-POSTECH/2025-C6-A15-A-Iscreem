@@ -627,22 +627,6 @@ struct HomeView: View {
                 Label("학습 진행률(↓)", systemImage: "progress.indicator")
                     .tag(HeaderSortOption.progressDesc)
             }
-
-            Divider()
-
-            // 노트 이동하기
-            Button {
-                // TODO: 편집 액션 연결(시트/네비/알럿 등)
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "square.and.pencil")
-                    Text("노트 이동하기")
-                }
-                .font(.system(size: 14, weight: .regular))
-                .foregroundStyle(Color.secondColor)
-            }
-            .tint(Color.secondColor)
-            .buttonStyle(.plain)
         } label: {
             Group {
                 if horizontalSizeClass == .compact {
@@ -1318,10 +1302,10 @@ struct PostHomeCoachOverlay: View {
                         .font(.system(size: 18, weight: .semibold))
                         .foregroundStyle(.white)
                     Text(message)
-                        .multilineTextAlignment(.center)
+                        .multilineTextAlignment(.leading)
                         .font(.system(size: 14))
-                        .foregroundStyle(.white.opacity(0.9))
-                        .frame(maxWidth: .infinity)
+                        .foregroundStyle(.white.opacity(0.92))
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     HStack {
                         Button("건너뛰기") { onFinish() }
                         Spacer()

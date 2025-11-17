@@ -7,6 +7,17 @@
 
 import SwiftUI
 import SwiftData
+import UniformTypeIdentifiers
+
+// MARK: - Drag Payload
+// SwiftData의 PersistentIdentifier를 안전하게 운반하기 위한 경량 페이로드
+struct NoteDragItem: Transferable, Codable, Hashable {
+    let id: PersistentIdentifier
+
+    static var transferRepresentation: some TransferRepresentation {
+        CodableRepresentation(contentType: .data)
+    }
+}
 
 // MARK: - Grid Mode Views
 extension HomeView {
@@ -44,6 +55,8 @@ extension HomeView {
                 ForEach(filteredNotes) { note in
                     NoteComponent(note: note)
                         .onTapGesture { onNoteSelected?(note) }
+                        // 드래그 지원: 폴더로 이동시키기 위해 노트의 PersistentIdentifier를 운반
+                        .draggable(NoteDragItem(id: note.persistentModelID))
                         .contextMenu {
                             Button {
                                 noteToRename.wrappedValue = note
@@ -100,6 +113,29 @@ extension HomeView {
                 .background(Color.clear, in: RoundedRectangle(cornerRadius: 16))
             }
             .buttonStyle(.plain)
+            // 드롭 타겟: 노트 드롭 시 해당 폴더로 이동
+            .dropDestination(for: NoteDragItem.self) { items, _ in
+                var handled = false
+                for payload in items {
+                    // SwiftData에서 식별자로 Note 로드
+                    if let moved = try? modelContext.model(for: payload.id) as? Note {
+                        // 휴지통 항목은 무시
+                        guard !moved.isTrashed, !folder.isTrashed else { continue }
+                        // 동일 폴더로 이동하는 경우도 허용(미분류 → 폴더 포함)
+                        moved.folder = folder
+                        handled = true
+                    }
+                }
+                if handled {
+                    do { try modelContext.save() } catch {
+                        print("⚠️ Drop save failed: \(error)")
+                    }
+                }
+                return handled
+            } isTargeted: { hovering in
+                // 필요 시 호버링 시각 효과를 주고 싶다면 여기서 스타일 변경 가능
+                // 예: 배경/테두리 강조 등
+            }
             .contextMenu {
                 Button {
                     noteToRename.wrappedValue = nil
@@ -123,6 +159,8 @@ extension HomeView {
                 .onTapGesture {
                     onNoteSelected?(note)
                 }
+                // 드래그 지원: 폴더로 이동시키기 위해 노트의 PersistentIdentifier를 운반
+                .draggable(NoteDragItem(id: note.persistentModelID))
                 .contextMenu {
                     Button {
                         noteToRename.wrappedValue = note
