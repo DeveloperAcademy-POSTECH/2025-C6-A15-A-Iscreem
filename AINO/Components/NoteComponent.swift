@@ -14,7 +14,7 @@ struct NoteComponent: View {
     var body: some View {
         let isDark = (colorScheme == .dark)
         
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .center, spacing: 8) {
             // 썸네일 이미지 (YouTube 링크에서 자동 추출)
             if let url = YouTubeThumbnail.thumbnailURL(from: note.thumbnailURL) {
                 AsyncImage(url: url) { phase in
@@ -43,12 +43,14 @@ struct NoteComponent: View {
             Text(note.title)
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(isDark ? Color.white : Color.text1)
+                .multilineTextAlignment(.center)
                 .lineLimit(2)
             
             // 시간 정보
             Text("최근 읽음 : \(timeAgoString)")
                 .font(.system(size: 13, weight: .regular))
                 .foregroundStyle(isDark ? Color.white : Color.text1)
+                .multilineTextAlignment(.center)
         }
         .padding(12)
         .background(isDark ? Color.background3 : Color.background1)
