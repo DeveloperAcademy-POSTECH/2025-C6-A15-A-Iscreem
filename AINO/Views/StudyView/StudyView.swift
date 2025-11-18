@@ -328,6 +328,7 @@ struct StudyView: View {
                 MediaView(note: viewModel.currentNote, videoURL: resolvedVideoURL)
                     .frame(height: mediaHeight)
                     .frame(maxWidth: .infinity)
+                    .tagStudyTarget(.media)
                 
                 // SummaryView (중간)
                 SummaryView()
