@@ -49,6 +49,8 @@ struct StudyView: View {
     @State private var sidebarTab: SidebarTab = .summary
     // 사이드바 접힘 상태
     @State private var isSidebarCollapsed: Bool = false
+    // 하단 요약/키워드 접힘 상태
+    @State private var isBottomCollapsed: Bool = false
     
     // 전역 입력 상태 관리
     @State private var isGlobalInputActive: Bool = false
@@ -191,8 +193,14 @@ struct StudyView: View {
         HStack(spacing: 0) {
             // MAIN (좌측)
             VStack(spacing: 0) {
-                let mediaH = totalH * mainTopMediaHeightRatio
-                let keywordH = max(0, totalH - mediaH)
+                // 하단 요약/키워드가 접힌 경우에는 전체 높이를 영상에 할당하고,
+                // 그렇지 않으면 기존 비율대로 나눈다.
+                let mediaH: CGFloat = isBottomCollapsed
+                    ? totalH
+                    : totalH * mainTopMediaHeightRatio
+                let keywordH: CGFloat = isBottomCollapsed
+                    ? 0
+                    : max(0, totalH - mediaH)
 
                 // 사이드바가 접혀도 임베드(플레이어) 너비는
                 // "사이드바 펼침 시의 메인 영역 너비"를 유지
@@ -210,34 +218,52 @@ struct StudyView: View {
                 .frame(maxWidth: .infinity, alignment: .top)
 
                 // Summary/Keyword container (moved from sidebar)
-                VStack(spacing: 0) {
-                    HStack(spacing: 8) {
-                        Picker("", selection: $sidebarTab) {
-                            Text(SidebarTab.summary.rawValue).tag(SidebarTab.summary)
-                            Text(SidebarTab.keywords.rawValue).tag(SidebarTab.keywords)
+                if !isBottomCollapsed {
+                    VStack(spacing: 0) {
+                        HStack(spacing: 8) {
+                            Picker("", selection: $sidebarTab) {
+                                Text(SidebarTab.summary.rawValue).tag(SidebarTab.summary)
+                                Text(SidebarTab.keywords.rawValue).tag(SidebarTab.keywords)
+                            }
+                            .pickerStyle(.segmented)
+
+                            Spacer()
+
+                            Button {
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    isBottomCollapsed = true
+                                }
+                            } label: {
+                                Image(systemName: "chevron.down")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundStyle(Color.text2)
+                                    .frame(width: scaler.w(28), height: sidebarControlHeight)
+                                    .background(Color.background2)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .pickerStyle(.segmented)
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, sidebarTopBarVPad)
-                    .tagStudyTarget(.sidebar)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, sidebarTopBarVPad)
+                        .tagStudyTarget(.sidebar)
 
-                    Divider().background(Color.borderColor)
+                        Divider().background(Color.borderColor)
 
-                    switch sidebarTab {
-                    case .keywords:
-                        KeywordView(analyzer: captionAnalyzer, studyViewModel: viewModel)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .background(Color.background1)
-                    case .summary:
-                        SummaryView()
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .background(Color.background1)
+                        switch sidebarTab {
+                        case .keywords:
+                            KeywordView(analyzer: captionAnalyzer, studyViewModel: viewModel)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                .background(Color.background1)
+                        case .summary:
+                            SummaryView()
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                .background(Color.background1)
+                        }
                     }
+                    .frame(width: mainW, height: keywordH)
+                    .frame(maxWidth: .infinity, alignment: .bottom)
+                    .background(Color.background1)
                 }
-                .frame(width: mainW, height: keywordH)
-                .frame(maxWidth: .infinity, alignment: .bottom)
-                .background(Color.background1)
             }
             .frame(width: mainW, height: totalH)
 
@@ -279,8 +305,37 @@ struct StudyView: View {
                 .transition(.move(edge: .trailing).combined(with: .opacity))
             }
         }
+        // 하단 요약/키워드가 접힌 상태일 때, 다시 펼칠 수 있는 버튼을 영상 아래쪽에 오버레이
+        .overlay(alignment: .bottomLeading) {
+            if isBottomCollapsed {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        isBottomCollapsed = false
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "chevron.up")
+                            .font(.system(size: 14, weight: .semibold))
+                        Text("요약 · 키워드 열기")
+                            .font(.system(size: 12, weight: .semibold))
+                    }
+                    .foregroundStyle(Color.text2)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color.background1)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10).stroke(Color.borderColor, lineWidth: 1)
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .shadow(color: .black.opacity(0.06), radius: 6, x: 0, y: 2)
+                    .padding(.leading, 12)
+                    .padding(.bottom, 12)
+                }
+                .buttonStyle(.plain)
+            }
+        }
         .frame(width: totalW, height: totalH)
-        // 접힌 상태에서 펼치기 버튼
+        // 접힌 상태에서 펼치기 버튼 (사이드바)
         .overlay(alignment: .topTrailing) {
             if isSidebarCollapsed {
                 Button {
