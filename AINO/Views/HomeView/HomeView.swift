@@ -309,7 +309,9 @@ struct HomeView: View {
                 _ = learningLogStore.reconcileWithNotes(currentNotes: notes)
                 // 4) ✅ 재실행 시에도 동일하게 보이도록, 노트 캐시로 메모리 맵 프리로드
                 learningLogStore.preloadChapterSummariesFromNotes(currentNotes: notes)
-                if !hasSeenHomeOnboarding { onboardingStep = .makeFolder }
+                if !hasSeenHomeOnboarding {
+                    onboardingStep = (horizontalSizeClass == .compact ? .makeFolderIphone : .makeFolder)
+                }
                 lastFolderCount = folders.count
                 // 앱을 다시 그리면서 HomeView가 재생성된 경우에도
                 // 첫 노트 이후 온보딩이 한 번도 완료되지 않았다면 다시 보여준다.
@@ -891,6 +893,7 @@ struct HomeView: View {
                             .foregroundStyle(Color.text2)
                     }
                     .contentShape(Circle())
+                    .tagTarget(.plusFolder)
                 } else {
                     GlassEffectContainer(spacing: 0) {
                         Image(systemName: "line.3.horizontal")
@@ -1074,9 +1077,10 @@ extension Notification.Name {
 // MARK: - Onboarding (Coach Marks)
 
 enum OnboardingStep: Int, CaseIterable {
-    case makeFolder    // 좌상단 + 버튼 소개
-    case fab           // 우하단 플로팅(노트 생성/학습 기록)
-    case searchCluster // 우상단 검색/정렬/보기 전환
+    case makeFolder           // (iPad 등) 좌상단 + 버튼 소개
+    case makeFolderIphone     // (iPhone compact) 메뉴 → 새 폴더 만들기 안내
+    case fab                  // 우하단 플로팅(노트 생성/학습 기록)
+    case searchCluster        // 우상단 검색/정렬/보기 전환
     case done
 }
 
@@ -1173,9 +1177,12 @@ struct CoachOverlay: View {
 
     private func next() {
         switch step {
-        case .makeFolder: step = .fab
-        case .fab: step = .searchCluster
-        case .searchCluster, .done: onFinish()
+        case .makeFolder, .makeFolderIphone:
+            step = .fab
+        case .fab:
+            step = .searchCluster
+        case .searchCluster, .done:
+            onFinish()
         }
     }
 
@@ -1188,7 +1195,7 @@ struct CoachOverlay: View {
 
     private var title: String {
         switch step {
-        case .makeFolder: return "폴더 만들기"
+        case .makeFolder, .makeFolderIphone: return "폴더 만들기"
         case .fab: return "노트 생성 · 학습 기록"
         case .searchCluster: return "검색 · 정렬 · 보기 전환"
         case .done: return ""
@@ -1199,6 +1206,8 @@ struct CoachOverlay: View {
         switch step {
         case .makeFolder:
             return "+ 버튼을 누르면 학습노트를 담을 수 있는 폴더를 생성할 수 있습니다."
+        case .makeFolderIphone:
+            return "새 폴더 만들기  메뉴를 누르면 학습노트를 담을 수 있는 폴더를 생성할 수 있습니다."
         case .fab:
             return "우하단 버튼을 누르면 ‘노트 생성’과 ‘학습 기록’이 나타나요. 첫 노트를 만들어 보세요."
         case .searchCluster:
@@ -1214,10 +1223,11 @@ struct CoachOverlay: View {
             return proxy[anchor]
         }
         switch step {
-        case .makeFolder:    return rect(for: .plusFolder)    ?? fallbackRect(proxy)
-        case .fab:           return rect(for: .fab)           ?? fallbackRect(proxy)
-        case .searchCluster: return rect(for: .searchCluster) ?? fallbackRect(proxy)
-        case .done:          return fallbackRect(proxy)
+        case .makeFolder:       return rect(for: .plusFolder)    ?? fallbackRect(proxy)
+        case .makeFolderIphone: return rect(for: .plusFolder)    ?? fallbackRect(proxy)
+        case .fab:              return rect(for: .fab)           ?? fallbackRect(proxy)
+        case .searchCluster:    return rect(for: .searchCluster) ?? fallbackRect(proxy)
+        case .done:             return fallbackRect(proxy)
         }
     }
 
