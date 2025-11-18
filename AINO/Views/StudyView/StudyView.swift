@@ -193,12 +193,12 @@ struct StudyView: View {
             VStack(spacing: 0) {
                 let mediaH = totalH * mainTopMediaHeightRatio
                 let keywordH = max(0, totalH - mediaH)
-                
+
                 // 사이드바가 접혀도 임베드(플레이어) 너비는
                 // "사이드바 펼침 시의 메인 영역 너비"를 유지
                 let embedBaseWidthWhenSidebarOpen = totalW * mainWidthRatio
                 let embedWidth = isSidebarCollapsed ? embedBaseWidthWhenSidebarOpen : mainW
-                
+
                 // MediaView
                 ZStack {
                     MediaView(note: viewModel.currentNote, videoURL: resolvedVideoURL)
@@ -208,31 +208,44 @@ struct StudyView: View {
                 }
                 .frame(width: mainW, height: mediaH, alignment: .center)
                 .frame(maxWidth: .infinity, alignment: .top)
-                
-                // QuestionView (원복)
-                QuestionView(
-                    studyViewModel: viewModel,
-                    viewModel: viewModel.questionViewModel,
-                    isGlobalInputActive: $isGlobalInputActive
-                )
-                .frame(width: mainW, height: keywordH)
-                .frame(maxWidth: .infinity, alignment: .bottom)
-                .background(Color.background1)
-                .tagStudyTarget(.question)
-            }
-            .frame(width: mainW, height: totalH)
-            
-            // RIGHT SIDEBAR (우측) — Segmented + Collapse 버튼
-            if sideW > 0 {
+
+                // Summary/Keyword container (moved from sidebar)
                 VStack(spacing: 0) {
-                    // 상단 바: Segmented(요약, 키워드) + 접기 버튼
                     HStack(spacing: 8) {
                         Picker("", selection: $sidebarTab) {
                             Text(SidebarTab.summary.rawValue).tag(SidebarTab.summary)
                             Text(SidebarTab.keywords.rawValue).tag(SidebarTab.keywords)
                         }
                         .pickerStyle(.segmented)
-                        
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, sidebarTopBarVPad)
+                    .tagStudyTarget(.sidebar)
+
+                    Divider().background(Color.borderColor)
+
+                    switch sidebarTab {
+                    case .keywords:
+                        KeywordView(analyzer: captionAnalyzer, studyViewModel: viewModel)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .background(Color.background1)
+                    case .summary:
+                        SummaryView()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .background(Color.background1)
+                    }
+                }
+                .frame(width: mainW, height: keywordH)
+                .frame(maxWidth: .infinity, alignment: .bottom)
+                .background(Color.background1)
+            }
+            .frame(width: mainW, height: totalH)
+
+            // RIGHT SIDEBAR (우측) — Chat (QuestionView) + Collapse 버튼
+            if sideW > 0 {
+                VStack(spacing: 0) {
+                    HStack(spacing: 8) {
+                        Spacer()
                         Button {
                             withAnimation(.easeInOut(duration: 0.2)) {
                                 isSidebarCollapsed = true
@@ -249,21 +262,17 @@ struct StudyView: View {
                     }
                     .padding(.horizontal, 12)
                     .padding(.vertical, sidebarTopBarVPad)
-                    .tagStudyTarget(.sidebar)
-                    
+
                     Divider().background(Color.borderColor)
-                    
-                    // Content
-                    switch sidebarTab {
-                    case .keywords:
-                        KeywordView(analyzer: captionAnalyzer, studyViewModel: viewModel)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .background(Color.background1)
-                    case .summary:
-                        SummaryView()
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .background(Color.background1)
-                    }
+
+                    QuestionView(
+                        studyViewModel: viewModel,
+                        viewModel: viewModel.questionViewModel,
+                        isGlobalInputActive: $isGlobalInputActive
+                    )
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color.background1)
+                    .tagStudyTarget(.question)
                 }
                 .frame(width: sideW, height: totalH)
                 .background(Color.background1)
