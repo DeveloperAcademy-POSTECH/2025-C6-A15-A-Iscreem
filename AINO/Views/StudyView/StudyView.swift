@@ -341,6 +341,7 @@ struct StudyView: View {
                     .frame(maxWidth: .infinity)
                     .frame(height: phoneKeywordHeight)
                     .background(Color.background1)
+                    .tagStudyTarget(.sidebarBottom)
                 
                 // QuestionView (하단 - 원복)
                 QuestionView(
@@ -388,6 +389,7 @@ enum StudyOnboardingStep: Int, CaseIterable {
 enum StudyCoachTarget: Hashable {
     case media
     case sidebar
+    case sidebarBottom
     case question
 }
 
@@ -516,15 +518,41 @@ struct StudyCoachOverlay: View {
             return proxy[anchor]
         }
         switch step {
-        case .media:    return rect(for: .media)    ?? fallback(proxy)
-        case .sidebar:  return rect(for: .sidebar)  ?? fallback(proxy)
-        case .question: return rect(for: .question) ?? fallback(proxy)
-        case .done:     return fallback(proxy)
-        }
+            case .media:
+                return rect(for: .media) ?? fallback(proxy)
+
+            case .sidebar:
+                // iPhone: Summary(.sidebar) + Keyword(.sidebarBottom) 합쳐서 하이라이트
+                if let top = rect(for: .sidebar), let bottom = rect(for: .sidebarBottom) {
+                    return union(top, bottom)
+                }
+                // 하나만 있는 경우엔 있는 쪽이라도 사용
+                if let top = rect(for: .sidebar) {
+                    return top
+                }
+                if let bottom = rect(for: .sidebarBottom) {
+                    return bottom
+                }
+                return fallback(proxy)
+
+            case .question:
+                return rect(for: .question) ?? fallback(proxy)
+
+            case .done:
+                return fallback(proxy)
+            }
     }
 
     private func fallback(_ proxy: GeometryProxy) -> CGRect {
         CGRect(x: proxy.size.width/2 - 80, y: proxy.size.height/2 - 40, width: 160, height: 80)
+    }
+    
+    private func union(_ r1: CGRect, _ r2: CGRect) -> CGRect {
+        let minX = min(r1.minX, r2.minX)
+        let minY = min(r1.minY, r2.minY)
+        let maxX = max(r1.maxX, r2.maxX)
+        let maxY = max(r1.maxY, r2.maxY)
+        return CGRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
     }
 }
 
