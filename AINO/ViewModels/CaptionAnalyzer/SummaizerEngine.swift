@@ -86,7 +86,11 @@ final class SummarizerEngine {
             do {
                 let raw = try await summarizer.summarizeChunk(
                     text: trimmed,
-                    instruction: "아래 문단을 한국어로 한 문장 핵심 요약. 고유명사/숫자 유지. 군더더기 없이."
+                    instruction: """
+                    아래 문단을 한국어로 한 문장 핵심 요약.
+                    - 전문용어, 고유명사, 약어는 원문 그대로 정확히 유지 (예: 컴활, DBMS, Swift, API)
+                    - 불필요한 수식어 제거, 간결하게 작성
+                    """
                 ).replacingOccurrences(of: "\n", with: " ")
                 let clean = stripBulletPrefix(raw).trimmingCharacters(in: .whitespacesAndNewlines)
                 linesOut.append("• " + clean)
@@ -187,13 +191,39 @@ final class SummarizerEngine {
             for (idx, ch) in chapters.enumerated() {
                 if Task.isCancelled { return }
                 let body = chunks[idx].text
-                let sample = body.count > 2000 ? String(body.prefix(2000)) : body
+                
+                // 첫 번째 챕터는 더 많은 컨텍스트 제공
+                let sample: String
+                if idx == 0 {
+                    sample = body.count > 3000 ? String(body.prefix(3000)) : body
+                } else {
+                    sample = body.count > 2000 ? String(body.prefix(2000)) : body
+                }
                 
                 do {
                     // 1) Gist: 2~3문장 요약
+                    let gistInstruction: String
+                    if idx == 0 {
+                        gistInstruction = """
+                        다음은 영상의 첫 번째 챕터(도입부)입니다. 영상 전체의 주제와 목표를 고려하여 한국어로 2~3문장 요약.
+                        - 전문용어, 고유명사, 약어는 원문 그대로 정확히 유지 (예: 컴활, DBMS, Swift, API)
+                        - 영상의 전체적인 방향과 이 챕터의 핵심 내용을 명확히 연결
+                        - 불필요한 수식어 제거, 간결하면서도 맥락이 분명하게 작성
+                        - 불릿 기호, 따옴표, 머리말 사용 금지
+                        """
+                    } else {
+                        gistInstruction = """
+                        다음 챕터 내용을 한국어로 2~3문장 요약.
+                        - 전문용어, 고유명사, 약어는 원문 그대로 정확히 유지 (예: 컴활, DBMS, Swift, API)
+                        - 영상의 흐름과 맥락을 고려해 핵심 포인트 연결
+                        - 불필요한 수식어 제거, 간결하게 작성
+                        - 불릿 기호, 따옴표, 머리말 사용 금지
+                        """
+                    }
+                    
                     let gist = try await summarizer.summarizeChunk(
                         text: sample,
-                        instruction: "다음 챕터의 전체 내용을 한국어로 2~3문장으로 요약. 영상의 흐름을 고려해 핵심 포인트를 연결해서 설명. 불릿/머리말/따옴표 금지."
+                        instruction: gistInstruction
                     )
                     let cleanedGist = gist.replacingOccurrences(of: "\n", with: " ").trimmingCharacters(in: .whitespacesAndNewlines)
                     await onGistUpdate(ch.id, cleanedGist)
@@ -201,16 +231,46 @@ final class SummarizerEngine {
                     // 2) Title: 위 gist를 바탕으로 목차형 한 문장 제목 생성
                     let title = try await summarizer.summarizeChunk(
                         text: cleanedGist,
-                        instruction: "위 요약을 바탕으로 이 영상의 목차 항목에 어울리는 한국어 제목 1문장 작성. 20~28자 내외, 핵심 키워드 포함, 군더더기/따옴표/마침표 금지."
+                        instruction: """
+                        위 요약을 바탕으로 영상 목차에 어울리는 한국어 제목 1문장 작성.
+                        - 20~28자 내외
+                        - 핵심 키워드 포함
+                        - 전문용어, 고유명사 원문 그대로 유지
+                        - 따옴표, 마침표, 불필요한 수식어 금지
+                        """
                     )
                     let cleanedTitle = title.replacingOccurrences(of: "\n", with: " ").trimmingCharacters(in: .whitespacesAndNewlines)
                     await onTitleUpdate(ch.id, cleanedTitle)
                     
-                    // 3) Bullets: 4개의 핵심 포인트 생성
+                    // 3) Bullets: 6~7개의 핵심 포인트 생성
                     do {
+                        let bulletsInstruction: String
+                        if idx == 0 {
+                            bulletsInstruction = """
+                            다음은 영상의 첫 번째 챕터(도입부) 내용입니다. 한국어로 6~7개의 핵심 포인트로 요약.
+                            - 영상의 전체 주제와 목표를 명확히 제시
+                            - 각 항목은 1~2문장으로 구성하여 충분한 맥락과 구체적인 설명 포함
+                            - 전문용어, 고유명사, 약어는 원문 그대로 정확히 유지 (예: 컴활→컴활, DBMS→DBMS)
+                            - 불릿 기호(•,-,*), 숫자, 머리말 없이 본문만 작성
+                            - 각 항목을 줄바꿈으로 구분
+                            - 영상의 도입부로서 시청자가 무엇을 배울지 명확히 알 수 있게 작성
+                            - 각 항목마다 구체적인 예시나 추가 설명을 포함하여 이해하기 쉽게 작성
+                            """
+                        } else {
+                            bulletsInstruction = """
+                            다음 챕터 내용을 한국어로 6~7개의 핵심 포인트로 요약.
+                            - 각 항목은 1~2문장으로 구성하여 충분한 맥락과 구체적인 설명 포함
+                            - 전문용어, 고유명사, 약어는 원문 그대로 정확히 유지 (예: 컴활→컴활, DBMS→DBMS)
+                            - 불릿 기호(•,-,*), 숫자, 머리말 없이 본문만 작성
+                            - 각 항목을 줄바꿈으로 구분
+                            - 영상의 흐름을 파악해 순서대로 작성
+                            - 각 항목마다 구체적인 예시나 추가 설명을 포함하여 이해하기 쉽게 작성
+                            """
+                        }
+                        
                         let bulletsRaw = try await summarizer.summarizeChunk(
                             text: sample,
-                            instruction: "다음 챕터 내용을 한국어로 4개의 핵심 포인트로 요약. 각 항목은 1문장, 불릿/숫자/머리말 없이, 간결하게. 줄바꿈으로 항목을 구분."
+                            instruction: bulletsInstruction
                         )
                         let lines = bulletsRaw
                             .replacingOccurrences(of: "\r\n", with: "\n")
@@ -218,15 +278,15 @@ final class SummarizerEngine {
                             .components(separatedBy: "\n")
                             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
                             .filter { !$0.isEmpty }
-                        let top4 = Array(lines.prefix(4))
-                        await onBulletsUpdate(ch.id, top4)
+                        let bullets = Array(lines.prefix(7))
+                        await onBulletsUpdate(ch.id, bullets)
                     } catch {
                         let fallback = cleanedGist
                             .replacingOccurrences(of: "•", with: "")
                             .split(whereSeparator: { ".!?".contains($0) })
                             .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
-                        let top4 = Array(fallback.prefix(4)).filter { !$0.isEmpty }
-                        await onBulletsUpdate(ch.id, top4)
+                        let bullets = Array(fallback.prefix(6)).filter { !$0.isEmpty }
+                        await onBulletsUpdate(ch.id, bullets)
                     }
                     self.log.info("sum[\(runTag)] chapter gist+title ok for \(idx+1)/\(chapters.count)")
                 } catch {
@@ -246,4 +306,3 @@ final class SummarizerEngine {
         return filtered.joined(separator: " ")
     }
 }
-
