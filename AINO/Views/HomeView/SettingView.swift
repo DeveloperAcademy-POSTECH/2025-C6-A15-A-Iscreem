@@ -32,6 +32,23 @@ struct SettingsDetailView: View {
         VStack(spacing: 0) {
             // 헤더 (HomeView와 일관된 스타일)
             HStack(spacing: 12) {
+#if os(iOS)
+                if UIDevice.current.userInterfaceIdiom == .phone {
+                    Button {
+                        NotificationCenter.default.post(name: .hideSettings, object: nil)
+                    } label: {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 16, weight: .semibold))
+                            .padding(8)
+                            .frame(minWidth: 44, minHeight: 44)
+                            .contentShape(Circle())
+                            .clipShape(Circle())
+                            .tint(Color.text2)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("뒤로가기")
+                }
+#endif
                 VStack(alignment: .leading, spacing: 4) {
                     Text("설정")
                         .font(.system(size: 22, weight: .medium))

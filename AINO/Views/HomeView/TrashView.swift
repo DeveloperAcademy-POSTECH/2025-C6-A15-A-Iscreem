@@ -2,9 +2,9 @@
 import SwiftUI
 import SwiftData
 
-extension Notification.Name {
-    static let goBack = Notification.Name("GoBack")
-}
+//extension Notification.Name {
+//    static let goBack = Notification.Name("GoBack")
+//}
 
 struct TrashView: View {
     @Environment(\.modelContext) private var context
@@ -130,20 +130,23 @@ struct TrashView: View {
             // 홈뷰와 일치하는 헤더 바
             HStack(spacing: 12) {
                 // .compact 환경에서 뒤로가기 버튼 제공
-                #if os(iOS)
+#if os(iOS)
                 if UIDevice.current.userInterfaceIdiom == .phone {
                     Button {
-                        NotificationCenter.default.post(name: .goBack, object: nil)
+                        NotificationCenter.default.post(name: .hideTrash, object: nil)
                     } label: {
                         Image(systemName: "chevron.left")
-                            .font(.system(size: 18, weight: .semibold))
-                            .frame(width: 44, height: 44)
-                            .contentShape(Rectangle())
+                            .font(.system(size: 16, weight: .semibold))
+                            .padding(8)
+                            .frame(minWidth: 44, minHeight: 44)
+                            .contentShape(Circle())
+                            .clipShape(Circle())
+                            .tint(Color.text2)
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("뒤로가기")
                 }
-                #endif
+#endif
                 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("휴지통")
