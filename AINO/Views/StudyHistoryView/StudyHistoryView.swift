@@ -66,7 +66,7 @@ struct StudyHistoryView: View {
                 .font(.titleText)
                 .foregroundStyle(Color.text1)
 
-            Text("StudyView에서 학습한 노트, 마지막 재생 위치, 선택된 키워드, AI Q&A 기록이 여기에 모입니다.")
+            Text("학습한 노트, 마지막 재생 위치, 선택된 키워드, AI Q&A 기록이 여기에 모입니다.")
                 .font(.captionText)
                 .foregroundStyle(Color.text2)
 
@@ -105,7 +105,7 @@ struct StudyHistoryView: View {
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(Color.text2)
 
-            Text("StudyView에서 영상을 학습하고 키워드를 선택하거나\nAI에게 질문하면 이곳에 자동으로 기록됩니다.")
+            Text("노트에서 영상을 학습하고 키워드를 선택하거나\nAI에게 질문하면 이곳에 자동으로 기록됩니다.")
                 .font(.system(size: 13))
                 .foregroundStyle(Color.text3)
                 .multilineTextAlignment(.center)
