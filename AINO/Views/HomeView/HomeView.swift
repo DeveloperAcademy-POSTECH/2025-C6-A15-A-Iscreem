@@ -1278,17 +1278,28 @@ struct PostHomeCoachOverlay: View {
 
             // bubble size & smart position
             let bubbleWidth: CGFloat = min(360.0, proxy.size.width - 40.0)
+
+            // 기본 위치 계산(controls 단계 등)
             let nearRight = rect.maxX > proxy.size.width - 60
             let placeLeft = (step == .controls && nearRight)
 
             let xBelow = min(max(rect.midX, bubbleWidth/2 + 20), proxy.size.width - bubbleWidth/2 - 20)
             let xLeft  = max(bubbleWidth/2 + 20, rect.minX - 16 - bubbleWidth/2)
-            let bubbleX = placeLeft ? xLeft : xBelow
 
             let yBelow = min(rect.maxY + 90, proxy.size.height - 80)
             let yAbove = max(rect.minY - 90, 100)
-            // 목록은 상단 공간 충분하면 위, 아니면 아래 / 컨트롤은 기본 아래
-            let bubbleY = (step == .controls) ? yBelow : (rect.minY < 140 ? yBelow : yAbove)
+
+            // 📱 .list 단계에서는 homeList 하이라이트 중앙에 버블을 배치
+            let (bubbleX, bubbleY): (CGFloat, CGFloat) = {
+                if step == .list {
+                    return (highlightRect.midX, highlightRect.midY)
+                } else {
+                    // 목록은 상단 공간 충분하면 위, 아니면 아래 / 컨트롤은 기본 아래
+                    let x = placeLeft ? xLeft : xBelow
+                    let y = (step == .controls) ? yBelow : (rect.minY < 140 ? yBelow : yAbove)
+                    return (x, y)
+                }
+            }()
 
             ZStack {
                 Rectangle()
@@ -1310,11 +1321,11 @@ struct PostHomeCoachOverlay: View {
                 VStack(spacing: 10) {
                     Text(title)
                         .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Color.primary)
                     Text(message)
                         .multilineTextAlignment(.leading)
                         .font(.system(size: 14))
-                        .foregroundStyle(.white.opacity(0.92))
+                        .foregroundStyle(Color.primary.opacity(0.9))
                         .frame(maxWidth: .infinity, alignment: .leading)
                     HStack {
                         Button("건너뛰기") { onFinish() }
