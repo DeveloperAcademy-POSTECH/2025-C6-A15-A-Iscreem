@@ -150,7 +150,7 @@ struct TrashView: View {
                 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("휴지통")
-                        .font(.system(size: 22, weight: .medium))
+                        .font(.system(size: 22, weight: .bold)) // ← 제목을 볼드로
                         .foregroundStyle(Color.text2)
                         .lineLimit(1)
                         .truncationMode(.tail)
@@ -332,4 +332,3 @@ struct TrashView: View {
         if selectedFolders.contains(id) { selectedFolders.remove(id) } else { selectedFolders.insert(id) }
     }
 }
-

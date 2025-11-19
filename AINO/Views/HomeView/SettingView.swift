@@ -51,7 +51,7 @@ struct SettingsDetailView: View {
 #endif
                 VStack(alignment: .leading, spacing: 4) {
                     Text("설정")
-                        .font(.system(size: 22, weight: .medium))
+                        .font(.system(size: 22, weight: .bold)) // ← 제목을 볼드로
                         .foregroundStyle(Color.text2)
                         .lineLimit(1)
                         .truncationMode(.tail)
@@ -462,4 +462,3 @@ struct ResetConfirmAlertView: View {
         confirmationText.trimmingCharacters(in: .whitespacesAndNewlines) == requiredText
     }
 }
-

@@ -63,7 +63,7 @@ struct StudyHistoryView: View {
 
         return VStack(alignment: .leading, spacing: 8) {
             Text("나의 학습 기록")
-                .font(.titleText)
+                .font(.system(size: 22, weight: .bold))
                 .foregroundStyle(Color.text1)
 
             Text("학습한 노트, 마지막 재생 위치, 선택된 키워드, AI Q&A 기록이 여기에 모입니다.")
