@@ -70,7 +70,7 @@ struct HelpView: View {
                             .font(.system(size: 14))
                             .foregroundStyle(Color.text2)
                         
-                        Text("SWAI는 학습자 여러분들이 노트 생성과 동시에, 강의 속의 핵심 키워드가 되는 단어들과 더불어 구간별 요약 정보를 불러와서 학습에 도움이 되기 위해 뒤에서 열심히 작업을 진행합니다!")
+                        Text("AINO는 학습자 여러분들이 노트 생성과 동시에, 강의 속의 핵심 키워드가 되는 단어들과 더불어 구간별 요약 정보를 불러와서 학습에 도움이 되기 위해 뒤에서 열심히 작업을 진행합니다!")
                             .font(.system(size: 14))
                             .foregroundStyle(Color.text2)
                     }
@@ -111,7 +111,7 @@ struct HelpView: View {
                                     Text("2. ")
                                         .font(.system(size: 14))
                                         .foregroundStyle(Color.text2)
-                                    Text("요약 영역 : 내가 듣고있는 구간 뿐 아니라, 강의 속에서 내가 잘 이해가 가지 않았던 부분의 요약을 골라서 확인해 보세요! SWAI는 구간별 요약 정보 제공을 통해, 학습자 여러분이 원하는 영역만을 쉽고 빠르게 요약본에 다가갈 수 있도록 도와줍니다!")
+                                    Text("요약 영역 : 내가 듣고있는 구간 뿐 아니라, 강의 속에서 내가 잘 이해가 가지 않았던 부분의 요약을 골라서 확인해 보세요! AINO는 구간별 요약 정보 제공을 통해, 학습자 여러분이 원하는 영역만을 쉽고 빠르게 요약본에 다가갈 수 있도록 도와줍니다! (iOS 18.* 이상, Apple Intelligence 연결 후)")
                                         .font(.system(size: 14))
                                         .foregroundStyle(Color.text2)
                                 }
@@ -120,7 +120,7 @@ struct HelpView: View {
                                     Text("3. ")
                                         .font(.system(size: 14))
                                         .foregroundStyle(Color.text2)
-                                    Text("키워드 영역 : SWAI가 노트 생성 시 처음 추출한 해당 강의의 중요한 단어들이에요! 혹시 모르는 단어가 있다면 가볍게 Apple Pencil을 가까이 가져다 올려 보세요! 우측 채팅창에서 AI가 바로 학습을 도와줄거에요! (Apple Pencil Pro만 해당, Apple Pencil은 터치 필요.)")
+                                    Text("키워드 영역 : AINO가 노트 생성 시 처음 추출한 해당 강의의 중요한 단어들이에요! 혹시 모르는 단어가 있다면 가볍게 Apple Pencil을 가까이 가져다 올려 보세요! 우측 채팅창에서 AI가 바로 학습을 도와줄거에요! (Apple Pencil Pro만 해당, Apple Pencil은 터치 필요.)")
                                         .font(.system(size: 14))
                                         .foregroundStyle(Color.text2)
                                 }
@@ -129,7 +129,7 @@ struct HelpView: View {
                                     Text("4. ")
                                         .font(.system(size: 14))
                                         .foregroundStyle(Color.text2)
-                                    Text("채팅 영역 : 무엇이든 물어보세요! SWAI에 탑재된 {$model_name}이 학습자 여러분의 학습을 도와 주는 비서가 되어 줄거에요!")
+                                    Text("채팅 영역 : 무엇이든 물어보세요! AINO에 탑재된 AI가 학습자 여러분의 학습을 도와 주는 비서가 되어 줄거에요!")
                                         .font(.system(size: 14))
                                         .foregroundStyle(Color.text2)
                                 }
