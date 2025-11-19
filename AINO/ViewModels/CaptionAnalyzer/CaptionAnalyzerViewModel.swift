@@ -242,7 +242,7 @@ final class CaptionAnalyzer: ObservableObject {
                             title: ch.title.isEmpty ? "제목" : ch.title,
                             gist: (ch.bullets.first ?? ""))
             built.append(c)
-            bulletsMap[c.id] = Array(ch.bullets.prefix(4))
+            bulletsMap[c.id] = Array(ch.bullets.prefix(7))
             keywordsMap[c.id] = ch.keywords
             
             for kw in ch.keywords where !allKeywords.contains(kw) {
@@ -414,7 +414,10 @@ final class CaptionAnalyzer: ObservableObject {
             print("🟦 setChapterBullets called for \(id), bullets count=\(bullets.count)")
         }
         chapterBullets[id] = bullets
-        let chapterText = bullets.joined(separator: " ")
+        
+        // ✅ gist도 포함하여 더 풍부한 맥락으로 키워드 추출
+        let chapterGist = chapters.first(where: { $0.id == id })?.gist ?? ""
+        let combinedText = ([chapterGist] + bullets).joined(separator: " ")
         
         Task {
             let updateKeywords: ([String]) -> Void = { newKeywords in
@@ -444,9 +447,9 @@ final class CaptionAnalyzer: ObservableObject {
                 }
             }
             
-            // KeywordExtractor에 위임 (summarizer는 iPhone/iPad 공통으로 존재 가능)
+            // ✅ 요약 텍스트 기반으로 키워드 추출
             let finalKeywords = await self.keywordExtractor.extractChapterKeywords(
-                from: chapterText,
+                from: combinedText,  // gist + bullets 조합
                 summarizer: self.summarizer
             )
             
@@ -468,9 +471,11 @@ final class CaptionAnalyzer: ObservableObject {
         for ch in self.chapters {
             let bullets = self.chapterBullets[ch.id] ?? []
             let keywords = self.chapterKeywords[ch.id] ?? []
-            snapshot.append(CachedChapter(title: ch.title,
-                                          bullets: Array(bullets.prefix(4)),
-                                          keywords: keywords))
+            snapshot.append(CachedChapter(
+                title: ch.title,
+                bullets: Array(bullets.prefix(7)),  // ✅ 4 → 7로 변경
+                keywords: keywords
+            ))
         }
         note.cachedChapters = snapshot
         
