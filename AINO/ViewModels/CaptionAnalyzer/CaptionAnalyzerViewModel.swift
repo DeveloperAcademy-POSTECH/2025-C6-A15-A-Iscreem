@@ -415,7 +415,7 @@ final class CaptionAnalyzer: ObservableObject {
         }
         chapterBullets[id] = bullets
         
-        // ✅ gist도 포함하여 더 풍부한 맥락으로 키워드 추출
+        // gist도 포함하여 더 풍부한 맥락으로 키워드 추출
         let chapterGist = chapters.first(where: { $0.id == id })?.gist ?? ""
         let combinedText = ([chapterGist] + bullets).joined(separator: " ")
         
@@ -442,12 +442,12 @@ final class CaptionAnalyzer: ObservableObject {
                         print("🧩 현재 displayKeywords: \(self.displayKeywords)")
                     }
                     
-                    // ✅ 키워드가 업데이트될 때마다 즉시 저장
+                    // 키워드가 업데이트될 때마다 즉시 저장
                     self.persistCacheToBoundNoteIfPossible()
                 }
             }
             
-            // ✅ 요약 텍스트 기반으로 키워드 추출
+            // 요약 텍스트 기반으로 키워드 추출
             let finalKeywords = await self.keywordExtractor.extractChapterKeywords(
                 from: combinedText,  // gist + bullets 조합
                 summarizer: self.summarizer
@@ -473,7 +473,7 @@ final class CaptionAnalyzer: ObservableObject {
             let keywords = self.chapterKeywords[ch.id] ?? []
             snapshot.append(CachedChapter(
                 title: ch.title,
-                bullets: Array(bullets.prefix(7)),  // ✅ 4 → 7로 변경
+                bullets: Array(bullets.prefix(7)),
                 keywords: keywords
             ))
         }
