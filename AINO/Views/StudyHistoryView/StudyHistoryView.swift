@@ -51,7 +51,7 @@ struct StudyHistoryView: View {
             }
             .padding(20)
             .background(Color.background1.ignoresSafeArea())
-            .navigationTitle("학습 기록")
+            //.navigationTitle("학습 기록")
         }
     }
 
@@ -362,7 +362,6 @@ struct StudyHistoryView: View {
                         keywordChip(for: stat)
                     }
                 }
-                .padding(.top, 24)
             }
         }
     }
@@ -388,7 +387,7 @@ struct StudyHistoryView: View {
     }
 }
 
-// MARK: - FlexibleView (간단한 플로우 레이아웃)
+// MARK: - Flow layout without GeometryReader so it sizes inside ScrollView
 
 private struct FlexibleView<Data: RandomAccessCollection, Content: View>: View where Data.Element: Hashable {
     let data: Data
@@ -409,40 +408,115 @@ private struct FlexibleView<Data: RandomAccessCollection, Content: View>: View w
     }
 
     var body: some View {
-        GeometryReader { geometry in
-            generateContent(in: geometry)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private func generateContent(in geometry: GeometryProxy) -> some View {
-        var currentX: CGFloat = 0
-        var currentY: CGFloat = 0
-
-        return ZStack(alignment: Alignment(horizontal: alignment, vertical: .top)) {
+        FlowLayout(spacing: spacing, alignment: alignment) {
             ForEach(Array(data), id: \.self) { element in
                 content(element)
-                    .alignmentGuide(.leading) { d in
-                        if currentX + d.width > geometry.size.width {
-                            currentX = 0
-                            currentY -= (d.height + spacing)
-                        }
-                        let result = currentX
-                        currentX += d.width + spacing
-                        return -result
-                    }
-                    .alignmentGuide(.top) { _ in
-                        let result = currentY
-                        return result
-                    }
             }
         }
     }
 }
+
+private struct FlowLayout: Layout {
+    var spacing: CGFloat = 8
+    var alignment: HorizontalAlignment = .leading
+
+    init(spacing: CGFloat = 8, alignment: HorizontalAlignment = .leading) {
+        self.spacing = spacing
+        self.alignment = alignment
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        // Use provided width if available; otherwise assume a reasonably large width.
+        let maxWidth = proposal.width ?? 1000
+        let layout = computeLayout(maxWidth: maxWidth, subviews: subviews)
+        return layout.totalSize
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let maxWidth = bounds.width
+        let layout = computeLayout(maxWidth: maxWidth, subviews: subviews)
+
+        var indexInRow = 0
+        var rowIndex = 0
+
+        for (i, frame) in layout.frames.enumerated() {
+            let xOffset: CGFloat
+            switch alignment {
+            case .center:
+                xOffset = (bounds.width - layout.rowWidths[rowIndex]) / 2
+            case .trailing:
+                xOffset = bounds.width - layout.rowWidths[rowIndex]
+            default:
+                xOffset = 0
+            }
+
+            let origin = CGPoint(x: bounds.minX + frame.origin.x + xOffset,
+                                 y: bounds.minY + frame.origin.y)
+            subviews[i].place(at: origin,
+                              proposal: ProposedViewSize(width: frame.size.width, height: frame.size.height))
+
+            indexInRow += 1
+            if indexInRow >= layout.itemsPerRow[rowIndex] {
+                indexInRow = 0
+                rowIndex += 1
+            }
+        }
+    }
+
+    private func computeLayout(maxWidth: CGFloat, subviews: Subviews)
+    -> (frames: [CGRect], totalSize: CGSize, rowWidths: [CGFloat], itemsPerRow: [Int]) {
+        let finiteWidth = max(0, maxWidth)
+
+        var frames: [CGRect] = []
+        var rowWidths: [CGFloat] = []
+        var itemsPerRow: [Int] = []
+
+        var x: CGFloat = 0
+        var y: CGFloat = 0
+        var lineHeight: CGFloat = 0
+
+        var currentRowWidth: CGFloat = 0
+        var currentItemsInRow: Int = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(ProposedViewSize(width: finiteWidth, height: nil))
+            let itemWidth = min(size.width, finiteWidth)
+
+            if x > 0 && x + itemWidth > finiteWidth {
+                rowWidths.append(max(0, currentRowWidth - spacing))
+                itemsPerRow.append(currentItemsInRow)
+
+                x = 0
+                y += lineHeight + spacing
+                lineHeight = 0
+                currentRowWidth = 0
+                currentItemsInRow = 0
+            }
+
+            let rect = CGRect(origin: CGPoint(x: x, y: y), size: CGSize(width: itemWidth, height: size.height))
+            frames.append(rect)
+
+            x += itemWidth + spacing
+            currentRowWidth += itemWidth + spacing
+            currentItemsInRow += 1
+            lineHeight = max(lineHeight, size.height)
+        }
+
+        if currentItemsInRow > 0 {
+            rowWidths.append(max(0, currentRowWidth - spacing))
+            itemsPerRow.append(currentItemsInRow)
+        }
+
+        let totalHeight = y + lineHeight
+        let totalWidth = min(finiteWidth, rowWidths.max() ?? finiteWidth)
+
+        return (frames, CGSize(width: totalWidth, height: totalHeight), rowWidths, itemsPerRow)
+    }
+}
+
 #if DEBUG
 #Preview(traits: .landscapeLeft) {
     StudyHistoryView()
         .environmentObject(LearningLogStore.previewStore())
 }
 #endif
-
