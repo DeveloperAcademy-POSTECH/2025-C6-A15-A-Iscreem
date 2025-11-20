@@ -8,12 +8,12 @@
 import SwiftUI
 
 /// SwiftData 연계를 염두에 둔 요약 레코드 모델(메모리 상 구성)
-/// 나중에 SwiftData를 붙일 때 @Model 로 전환하고, 저장/로드 파이프만 연결하면 됩니다.
 struct Summary: Identifiable, Hashable {
     let id: UUID            // 챕터 UUID에 매핑
     let title: String       // 챕터 목차형 제목(한 문장)
-    let items: [String]     // 4줄 요약 (한 문장씩)
+    let items: [String]     // 6~7줄 요약 (한 문장씩)
     let progress: String    // "N / 총개수"
+    let isGenerating: Bool  // ✅ 생성 중 여부 추가
 }
 
 struct SummaryView: View {
@@ -47,13 +47,19 @@ struct SummaryView: View {
     @ViewBuilder
     private var content: some View {
         let list = summaries
+        let completedCount = list.filter { !$0.isGenerating }.count
+        
         switch captionAnalyzer.summaryStatus {
         case .idle:
             progressView
         case .summarizing, .ready:
             if list.isEmpty {
                 progressView
+            } else if completedCount == 0 {
+                // ✅ 아직 하나도 완성 안 됐으면 로딩만 표시
+                progressView
             } else {
+                // ✅ 하나라도 완성되면 실시간으로 표시 (생성 중인 것도 함께)
                 pagedChapters(list)
             }
         case .failed(let msg):
@@ -102,18 +108,21 @@ struct SummaryView: View {
     private var summaries: [Summary] {
         let total = max(captionAnalyzer.chapters.count, 1)
         return captionAnalyzer.chapters.enumerated().map { (idx, ch) in
-            let title = ch.title.isEmpty ? "제목 생성 중…" : ch.title
+            let title = ch.title
             let bullets = captionAnalyzer.chapterBullets[ch.id] ?? fallbackBullets(for: ch)
+            let isGenerating = title.contains("생성 중") || bullets.isEmpty
+            
             return Summary(
                 id: ch.id,
                 title: title,
-                items: Array(bullets.prefix(4)).map(stripBulletPrefix),
-                progress: "\(idx + 1) / \(total)"
+                items: Array(bullets.prefix(7)).map(stripBulletPrefix),
+                progress: "\(idx + 1) / \(total)",
+                isGenerating: isGenerating  // ✅ 생성 중 여부 추가
             )
         }
     }
 
-    /// UI에서 불릿 기호를 제거해 '불릿 없이 최대 4줄'을 보이도록 한다.
+    /// UI에서 불릿 기호를 제거해 '불릿 없이 최대 6~7줄'을 보이도록 한다.
     private func stripBulletPrefix(_ s: String) -> String {
         var t = s.trimmingCharacters(in: .whitespacesAndNewlines)
         let prefixes = ["•", "-", "–", "—", "∙", "·", "●", "*"]
@@ -130,10 +139,16 @@ struct SummaryView: View {
                 ForEach(Array(list.enumerated()), id: \.offset) { (idx, s) in
                     ScrollView {
                         VStack(spacing: 12) {
-                            SummaryDisclosureCard(
-                                index: idx + 1,
-                                summary: s
-                            )
+                            Group {
+                                if s.isGenerating {
+                                    GeneratingChapterCard(index: idx + 1)
+                                } else {
+                                    SummaryDisclosureCard(
+                                        index: idx + 1,
+                                        summary: s
+                                    )
+                                }
+                            }
                             .padding(16)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -156,13 +171,40 @@ struct SummaryView: View {
     }
 
     private func fallbackBullets(for chapter: CaptionAnalyzer.Chapter) -> [String] {
-        // gist 기반 최대 4줄
+        // gist 기반 최대 6줄
         let s = chapter.gist
             .replacingOccurrences(of: "•", with: "")
-//            .replacingOccurrences(of: "-", with: "")
         let parts = s.split(whereSeparator: { ".!?".contains($0) }).map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
-        let top4 = Array(parts.prefix(4))
-        return top4.isEmpty ? [s] : top4
+        let bullets = Array(parts.prefix(6))
+        return bullets.isEmpty ? [s] : bullets
+    }
+}
+
+// MARK: - Generating Chapter Card
+private struct GeneratingChapterCard: View {
+    let index: Int
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("#\(index). 요약 생성 중…")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(Color.text2)
+                Spacer()
+            }
+            
+            VStack(spacing: 12) {
+                ProgressView()
+                Text("AI가 이 구간의 요약을 생성하고 있습니다")
+                    .font(.system(size: 14))
+                    .foregroundStyle(Color.text3)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 24)
+        }
+        .padding(16)
+        .background(Color.background2)
+        .cornerRadius(12)
     }
 }
 

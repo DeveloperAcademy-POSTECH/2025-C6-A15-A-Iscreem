@@ -16,7 +16,7 @@ struct KeywordView: View {
     @State private var selectedKeyword: String? = nil
     
     private var keywordsToShow: [String] {
-        // ✅ displayKeywords만 사용 (챕터별로 실시간 업데이트되는 키워드)
+        // displayKeywords만 사용 (챕터별로 실시간 업데이트되는 키워드)
         // 챕터별 키워드가 추출될 때마다 즉시 누적되어 표시됨
         return analyzer.displayKeywords
     }
@@ -24,7 +24,7 @@ struct KeywordView: View {
     var body: some View {
         ZStack {
             VStack(alignment: .leading, spacing: 12) {
-                // 🔵 제목 텍스트 (Liquid Glass 효과)
+                // 제목 텍스트
                 Text("이 강의에서 자주 언급되는 핵심 키워드들이 나열됩니다.")
                     .font(.bodyText)
                     .foregroundStyle(Color.text2)
@@ -54,7 +54,7 @@ struct KeywordView: View {
                         spacing: 12
                     ) {
                         ForEach(keywordsToShow, id: \.self) { keyword in
-                            // 🔵 키워드 컴포넌트 (Liquid Glass)
+                            // 키워드 컴포넌트
                             KeywordChip(
                                 keyword: keyword,
                                 isSelected: selectedKeyword == keyword,
@@ -67,7 +67,7 @@ struct KeywordView: View {
                                         selectedKeyword = keyword
                                         studyViewModel.selectKeyword(keyword)
 
-                                        // 🔹 학습 로그: 키워드 사용 기록
+                                        // 학습 로그: 키워드 사용 기록
                                         if let note = studyViewModel.currentNote {
                                             learningLogStore.recordKeywordUse(
                                                 folderName: note.folder?.name,
@@ -88,7 +88,7 @@ struct KeywordView: View {
                 .frame(maxWidth: .infinity)
             }
             
-            // 🔵 키워드가 없을 때 표시되는 중앙 메시지 (Liquid Glass)
+            // 키워드가 없을 때 표시되는 중앙 메시지
             if keywordsToShow.isEmpty {
                 VStack(spacing: 16) {
                     ProgressView()
@@ -113,11 +113,13 @@ struct KeywordView: View {
     }
 }
 
-// MARK: - 🔵 Keyword Chip (Liquid Glass UI)
+// MARK: - Keyword Chip
 struct KeywordChip: View {
     let keyword: String
     let isSelected: Bool
     let onTap: () -> Void
+    
+    @State private var isHovering = false  // 호버 상태 추가
     
     var body: some View {
         Button(action: onTap) {
@@ -144,6 +146,11 @@ struct KeywordChip: View {
                             // 기본 상태: Liquid Glass
                             Color.background1
                                 .background(.ultraThinMaterial)
+                            
+                            // 호버 시 추가 하이라이트
+                            if isHovering {
+                                Color.HoverColor.opacity(0.7)
+                            }
                         }
                     }
                 )
@@ -153,21 +160,25 @@ struct KeywordChip: View {
                         .strokeBorder(
                             isSelected
                             ? Color.white.opacity(0.3)
-                            : Color.white.opacity(0.15),
+                            : (isHovering ? Color.HoverColor.opacity(0.8) : Color.white.opacity(0.15)),
                             lineWidth: isSelected ? 1 : 0.5
                         )
                 )
                 .shadow(
                     color: isSelected
                     ? Color.secondColor.opacity(0.25)
-                    : .black.opacity(0.06),
-                    radius: isSelected ? 10 : 6,
+                    : (isHovering ? Color.HoverColor.opacity(0.3) : .black.opacity(0.06)),
+                    radius: isSelected ? 10 : (isHovering ? 8 : 6),
                     x: 0,
-                    y: isSelected ? 4 : 2
+                    y: isSelected ? 4 : (isHovering ? 3 : 2)
                 )
         }
         .buttonStyle(.plain)
+        .onHover { hovering in  // Apple Pencil 호버 감지
+            isHovering = hovering
+        }
         .animation(.easeInOut(duration: 0.2), value: isSelected)
+        .animation(.easeInOut(duration: 0.15), value: isHovering)  // 호버 애니메이션
     }
 }
 
