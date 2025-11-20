@@ -17,7 +17,8 @@ final class KeywordExtractor {
         self.log = logger
     }
     
-    // MARK: - 챕터별 키워드 추출
+    // MARK: - 챕터별 키워드 추출 (요약 기반)
+    /// ✅ 요약된 텍스트를 기반으로 핵심 키워드를 추출합니다
     func extractChapterKeywords(
         from summaryText: String,
         summarizer: Summarizer?
@@ -66,6 +67,7 @@ final class KeywordExtractor {
         
         print("🟦 candidateKeywords count=\(candidateKeywords.count), preview=\(candidateKeywords.prefix(20))")
         
+        // ✅ 강화된 전처리: 오타 보정
         let preprocessed = preprocessKeywords(candidateKeywords)
         print("🟧 preprocessed keywords count=\(preprocessed.count), preview=\(preprocessed.prefix(20))")
         
@@ -188,6 +190,7 @@ final class KeywordExtractor {
     
     // MARK: - Private Helpers
     
+    /// ✅ 오타 보정 및 유사 단어 통합
     private func preprocessKeywords(_ candidates: [String]) -> [String] {
         // 일반적인 오타 패턴 보정 사전
         let typoCorrections: [String: String] = [
@@ -207,6 +210,7 @@ final class KeywordExtractor {
             "에이피아이": "API",
             "제이슨": "JSON",
             "에이치티티피": "HTTP",
+            // 필요시 추가
         ]
         
         return candidates.map { word in
@@ -214,6 +218,7 @@ final class KeywordExtractor {
         }
     }
     
+    /// ✅ 강화된 키워드 정제: 명사만 남기고 조사·형용사·동사·설명어 제거
     private func refineKeywords(_ candidates: [String]) -> [String] {
         // 조사 패턴
         let particlePatterns = [
@@ -258,6 +263,10 @@ final class KeywordExtractor {
             pattern: "(" + particlePatterns.joined(separator: "|") + ")$",
             options: []
         )
+        
+        // 특수문자 및 따옴표 제거
+        let quoteCharacters = CharacterSet(charactersIn: "\"'`")
+        let unwantedCharacters = CharacterSet.punctuationCharacters.union(.symbols).union(quoteCharacters)
         
         let refined = candidates
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }

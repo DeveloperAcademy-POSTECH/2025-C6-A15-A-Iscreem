@@ -7,9 +7,28 @@
 
 import SwiftUI
 import SwiftData
+import UIKit
+
+final class LearningToolAppDelegate: NSObject, UIApplicationDelegate {
+    func application(_ application: UIApplication,
+                     supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
+        // iPad: landscape only, iPhone: portrait only
+        switch UIDevice.current.userInterfaceIdiom {
+        case .pad:
+            return [.landscapeLeft, .landscapeRight]
+        case .phone:
+            return [.portrait]
+        default:
+            // 기본은 iPhone과 동일하게 세로 고정
+            return [.portrait]
+        }
+    }
+}
 
 @main
 struct LearningToolApp: App {
+    @UIApplicationDelegateAdaptor(LearningToolAppDelegate.self) private var appDelegate
+    
     @StateObject private var captionAnalyzer = CaptionAnalyzer()
     @StateObject private var learningLogStore: LearningLogStore
 

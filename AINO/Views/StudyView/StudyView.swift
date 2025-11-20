@@ -193,12 +193,12 @@ struct StudyView: View {
             VStack(spacing: 0) {
                 let mediaH = totalH * mainTopMediaHeightRatio
                 let keywordH = max(0, totalH - mediaH)
-                
+
                 // 사이드바가 접혀도 임베드(플레이어) 너비는
                 // "사이드바 펼침 시의 메인 영역 너비"를 유지
                 let embedBaseWidthWhenSidebarOpen = totalW * mainWidthRatio
                 let embedWidth = isSidebarCollapsed ? embedBaseWidthWhenSidebarOpen : mainW
-                
+
                 // MediaView
                 ZStack {
                     MediaView(note: viewModel.currentNote, videoURL: resolvedVideoURL)
@@ -208,31 +208,44 @@ struct StudyView: View {
                 }
                 .frame(width: mainW, height: mediaH, alignment: .center)
                 .frame(maxWidth: .infinity, alignment: .top)
-                
-                // QuestionView (원복)
-                QuestionView(
-                    studyViewModel: viewModel,
-                    viewModel: viewModel.questionViewModel,
-                    isGlobalInputActive: $isGlobalInputActive
-                )
-                .frame(width: mainW, height: keywordH)
-                .frame(maxWidth: .infinity, alignment: .bottom)
-                .background(Color.background1)
-                .tagStudyTarget(.question)
-            }
-            .frame(width: mainW, height: totalH)
-            
-            // RIGHT SIDEBAR (우측) — Segmented + Collapse 버튼
-            if sideW > 0 {
+
+                // Summary/Keyword container (moved from sidebar)
                 VStack(spacing: 0) {
-                    // 상단 바: Segmented(요약, 키워드) + 접기 버튼
                     HStack(spacing: 8) {
                         Picker("", selection: $sidebarTab) {
                             Text(SidebarTab.summary.rawValue).tag(SidebarTab.summary)
                             Text(SidebarTab.keywords.rawValue).tag(SidebarTab.keywords)
                         }
                         .pickerStyle(.segmented)
-                        
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, sidebarTopBarVPad)
+                    .tagStudyTarget(.sidebar)
+
+                    Divider().background(Color.borderColor)
+
+                    switch sidebarTab {
+                    case .keywords:
+                        KeywordView(analyzer: captionAnalyzer, studyViewModel: viewModel)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .background(Color.background1)
+                    case .summary:
+                        SummaryView()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .background(Color.background1)
+                    }
+                }
+                .frame(width: mainW, height: keywordH)
+                .frame(maxWidth: .infinity, alignment: .bottom)
+                .background(Color.background1)
+            }
+            .frame(width: mainW, height: totalH)
+
+            // RIGHT SIDEBAR (우측) — Chat (QuestionView) + Collapse 버튼
+            if sideW > 0 {
+                VStack(spacing: 0) {
+                    HStack(spacing: 8) {
+                        Spacer()
                         Button {
                             withAnimation(.easeInOut(duration: 0.2)) {
                                 isSidebarCollapsed = true
@@ -249,21 +262,17 @@ struct StudyView: View {
                     }
                     .padding(.horizontal, 12)
                     .padding(.vertical, sidebarTopBarVPad)
-                    .tagStudyTarget(.sidebar)
-                    
+
                     Divider().background(Color.borderColor)
-                    
-                    // Content
-                    switch sidebarTab {
-                    case .keywords:
-                        KeywordView(analyzer: captionAnalyzer, studyViewModel: viewModel)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .background(Color.background1)
-                    case .summary:
-                        SummaryView()
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .background(Color.background1)
-                    }
+
+                    QuestionView(
+                        studyViewModel: viewModel,
+                        viewModel: viewModel.questionViewModel,
+                        isGlobalInputActive: $isGlobalInputActive
+                    )
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color.background1)
+                    .tagStudyTarget(.question)
                 }
                 .frame(width: sideW, height: totalH)
                 .background(Color.background1)
@@ -328,6 +337,7 @@ struct StudyView: View {
                 MediaView(note: viewModel.currentNote, videoURL: resolvedVideoURL)
                     .frame(height: mediaHeight)
                     .frame(maxWidth: .infinity)
+                    .tagStudyTarget(.media)
                 
                 // SummaryView (중간)
                 SummaryView()
@@ -340,6 +350,7 @@ struct StudyView: View {
                     .frame(maxWidth: .infinity)
                     .frame(height: phoneKeywordHeight)
                     .background(Color.background1)
+                    .tagStudyTarget(.sidebarBottom)
                 
                 // QuestionView (하단 - 원복)
                 QuestionView(
@@ -387,6 +398,7 @@ enum StudyOnboardingStep: Int, CaseIterable {
 enum StudyCoachTarget: Hashable {
     case media
     case sidebar
+    case sidebarBottom
     case question
 }
 
@@ -515,15 +527,41 @@ struct StudyCoachOverlay: View {
             return proxy[anchor]
         }
         switch step {
-        case .media:    return rect(for: .media)    ?? fallback(proxy)
-        case .sidebar:  return rect(for: .sidebar)  ?? fallback(proxy)
-        case .question: return rect(for: .question) ?? fallback(proxy)
-        case .done:     return fallback(proxy)
-        }
+            case .media:
+                return rect(for: .media) ?? fallback(proxy)
+
+            case .sidebar:
+                // iPhone: Summary(.sidebar) + Keyword(.sidebarBottom) 합쳐서 하이라이트
+                if let top = rect(for: .sidebar), let bottom = rect(for: .sidebarBottom) {
+                    return union(top, bottom)
+                }
+                // 하나만 있는 경우엔 있는 쪽이라도 사용
+                if let top = rect(for: .sidebar) {
+                    return top
+                }
+                if let bottom = rect(for: .sidebarBottom) {
+                    return bottom
+                }
+                return fallback(proxy)
+
+            case .question:
+                return rect(for: .question) ?? fallback(proxy)
+
+            case .done:
+                return fallback(proxy)
+            }
     }
 
     private func fallback(_ proxy: GeometryProxy) -> CGRect {
         CGRect(x: proxy.size.width/2 - 80, y: proxy.size.height/2 - 40, width: 160, height: 80)
+    }
+    
+    private func union(_ r1: CGRect, _ r2: CGRect) -> CGRect {
+        let minX = min(r1.minX, r2.minX)
+        let minY = min(r1.minY, r2.minY)
+        let maxX = max(r1.maxX, r2.maxX)
+        let maxY = max(r1.maxY, r2.maxY)
+        return CGRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
     }
 }
 

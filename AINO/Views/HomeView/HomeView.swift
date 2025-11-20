@@ -172,20 +172,20 @@ struct HomeView: View {
                             .background(Color(.systemBackground))
                     }
                 }
-                .overlay(alignment: .topLeading) {
-                    // ✅ iPad에서 compact 사이즈일 때, 설정/휴지통 화면 상단 좌측에 뒤로가기 버튼 표시
-                    if horizontalSizeClass == .compact && (isShowingSettings || isShowingTrash) {
-                        backButton(metrics: metrics)
-                            .padding(.leading, 16)
-                            .padding(.top, 12)
-                            .safeAreaPadding(.top)
-                    }
-                }
+//                .overlay(alignment: .topLeading) {
+//                    // ✅ iPad에서 compact 사이즈일 때, 설정/휴지통 화면 상단 좌측에 뒤로가기 버튼 표시
+//                    if horizontalSizeClass == .compact && (isShowingSettings || isShowingTrash) {
+//                        backButton(metrics: metrics)
+//                            .padding(.leading, 16)
+//                            .padding(.top, 12)
+//                            .safeAreaPadding(.top)
+//                    }
+//                }
                 .navigationBarBackButtonHidden(horizontalSizeClass == .compact)
             }
             .overlay(alignment: .bottomTrailing) {
                 VStack(spacing: scaler.h(20)) {
-                    if !isShowingTrash {
+                    if !isShowingTrash && !isShowingSettings {
                         historyButton
                             .padding(.bottom, horizontalSizeClass == .compact ? scaler.h(8) : 0)
                         addButton(metrics: metrics)
@@ -275,18 +275,23 @@ struct HomeView: View {
                     headerSubtitle = "휴지통"
                 }
             }
+            .onReceive(NotificationCenter.default.publisher(for: .hideTrash)) { _ in
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isShowingTrash = false
+                }
+            }
             // ✅ 사이드바 숨김 토글 노티 수신 → 실제 표시 상태 토글
             .onReceive(NotificationCenter.default.publisher(for: .toggleSidebar)) { _ in
                 withAnimation(.easeInOut(duration: 0.2)) {
                     splitVisibility = (splitVisibility == .all) ? .detailOnly : .all
                 }
             }
-            .onReceive(NotificationCenter.default.publisher(for: .goBack)) { _ in
-                // 동일 로직: 뒤로가기 버튼 탭 시와 동일하게 스택에서 복원
-                if let snap = backStack.popLast() {
-                    restore(from: snap)
-                }
-            }
+//            .onReceive(NotificationCenter.default.publisher(for: .goBack)) { _ in
+//                // 동일 로직: 뒤로가기 버튼 탭 시와 동일하게 스택에서 복원
+//                if let snap = backStack.popLast() {
+//                    restore(from: snap)
+//                }
+//            }
             .onReceive(NotificationCenter.default.publisher(for: .returnedFromStudyView)) { _ in
                 // 사용자가 StudyView에서 홈으로 돌아왔을 때,
                 // 아직 포스트 온보딩을 보지 않았다면 다시 표시되도록 재무장
@@ -399,7 +404,7 @@ struct HomeView: View {
 
                     Text(headerSubtitle)
                         .padding(.leading, 6)
-                        .font(.system(size: 22, weight: .semibold))
+                        .font(.system(size: 22, weight: .bold))
                         .foregroundStyle(Color.text1)
                         .lineLimit(1)
                         .truncationMode(.tail)
@@ -446,7 +451,7 @@ struct HomeView: View {
                         
                     }
                     Text(headerSubtitle)
-                        .font(.system(size: 22, weight: .medium))
+                        .font(.system(size: 22, weight: .bold))
                         .foregroundStyle(Color.text2)
                         .lineLimit(1)
                         .truncationMode(.tail)
@@ -484,9 +489,9 @@ struct HomeView: View {
         guard horizontalSizeClass == .compact else { return false }
         // 폴더 내부이거나(최근/전체 제외) 설정/휴지통 화면일 때 노출
         let inFolder = (selectedFolderName != nil && selectedFolderName != "__ALL__")
-        let inOverlay = (isShowingSettings || isShowingTrash)
-        // 오버레이(설정/휴지통)는 항상 뒤로가기 노출, 폴더는 스택이 있을 때만 노출
-        if inOverlay { return true }
+//        let inOverlay = (isShowingSettings || isShowingTrash)
+//        // 오버레이(설정/휴지통)는 항상 뒤로가기 노출, 폴더는 스택이 있을 때만 노출
+//        if inOverlay { return true }
         return inFolder && !backStack.isEmpty
     }
 
@@ -1072,6 +1077,7 @@ extension Notification.Name {
     static let showSettings = Notification.Name("ShowSettings")
     static let hideSettings = Notification.Name("HideSettings")
     static let showTrash = Notification.Name("ShowTrash")
+    static let hideTrash = Notification.Name("HideTrash")
     static let returnedFromStudyView = Notification.Name("ReturnedFromStudyView")
 }
 // MARK: - Onboarding (Coach Marks)
@@ -1278,17 +1284,28 @@ struct PostHomeCoachOverlay: View {
 
             // bubble size & smart position
             let bubbleWidth: CGFloat = min(360.0, proxy.size.width - 40.0)
+
+            // 기본 위치 계산(controls 단계 등)
             let nearRight = rect.maxX > proxy.size.width - 60
             let placeLeft = (step == .controls && nearRight)
 
             let xBelow = min(max(rect.midX, bubbleWidth/2 + 20), proxy.size.width - bubbleWidth/2 - 20)
             let xLeft  = max(bubbleWidth/2 + 20, rect.minX - 16 - bubbleWidth/2)
-            let bubbleX = placeLeft ? xLeft : xBelow
 
             let yBelow = min(rect.maxY + 90, proxy.size.height - 80)
             let yAbove = max(rect.minY - 90, 100)
-            // 목록은 상단 공간 충분하면 위, 아니면 아래 / 컨트롤은 기본 아래
-            let bubbleY = (step == .controls) ? yBelow : (rect.minY < 140 ? yBelow : yAbove)
+
+            // 📱 .list 단계에서는 homeList 하이라이트 중앙에 버블을 배치
+            let (bubbleX, bubbleY): (CGFloat, CGFloat) = {
+                if step == .list {
+                    return (highlightRect.midX, highlightRect.midY)
+                } else {
+                    // 목록은 상단 공간 충분하면 위, 아니면 아래 / 컨트롤은 기본 아래
+                    let x = placeLeft ? xLeft : xBelow
+                    let y = (step == .controls) ? yBelow : (rect.minY < 140 ? yBelow : yAbove)
+                    return (x, y)
+                }
+            }()
 
             ZStack {
                 Rectangle()
@@ -1310,11 +1327,11 @@ struct PostHomeCoachOverlay: View {
                 VStack(spacing: 10) {
                     Text(title)
                         .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Color.primary)
                     Text(message)
                         .multilineTextAlignment(.leading)
                         .font(.system(size: 14))
-                        .foregroundStyle(.white.opacity(0.92))
+                        .foregroundStyle(Color.primary.opacity(0.9))
                         .frame(maxWidth: .infinity, alignment: .leading)
                     HStack {
                         Button("건너뛰기") { onFinish() }
