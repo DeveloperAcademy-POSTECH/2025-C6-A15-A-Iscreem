@@ -404,7 +404,7 @@ struct HomeView: View {
 
                     Text(headerSubtitle)
                         .padding(.leading, 6)
-                        .font(.system(size: 22, weight: .semibold))
+                        .font(.system(size: 22, weight: .bold))
                         .foregroundStyle(Color.text1)
                         .lineLimit(1)
                         .truncationMode(.tail)
@@ -451,7 +451,7 @@ struct HomeView: View {
                         
                     }
                     Text(headerSubtitle)
-                        .font(.system(size: 22, weight: .medium))
+                        .font(.system(size: 22, weight: .bold))
                         .foregroundStyle(Color.text2)
                         .lineLimit(1)
                         .truncationMode(.tail)

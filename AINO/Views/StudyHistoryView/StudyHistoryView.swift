@@ -20,12 +20,41 @@ struct StudyHistoryView: View {
         return f
     }()
 
+    // 제목 위쪽에 추가로 줄 패딩 값
+    private let headerExtraTopPadding: CGFloat = 16
+    // Divider(요약 아래)와 첫 날짜 섹션 사이 간격을 줄이기 위한 상단 패딩
+    private let listTopPadding: CGFloat = 4
+    // 각 날짜 섹션의 상단 패딩(기존 16 → 더 촘촘하게)
+    private let sectionTopPadding: CGFloat = 6
+    // 세션 카드 목록과 '자주 선택된 키워드' 섹션 사이 추가 간격
+    private let keywordCloudTopPadding: CGFloat = 24
+    // '자주 선택된 키워드' 섹션 하단 패딩(스크롤 끝부분 여유 공간)
+    private let keywordCloudBottomPadding: CGFloat = 24
+    // 세션 카드 안에서 '세션 키워드 칩' 아래쪽 여백
+    private let sessionKeywordsBottomPadding: CGFloat = 8
+    // 세션 카드 모서리
+    private let cardCorner: CGFloat = 20
+    // 설명 문장과 summaryChip 사이 간격
+    private let chipsTopPadding: CGFloat = 10
+    // 세션 카드들 사이 간격
+    private let sessionCardSpacing: CGFloat = 16
+    // 세션 카드 내부 패딩(세로/가로 분리)
+    private let sessionCardVerticalPadding: CGFloat = 14
+    private let sessionCardHorizontalPadding: CGFloat = 20
+    // '자주 선택된 키워드' 제목과 칩 모음 사이 간격
+    private let keywordCloudTitleSpacing: CGFloat = 20
+    // 챕터 제목과 bullets 사이 간격
+    private let chapterTitleToBulletsSpacing: CGFloat = 6
+    // 챕터와 구분선(Divider) 사이 간격
+    private let chapterDividerSpacing: CGFloat = 10
+
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 16) {
 
                 // 상단 요약
                 headerSummary
+                    .padding(.top, headerExtraTopPadding)
 
                 Divider()
                     .background(Color.borderColor)
@@ -44,8 +73,10 @@ struct StudyHistoryView: View {
 
                             // 전체 키워드 모음
                             keywordCloudSection
+                                .padding(.top, keywordCloudTopPadding)     // 세션 카드들과의 간격
+                                .padding(.bottom, keywordCloudBottomPadding) // 섹션 아래 추가 여백
                         }
-                        .padding(.vertical, 8)
+                        .padding(.top, listTopPadding) // 상단 여백 축소
                     }
                 }
             }
@@ -63,10 +94,10 @@ struct StudyHistoryView: View {
 
         return VStack(alignment: .leading, spacing: 8) {
             Text("나의 학습 기록")
-                .font(.titleText)
+                .font(.system(size: 22, weight: .bold))
                 .foregroundStyle(Color.text1)
 
-            Text("학습한 노트, 마지막 재생 위치, 선택된 키워드, AI Q&A 기록이 여기에 모입니다.")
+            Text("학습한 노트의 마지막 재생 위치, 핵심 내용, 선택된 키워드, Q&A 기록이 여기에 모입니다.")
                 .font(.captionText)
                 .foregroundStyle(Color.text2)
 
@@ -74,7 +105,7 @@ struct StudyHistoryView: View {
                 summaryChip(label: "총 학습 세션", value: "\(totalSessions)")
                 summaryChip(label: "학습한 노트 수", value: "\(totalNotes)")
             }
-            .padding(.top, 4)
+            .padding(.top, chipsTopPadding) // ← 설명 문장과 칩 사이 간격
         }
     }
 
@@ -82,7 +113,7 @@ struct StudyHistoryView: View {
         HStack(spacing: 6) {
             Text(value)
                 .font(.system(size: 16, weight: .bold))
-                .foregroundStyle(Color.primaryColor)
+                .foregroundStyle(Color.secondColor)
             Text(label)
                 .font(.system(size: 12))
                 .foregroundStyle(Color.text3)
@@ -145,25 +176,23 @@ struct StudyHistoryView: View {
                 .foregroundStyle(Color.text3)
                 .padding(.horizontal, 4)
 
-            ForEach(sessions) { session in
-                sessionCard(for: session)
+            // 세션 카드들 사이 간격을 키우기 위해 별도 VStack으로 감쌈
+            VStack(spacing: sessionCardSpacing) {
+                ForEach(sessions) { session in
+                    sessionCard(for: session)
+                }
             }
         }
-        .padding(.top, 16)
+        .padding(.top, sectionTopPadding) // 섹션 상단 여백 축소
     }
 
     // MARK: - Helpers: Chapters up to current
 
-    // “마지막 재생 시간에 해당하는 챕터까지”의 챕터 요약/키워드를 배열로 반환
-    // 1) Note.cachedChaptersUpToCurrent (영구 저장) — 재실행 보장
-    // 2) LearningLogStore의 메모리 맵(chapterSummariesUpToCurrentByNoteID)
     private func chaptersUpToCurrent(for s: StudySession) -> [CachedChapter] {
-        // 1) Persisted identifier 우선: SwiftData Note에서 직접 조회
         if let nid = s.noteIdentifier,
            let note = notes.first(where: { String(describing: $0.id) == nid }) {
             return note.cachedChaptersUpToCurrent
         }
-        // 2) 제목 + URL(또는 썸네일 URL)로 폴백 매칭
         let titleMatches = notes.filter { $0.title == s.noteTitle }
         if !titleMatches.isEmpty {
             if let url = s.videoURL, !url.isEmpty {
@@ -171,7 +200,6 @@ struct StudyHistoryView: View {
                     return note.cachedChaptersUpToCurrent
                 }
             }
-            // URL 정보가 없거나 직접 매칭되지 않으면 제목으로만 첫 노트를 사용
             if let note = titleMatches.first {
                 return note.cachedChaptersUpToCurrent
             }
@@ -216,11 +244,10 @@ struct StudyHistoryView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     ForEach(Array(chapters.enumerated()), id: \.offset) { idx, ch in
                         VStack(alignment: .leading, spacing: 4) {
-                            // 챕터 제목
                             HStack(spacing: 6) {
                                 Text("챕터 \(idx + 1)")
                                     .font(.system(size: 10, weight: .semibold))
-                                    .foregroundStyle(Color.primaryColor)
+                                    .foregroundStyle(Color.text2)
                                     .padding(.horizontal, 6)
                                     .padding(.vertical, 2)
                                     .background(Color.background2)
@@ -232,17 +259,16 @@ struct StudyHistoryView: View {
                                     .lineLimit(1)
                             }
 
-                            // 불릿(최대 4줄)
                             VStack(alignment: .leading, spacing: 2) {
                                 ForEach(Array(ch.bullets.prefix(4)), id: \.self) { line in
-                                    Text("• " + line)
+                                    Text(line)
                                         .font(.system(size: 11))
                                         .foregroundStyle(Color.text2)
                                         .lineLimit(2)
                                 }
                             }
+                            .padding(.top, chapterTitleToBulletsSpacing)
 
-                            // 챕터 키워드(있으면)
                             if !ch.keywords.isEmpty {
                                 HStack(spacing: 6) {
                                     ForEach(Array(ch.keywords.prefix(6)), id: \.self) { kw in
@@ -263,8 +289,11 @@ struct StudyHistoryView: View {
                             }
                         }
                         .padding(.vertical, 4)
+
                         if idx < chapters.count - 1 {
-                            Divider().background(Color.borderColor.opacity(0.5))
+                            Divider()
+                                .background(Color.borderColor.opacity(0.5))
+                                .padding(.vertical, chapterDividerSpacing)
                         }
                     }
                 }
@@ -290,6 +319,7 @@ struct StudyHistoryView: View {
                     }
                 }
                 .padding(.top, 2)
+                .padding(.bottom, sessionKeywordsBottomPadding)
             }
 
             // 최신 Q&A 한 줄 미리보기
@@ -308,14 +338,28 @@ struct StudyHistoryView: View {
                 .padding(.top, 4)
             }
         }
-        .padding(14)
-        .background(Color.white)
-        .cornerRadius(12)
+        .padding(.vertical, sessionCardVerticalPadding)
+        .padding(.horizontal, sessionCardHorizontalPadding)
+        // 머티리얼(반투명) 카드 배경
+        .background(cardBackground)
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: cardCorner)
                 .stroke(Color.borderColor.opacity(0.4), lineWidth: 0.5)
         )
-        .shadow(color: Color.black.opacity(0.02), radius: 4, x: 0, y: 2)
+        //.shadow(color: Color.black.opacity(0.06), radius: 8, x: 0, y: 4)
+    }
+
+    // 머티리얼 배경 뷰 (iOS 15+), 폴백 포함
+    private var cardBackground: some View {
+        Group {
+            if #available(iOS 15.0, *) {
+                Color.clear
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: cardCorner))
+            } else {
+                RoundedRectangle(cornerRadius: cardCorner)
+                    .fill(Color.white.opacity(0.9))
+            }
+        }
     }
 
     // MARK: - Aggregated Keyword Cloud
@@ -348,7 +392,7 @@ struct StudyHistoryView: View {
             if stats.isEmpty {
                 EmptyView()
             } else {
-                VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: keywordCloudTitleSpacing) {
                     Text("자주 선택된 키워드")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(Color.text2)
@@ -426,7 +470,6 @@ private struct FlowLayout: Layout {
     }
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        // Use provided width if available; otherwise assume a reasonably large width.
         let maxWidth = proposal.width ?? 1000
         let layout = computeLayout(maxWidth: maxWidth, subviews: subviews)
         return layout.totalSize

@@ -104,12 +104,6 @@ struct HelpOverlay: View {
                     width: min(680, geometry.size.width * 0.70),
                     height: min(620, geometry.size.height * 0.78)
                 )
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20)
-                        .strokeBorder(.white.opacity(0.3), lineWidth: 1)
-                )
-                .shadow(color: .black.opacity(0.25), radius: 30, x: 0, y: 15)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .transition(.opacity.combined(with: .scale))
@@ -264,4 +258,3 @@ struct RenameNoteSheet: View {
         .background(.ultraThinMaterial)
     }
 }
-

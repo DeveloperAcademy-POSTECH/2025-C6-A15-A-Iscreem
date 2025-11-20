@@ -168,6 +168,7 @@ private extension SidebarView {
             // 구분선
             HStack { Rectangle().fill(Color.borderColor).frame(height: 1) }
                 .padding(.horizontal, 20)
+                .padding(.bottom, 12) // ← 전체 보기와의 간격 확대
         }
         .background(Color.clear)
     }
@@ -262,7 +263,7 @@ private extension SidebarView {
         .listStyle(.sidebar)
         .scrollContentBackground(.hidden)
         .background(Color.clear)
-        .padding(.horizontal, 12)
+        //.padding(.horizontal, 12)
         .contentShape(Rectangle())
     }
 
@@ -431,7 +432,7 @@ private extension SidebarView {
                 onFolderSelected?(nil)
             } label: {
                 let isSelected = (viewModel.selection == .recent)
-                HStack(spacing: 12) {
+                HStack/*(spacing: 12)*/ {
                     Image(systemName: "clock.fill")
                         .foregroundStyle(isSelected ? Color.secondColor : Color.text2)
                         .font(.system(size: 20))
@@ -443,7 +444,7 @@ private extension SidebarView {
             }
             .buttonStyle(.plain)
             .listRowBackground(Color.clear)
-            .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 8, trailing: 20))
+            .listRowInsets(EdgeInsets(top: 8, leading: 5, bottom: 8, trailing: 20))
         }
     }
 
