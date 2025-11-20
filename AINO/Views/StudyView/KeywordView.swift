@@ -119,6 +119,8 @@ struct KeywordChip: View {
     let isSelected: Bool
     let onTap: () -> Void
     
+    @State private var isHovering = false  // 호버 상태 추가
+    
     var body: some View {
         Button(action: onTap) {
             Text(keyword)
@@ -144,6 +146,11 @@ struct KeywordChip: View {
                             // 기본 상태: Liquid Glass
                             Color.background1
                                 .background(.ultraThinMaterial)
+                            
+                            // 호버 시 추가 하이라이트
+                            if isHovering {
+                                Color.HoverColor.opacity(0.7)
+                            }
                         }
                     }
                 )
@@ -153,21 +160,25 @@ struct KeywordChip: View {
                         .strokeBorder(
                             isSelected
                             ? Color.white.opacity(0.3)
-                            : Color.white.opacity(0.15),
+                            : (isHovering ? Color.HoverColor.opacity(0.8) : Color.white.opacity(0.15)),
                             lineWidth: isSelected ? 1 : 0.5
                         )
                 )
                 .shadow(
                     color: isSelected
                     ? Color.secondColor.opacity(0.25)
-                    : .black.opacity(0.06),
-                    radius: isSelected ? 10 : 6,
+                    : (isHovering ? Color.HoverColor.opacity(0.3) : .black.opacity(0.06)),
+                    radius: isSelected ? 10 : (isHovering ? 8 : 6),
                     x: 0,
-                    y: isSelected ? 4 : 2
+                    y: isSelected ? 4 : (isHovering ? 3 : 2)
                 )
         }
         .buttonStyle(.plain)
+        .onHover { hovering in  // Apple Pencil 호버 감지
+            isHovering = hovering
+        }
         .animation(.easeInOut(duration: 0.2), value: isSelected)
+        .animation(.easeInOut(duration: 0.15), value: isHovering)  // 호버 애니메이션
     }
 }
 
