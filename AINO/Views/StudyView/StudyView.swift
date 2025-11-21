@@ -25,22 +25,28 @@ struct StudyView: View {
     @State private var dragOffset: CGFloat = 0
     @State private var isDragging: Bool = false
     
+    // 접기/펼치기 상태
+    @State private var isSummaryExpanded: Bool = true
+    @State private var isKeywordExpanded: Bool = true
+    
     // 디바이스 타입 감지
     private var isIPad: Bool {
         UIDevice.current.userInterfaceIdiom == .pad
     }
     
     // iPad 고정 비율
-    private let mainWidthRatio: CGFloat = 0.65          // 메인 영역(좌측)
-    private let rightSidebarWidthRatio: CGFloat = 0.35  // 우측 사이드바(기본 펼침)
-    private let mainTopMediaHeightRatio: CGFloat = 0.6  // 메인 내부: Media(상) 비율
-    private let mainBottomKeywordHeightRatio: CGFloat = 0.4 // 메인 내부: Keyword(하) 비율
-
+    private let mainWidthRatio: CGFloat = 0.65
+    private let rightSidebarWidthRatio: CGFloat = 0.35
+    private let mainTopMediaHeightRatio: CGFloat = 0.6
+    private let mainBottomKeywordHeightRatio: CGFloat = 0.4
+    
     // iPhone 고정 높이
-    private let phoneSummaryHeight: CGFloat = 250
-    private let phoneKeywordHeight: CGFloat = 300
+    private let phoneSummaryHeight: CGFloat = 360
+    private let phoneSummaryCollapsedHeight: CGFloat = 60
+    private let phoneKeywordHeight: CGFloat = 360
+    private let phoneKeywordCollapsedHeight: CGFloat = 60
     private let phoneQuestionHeight: CGFloat = 360
-
+    
     // iPad 레이아웃 기준 해상도 (13인치 가로형 1366x1024)
     private let baseIPadLandscapeSize = CGSize(width: 1366, height: 1024)
     
@@ -49,9 +55,7 @@ struct StudyView: View {
         case keywords = "키워드"
         case summary = "요약"
     }
-    // 변경: 기본값을 .summary로 설정하여 요약이 우선 보이도록 함
     @State private var sidebarTab: SidebarTab = .summary
-    // 사이드바 접힘 상태
     @State private var isSidebarCollapsed: Bool = false
     
     // 전역 입력 상태 관리
@@ -108,15 +112,12 @@ struct StudyView: View {
             }
         }
         .background(Color.background2)
-        // 드래그 오프셋 적용 (화면 전체가 오른쪽으로 이동)
         .offset(x: dragOffset)
-        // 드래그 중일 때 살짝 어둡게
         .overlay(
             Color.black.opacity(isDragging ? 0.1 : 0)
                 .animation(.easeOut(duration: 0.2), value: isDragging)
                 .allowsHitTesting(false)
         )
-        // 스와이프 제스처 추가
         .gesture(swipeBackGesture)
         .keyboardOverlay()
         .overlayPreferenceValue(StudyTargetBoundsKey.self) { map in
@@ -128,22 +129,18 @@ struct StudyView: View {
         }
         .onAppear { captionAnalyzer.autoSummarizeEnabled = true }
         
-        // 1) 자막(VTT)이 준비된 순간 전체 길이 저장
         .onChange(of: captionAnalyzer.vttStatus) { _, newValue in
             if case .ready = newValue {
                 if let note = viewModel.currentNote {
                     let total = captionAnalyzer.vttCues.map(\.end).max()
                     note.totalDurationSeconds = total
-                    // 이 시점에 한 번 저장
                     try? modelContext.save()
                 }
             }
         }
         
-        // 2) 요약/챕터/키워드가 모두 준비되면 캐시까지 포함해서 저장
         .onChange(of: captionAnalyzer.summaryStatus) { _, newValue in
             if case .ready = newValue {
-                // CaptionAnalyzer가 Note에 써둔 요약/챕터/키워드를 포함해 영구 저장
                 try? modelContext.save()
             }
         }
@@ -153,18 +150,15 @@ struct StudyView: View {
     private var swipeBackGesture: some Gesture {
         DragGesture()
             .onChanged { value in
-                // 왼쪽 끝 30pt 이내에서 시작한 오른쪽 드래그만 인식
                 if value.startLocation.x < 30 && value.translation.width > 0 {
                     isDragging = true
                     dragOffset = value.translation.width
                 }
             }
             .onEnded { value in
-                // 120pt 이상 드래그하면 뒤로가기
                 if value.translation.width > 120 && value.startLocation.x < 30 {
                     performDismiss()
                 } else {
-                    // 취소 - 원위치
                     withAnimation(.easeOut(duration: 0.2)) {
                         dragOffset = 0
                         isDragging = false
@@ -178,7 +172,6 @@ struct StudyView: View {
             dragOffset = UIScreen.main.bounds.width
         }
         
-        // 기존 뒤로가기 로직
         viewModel.closeButtonTapped()
         NotificationCenter.default.post(name: .persistPlaybackPosition, object: viewModel.currentNote)
         NotificationCenter.default.post(name: .pausePlaybackRequested, object: nil)
@@ -202,7 +195,6 @@ struct StudyView: View {
         guard let note = viewModel.currentNote else { return nil }
         let nid = String(describing: note.id)
         let url = note.videoURL ?? resolvedVideoURL
-        // LearningLogStore의 매칭 정책과 동일: 식별자 우선, 없으면 제목+URL
         if let s = learningLogStore.sessions.first(where: { sess in
             if let sid = sess.noteIdentifier, sid == nid { return true }
             if sess.noteTitle == note.title {
@@ -222,27 +214,24 @@ struct StudyView: View {
     private func iPadLayout(geometry: GeometryProxy) -> some View {
         let totalW = geometry.size.width
         let totalH = geometry.size.height
-
+        
         let scaler = BaseLayoutScaler(proxy: geometry, base: baseIPadLandscapeSize)
-
+        
         let sideW = isSidebarCollapsed ? 0 : totalW * rightSidebarWidthRatio
         let mainW = totalW - sideW
-
-        // 사이드바 상단 바의 레이아웃 기준(세로 패딩 + 컨트롤 높이) - 기준 해상도 대비 스케일
+        
         let sidebarTopBarVPad: CGFloat = scaler.h(8)
         let sidebarControlHeight: CGFloat = scaler.h(32)
-
+        
         HStack(spacing: 0) {
             // MAIN (좌측)
             VStack(spacing: 0) {
                 let mediaH = totalH * mainTopMediaHeightRatio
                 let keywordH = max(0, totalH - mediaH)
-
-                // 사이드바가 접혀도 임베드(플레이어) 너비는
-                // "사이드바 펼침 시의 메인 영역 너비"를 유지
+                
                 let embedBaseWidthWhenSidebarOpen = totalW * mainWidthRatio
                 let embedWidth = isSidebarCollapsed ? embedBaseWidthWhenSidebarOpen : mainW
-
+                
                 // MediaView
                 ZStack {
                     MediaView(note: viewModel.currentNote, videoURL: resolvedVideoURL)
@@ -252,8 +241,8 @@ struct StudyView: View {
                 }
                 .frame(width: mainW, height: mediaH, alignment: .center)
                 .frame(maxWidth: .infinity, alignment: .top)
-
-                // Summary/Keyword container (moved from sidebar)
+                
+                // Summary/Keyword container
                 VStack(spacing: 0) {
                     HStack(spacing: 8) {
                         Picker("", selection: $sidebarTab) {
@@ -265,9 +254,9 @@ struct StudyView: View {
                     .padding(.horizontal, 12)
                     .padding(.vertical, sidebarTopBarVPad)
                     .tagStudyTarget(.sidebar)
-
+                    
                     Divider().background(Color.borderColor)
-
+                    
                     switch sidebarTab {
                     case .keywords:
                         KeywordView(analyzer: captionAnalyzer, studyViewModel: viewModel)
@@ -284,8 +273,8 @@ struct StudyView: View {
                 .background(Color.background1)
             }
             .frame(width: mainW, height: totalH)
-
-            // RIGHT SIDEBAR (우측) — Chat (QuestionView) + Collapse 버튼
+            
+            // RIGHT SIDEBAR
             if sideW > 0 {
                 VStack(spacing: 0) {
                     HStack(spacing: 8) {
@@ -306,9 +295,9 @@ struct StudyView: View {
                     }
                     .padding(.horizontal, 12)
                     .padding(.vertical, sidebarTopBarVPad)
-
+                    
                     Divider().background(Color.borderColor)
-
+                    
                     QuestionView(
                         studyViewModel: viewModel,
                         viewModel: viewModel.questionViewModel,
@@ -324,7 +313,6 @@ struct StudyView: View {
             }
         }
         .frame(width: totalW, height: totalH)
-        // 접힌 상태에서 펼치기 버튼
         .overlay(alignment: .topTrailing) {
             if isSidebarCollapsed {
                 Button {
@@ -363,10 +351,8 @@ struct StudyView: View {
         let totalHeight = geometry.size.height
         let totalWidth = geometry.size.width
         
-        // 가로 모드 감지 (너비 > 높이)
         let isLandscape = totalWidth > totalHeight
         
-        // MediaView 높이 계산
         let mediaHeight: CGFloat = {
             if isLandscape {
                 return max(totalHeight * 0.5, 200)
@@ -374,6 +360,10 @@ struct StudyView: View {
                 return min(totalHeight * 0.3, totalWidth * 9 / 16)
             }
         }()
+        
+        // 동적 높이 계산
+        let summaryHeight: CGFloat = isSummaryExpanded ? phoneSummaryHeight : phoneSummaryCollapsedHeight
+        let keywordHeight: CGFloat = isKeywordExpanded ? phoneKeywordHeight : phoneKeywordCollapsedHeight
         
         ScrollView {
             VStack(spacing: 0) {
@@ -383,20 +373,26 @@ struct StudyView: View {
                     .frame(maxWidth: .infinity)
                     .tagStudyTarget(.media)
                 
-                // SummaryView (중간)
-                SummaryView()
+                // SummaryView (중간) - Binding 전달 + 동적 높이
+                SummaryView(isExpanded: $isSummaryExpanded)
                     .frame(maxWidth: .infinity)
-                    .frame(height: phoneSummaryHeight)
+                    .frame(height: summaryHeight)
+                    .animation(.easeInOut(duration: 0.2), value: summaryHeight)
                     .tagStudyTarget(.sidebar)
                 
-                // KeywordView (요약 아래)
-                KeywordView(analyzer: captionAnalyzer, studyViewModel: viewModel)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: phoneKeywordHeight)
-                    .background(Color.background1)
-                    .tagStudyTarget(.sidebarBottom)
+                // KeywordView (요약 아래) - Binding 전달 + 동적 높이
+                KeywordView(
+                    analyzer: captionAnalyzer,
+                    studyViewModel: viewModel,
+                    isExpanded: $isKeywordExpanded
+                )
+                .frame(maxWidth: .infinity)
+                .frame(height: keywordHeight)
+                .animation(.easeInOut(duration: 0.2), value: keywordHeight)
+                .background(Color.background1)
+                .tagStudyTarget(.sidebarBottom)
                 
-                // QuestionView (하단 - 원복)
+                // QuestionView (하단)
                 QuestionView(
                     studyViewModel: viewModel,
                     viewModel: viewModel.questionViewModel,
@@ -412,15 +408,12 @@ struct StudyView: View {
     
     // MARK: - Helpers
     private var resolvedVideoURL: String? {
-        // 1) 현재 전달받은 노트의 비디오 링크 우선
         if let url = viewModel.currentNote?.videoURL, !url.isEmpty {
             return url
         }
-        // 1-2) (이전 구조 호환) 썸네일 필드에 저장된 링크가 있다면 사용
         if let url = viewModel.currentNote?.thumbnailURL, !url.isEmpty {
             return url
         }
-        // 2) 동일 제목의 노트를 찾아서 링크 사용 (폴백)
         if let title = viewModel.currentNote?.title,
            let matched = notes.first(where: { $0.title == title }) {
             if let v = matched.videoURL, !v.isEmpty { return v }
@@ -433,9 +426,9 @@ struct StudyView: View {
 // MARK: - Study Onboarding Coach Marks
 
 enum StudyOnboardingStep: Int, CaseIterable {
-    case media       // 영상 재생 영역
-    case sidebar     // 요약/키워드 영역(또는 iPad의 세그먼트 바)
-    case question    // 질문(채팅) 영역
+    case media
+    case sidebar
+    case question
     case done
 }
 
@@ -463,29 +456,25 @@ struct StudyCoachOverlay: View {
     @Binding var step: StudyOnboardingStep
     let map: [StudyCoachTarget: Anchor<CGRect>]
     let onFinish: () -> Void
-
+    
     var body: some View {
         GeometryReader { proxy in
             let rect = targetRect(in: proxy)
-            // 강조 영역 확장
             let highlightPadding: CGFloat = 12
             let highlightRect = rect.insetBy(dx: -highlightPadding, dy: -highlightPadding)
-
-            // Bubble size and smart positioning
+            
             let bubbleWidth: CGFloat = min(360.0, proxy.size.width - 40.0)
             let rightEdgeClose = rect.maxX > proxy.size.width - 60
             let placeAbove = (step == .question)
-
-            // X positions
+            
             let xBelow = min(max(rect.midX, bubbleWidth/2 + 20), proxy.size.width - bubbleWidth/2 - 20)
             let xLeft  = max(bubbleWidth/2 + 20, rect.minX - 16 - bubbleWidth/2)
             let bubbleX = (placeAbove && rightEdgeClose) ? xLeft : xBelow
-
-            // Y positions
+            
             let yBelow = min(rect.maxY + 90, proxy.size.height - 80)
             let yAbove = max(rect.minY - 90, 100)
             let bubbleY = placeAbove ? yAbove : yBelow
-
+            
             ZStack {
                 Rectangle()
                     .fill(Color.black.opacity(0.45))
@@ -497,12 +486,12 @@ struct StudyCoachOverlay: View {
                             .blendMode(.destinationOut)
                     )
                     .compositingGroup()
-
+                
                 RoundedRectangle(cornerRadius: 12)
                     .stroke(Color.clear, lineWidth: 2)
                     .frame(width: highlightRect.width, height: highlightRect.height)
                     .position(x: highlightRect.midX, y: highlightRect.midY)
-
+                
                 VStack(spacing: 10) {
                     Text(title)
                         .font(.system(size: 18, weight: .semibold))
@@ -526,7 +515,7 @@ struct StudyCoachOverlay: View {
             }
         }
     }
-
+    
     private func next() {
         switch step {
         case .media:   step = .sidebar
@@ -535,14 +524,14 @@ struct StudyCoachOverlay: View {
             onFinish()
         }
     }
-
+    
     private var nextButtonTitle: String {
         switch step {
         case .question, .done: return "완료"
         default: return "다음"
         }
     }
-
+    
     private var title: String {
         switch step {
         case .media:   return "영상 재생"
@@ -551,7 +540,7 @@ struct StudyCoachOverlay: View {
         case .done:    return ""
         }
     }
-
+    
     private var message: String {
         switch step {
         case .media:
@@ -564,38 +553,36 @@ struct StudyCoachOverlay: View {
             return ""
         }
     }
-
-    private func targetRect(in proxy: GeometryProxy) -> CGRect {
+    
+    private func targetRect(in: GeometryProxy) -> CGRect {
         func rect(for key: StudyCoachTarget) -> CGRect? {
             guard let anchor = map[key] else { return nil }
-            return proxy[anchor]
+            return `in`[anchor]
         }
         switch step {
-            case .media:
-                return rect(for: .media) ?? fallback(proxy)
-
-            case .sidebar:
-                // iPhone: Summary(.sidebar) + Keyword(.sidebarBottom) 합쳐서 하이라이트
-                if let top = rect(for: .sidebar), let bottom = rect(for: .sidebarBottom) {
-                    return union(top, bottom)
-                }
-                // 하나만 있는 경우엔 있는 쪽이라도 사용
-                if let top = rect(for: .sidebar) {
-                    return top
-                }
-                if let bottom = rect(for: .sidebarBottom) {
-                    return bottom
-                }
-                return fallback(proxy)
-
-            case .question:
-                return rect(for: .question) ?? fallback(proxy)
-
-            case .done:
-                return fallback(proxy)
+        case .media:
+            return rect(for: .media) ?? fallback(`in`)
+            
+        case .sidebar:
+            if let top = rect(for: .sidebar), let bottom = rect(for: .sidebarBottom) {
+                return union(top, bottom)
             }
+            if let top = rect(for: .sidebar) {
+                return top
+            }
+            if let bottom = rect(for: .sidebarBottom) {
+                return bottom
+            }
+            return fallback(`in`)
+            
+        case .question:
+            return rect(for: .question) ?? fallback(`in`)
+            
+        case .done:
+            return fallback(`in`)
+        }
     }
-
+    
     private func fallback(_ proxy: GeometryProxy) -> CGRect {
         CGRect(x: proxy.size.width/2 - 80, y: proxy.size.height/2 - 40, width: 160, height: 80)
     }
