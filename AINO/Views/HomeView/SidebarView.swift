@@ -472,6 +472,7 @@ private extension SidebarView {
                 .buttonStyle(.borderedProminent)
             }
             .padding(.top, 4)
+            .tint(Color.secondColor)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
