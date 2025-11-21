@@ -364,7 +364,7 @@ struct ResetConfirmAlertView: View {
     var onConfirm: (() -> Void)? = nil
     
     @State private var confirmationText: String = ""
-    private let requiredText = "초기화를 진행 하겠습니다."
+    private let requiredText = "초기화를 진행하겠습니다."
     
     var body: some View {
         GeometryReader { geo in
@@ -404,7 +404,7 @@ struct ResetConfirmAlertView: View {
                         .autocorrectionDisabled(true)
                         .font(.system(size: 15))
                         .foregroundStyle(Color.text1)
-                        .padding(.vertical, 8)
+                        //.padding(.vertical, 8)
                 }
                 .padding(16)
                 .background(Color.background2)

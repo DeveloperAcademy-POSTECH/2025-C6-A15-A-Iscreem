@@ -117,6 +117,10 @@ struct ResetConfirmOverlay: View {
     let notes: [Note]
     let modelContext: ModelContext
     @EnvironmentObject private var learningLogStore: LearningLogStore
+
+    // 키보드 상태 추적
+    @State private var isKeyboardVisible: Bool = false
+    @State private var keyboardHeight: CGFloat = 0
     
     var body: some View {
         GeometryReader { geo in
@@ -132,6 +136,8 @@ struct ResetConfirmOverlay: View {
                             showResetConfirm = false
                         }
                     }
+                
+                // 카드
                 ResetConfirmAlertView(
                     isPresented: $showResetConfirm,
                     onConfirm: {
@@ -158,9 +164,29 @@ struct ResetConfirmOverlay: View {
                         .strokeBorder(.white.opacity(0.3), lineWidth: 1)
                 )
                 .shadow(color: .black.opacity(0.25), radius: 30, x: 0, y: 15)
+                // 키보드 상태에 따라 중앙 ↔ 하단 정렬 전환
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: isKeyboardVisible ? .bottom : .center)
+                .padding(.bottom, isKeyboardVisible ? (keyboardHeight + 24) : 0)
+                .animation(.easeInOut(duration: 0.25), value: isKeyboardVisible)
+                .animation(.easeInOut(duration: 0.25), value: keyboardHeight)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .transition(.opacity.combined(with: .scale))
+        }
+        // 키보드 노티 감지
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { note in
+            if let rect = note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    keyboardHeight = rect.height
+                    isKeyboardVisible = true
+                }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            withAnimation(.easeInOut(duration: 0.25)) {
+                isKeyboardVisible = false
+                keyboardHeight = 0
+            }
         }
     }
 }
