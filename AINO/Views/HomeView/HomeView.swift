@@ -637,19 +637,21 @@ struct HomeView: View {
         } label: {
             Group {
                 if horizontalSizeClass == .compact {
+                    // iPhone
                     ZStack {
                         Circle()
                             .fill(Color.background2.opacity(0.96))
                             .frame(width: metrics.controlMinSide, height: metrics.controlMinSide)
                         Image(systemName: "line.3.horizontal.decrease")
-                            .font(.system(size: 18, weight: .semibold))
+                            .font(.system(size: metrics.controlMinSide * 0.44, weight: .semibold))
                             .foregroundStyle(Color.text2)
                     }
                     .contentShape(Circle())
                 } else {
+                    // iPad
                     GlassEffectContainer(spacing: 0) {
                         Image(systemName: "line.3.horizontal.decrease")
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(.system(size: metrics.sortButtonSize * 0.48, weight: .semibold))
                             .frame(width: metrics.sortButtonSize, height: metrics.sortButtonSize)
                             .glassEffect()
                             .glassEffectUnionCompat(id: "sort", namespace: glassNS)
@@ -817,7 +819,7 @@ struct HomeView: View {
         .buttonStyle(.plain)
     }
     
-    // MARK: - Sidebar Compact Menu Button (Liquid Glass)
+    // MARK: - Sidebar Compact Menu Button
     private func sidebarMenuButton(metrics: LayoutMetrics) -> some View {
         Menu {
             // 전체 보기
