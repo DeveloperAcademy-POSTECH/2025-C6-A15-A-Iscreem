@@ -242,6 +242,7 @@ struct QuestionView: View {
             // 인라인 입력 바 (항상 표시)
             QuestionInputBar(
                 text: $viewModel.currentMessage,
+                includeScreenshot: $viewModel.includeScreenshot,
                 isEnabled: viewModel.isAPIKeyValid && !viewModel.isLoading,
                 isSending: viewModel.isLoading,
                 isGenerating: viewModel.isLoadingSuggestions,
@@ -302,9 +303,6 @@ struct QuestionView: View {
                     viewModel.currentMessage += " "
                 }
                 viewModel.currentMessage += keyword
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    isTextFieldFocused = true
-                }
                 studyViewModel.keywordInserted()
             }
         }
