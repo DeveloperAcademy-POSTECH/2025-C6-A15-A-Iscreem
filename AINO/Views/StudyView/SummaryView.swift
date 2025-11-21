@@ -85,7 +85,6 @@ struct SummaryView: View {
                 progressView
             } else {
                 pagedChapters(list)
-                    .frame(minHeight: 500)
             }
         case .failed(let msg):
             VStack(alignment: .leading, spacing: 12) {
@@ -170,6 +169,7 @@ struct SummaryView: View {
                 }
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
+            .frame(minHeight: isIPhone ? 500 : nil) // iPhone에서만 최소 높이 적용
 
             // 좌상단 페이지 인디케이터 + 처음으로 버튼
             HStack(spacing: 8) {

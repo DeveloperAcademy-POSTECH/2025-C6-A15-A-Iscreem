@@ -345,7 +345,7 @@ struct StudyView: View {
         .animation(.easeInOut(duration: 0.2), value: isSidebarCollapsed)
     }
     
-    // MARK: - iPhone Layout (단일 컬럼)
+    // MARK: - iPhone Layout (단일 컬럼) - 수정됨
     @ViewBuilder
     private func iPhoneLayout(geometry: GeometryProxy) -> some View {
         let totalHeight = geometry.size.height
@@ -361,44 +361,46 @@ struct StudyView: View {
             }
         }()
         
-        
-        ScrollView {
-            VStack(spacing: 0) {
-                // MediaView (상단)
-                MediaView(note: viewModel.currentNote, videoURL: resolvedVideoURL)
-                    .frame(height: mediaHeight)
-                    .frame(maxWidth: .infinity)
-                    .tagStudyTarget(.media)
-                
-                // SummaryView (중간) - Binding 전달 + 동적 높이
-                SummaryView(isExpanded: $isSummaryExpanded)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: isSummaryExpanded ? nil : phoneSummaryCollapsedHeight)  // 펼쳤을 때만 자동, 접혔을 때 60
-                    .animation(.easeInOut(duration: 0.2), value: isSummaryExpanded)
-                    .tagStudyTarget(.sidebar)
-                
-                // KeywordView (요약 아래) - Binding 전달 + 동적 높이
-                KeywordView(
-                    analyzer: captionAnalyzer,
-                    studyViewModel: viewModel,
-                    isExpanded: $isKeywordExpanded
-                )
+        VStack(spacing: 0) {
+            // MediaView (상단 고정 - 스크롤되지 않음)
+            MediaView(note: viewModel.currentNote, videoURL: resolvedVideoURL)
+                .frame(height: mediaHeight)
                 .frame(maxWidth: .infinity)
-                .frame(height: isKeywordExpanded ? nil : phoneKeywordCollapsedHeight)  // 펼쳤을 때만 자동, 접혔을 때 60
-                .animation(.easeInOut(duration: 0.2), value: isKeywordExpanded)
-                .background(Color.background1)
-                .tagStudyTarget(.sidebarBottom)
-                
-                // QuestionView (하단)
-                QuestionView(
-                    studyViewModel: viewModel,
-                    viewModel: viewModel.questionViewModel,
-                    isGlobalInputActive: $isGlobalInputActive
-                )
-                .frame(maxWidth: .infinity)
-                .frame(height: phoneQuestionHeight)
-                .background(Color.background1)
-                .tagStudyTarget(.question)
+                .tagStudyTarget(.media)
+            
+            // 나머지 콘텐츠는 스크롤 가능
+            ScrollView {
+                VStack(spacing: 0) {
+                    // SummaryView (중간) - Binding 전달 + 동적 높이
+                    SummaryView(isExpanded: $isSummaryExpanded)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: isSummaryExpanded ? nil : phoneSummaryCollapsedHeight)
+                        .animation(.easeInOut(duration: 0.2), value: isSummaryExpanded)
+                        .tagStudyTarget(.sidebar)
+                    
+                    // KeywordView (요약 아래) - Binding 전달 + 동적 높이
+                    KeywordView(
+                        analyzer: captionAnalyzer,
+                        studyViewModel: viewModel,
+                        isExpanded: $isKeywordExpanded
+                    )
+                    .frame(maxWidth: .infinity)
+                    .frame(height: isKeywordExpanded ? nil : phoneKeywordCollapsedHeight)
+                    .animation(.easeInOut(duration: 0.2), value: isKeywordExpanded)
+                    .background(Color.background1)
+                    .tagStudyTarget(.sidebarBottom)
+                    
+                    // QuestionView (하단)
+                    QuestionView(
+                        studyViewModel: viewModel,
+                        viewModel: viewModel.questionViewModel,
+                        isGlobalInputActive: $isGlobalInputActive
+                    )
+                    .frame(maxWidth: .infinity)
+                    .frame(height: phoneQuestionHeight)
+                    .background(Color.background1)
+                    .tagStudyTarget(.question)
+                }
             }
         }
     }

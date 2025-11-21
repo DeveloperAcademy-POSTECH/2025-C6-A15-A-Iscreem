@@ -39,47 +39,42 @@ struct KeywordView: View {
     
     // MARK: - Body
     var body: some View {
-        ZStack {
-            VStack(alignment: .leading, spacing: 0) {
-                // 헤더
-                HStack(spacing: 12) {
-                    Text("이 강의에서 자주 언급되는 핵심 키워드들이 나열됩니다.")
-                        .font(.bodyText)
-                        .foregroundStyle(Color.text2)
+        VStack(alignment: .leading, spacing: 0) {
+            // 헤더
+            HStack(spacing: 12) {
+                Text("이 강의에서 자주 언급되는 핵심 키워드들이 나열됩니다.")
+                    .font(.bodyText)
+                    .foregroundStyle(Color.text2)
+                
+                // iPhone에서만 chevron 버튼 표시
+                if isIPhone {
+                    Spacer()
                     
-                    // iPhone에서만 chevron 버튼 표시
-                    if isIPhone {
-                        Spacer()
-                        
-                        Button(action: {
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                isExpanded.toggle()
-                            }
-                        }) {
-                            Image(systemName: "chevron.right")
-                                .font(.bodyText)
-                                .foregroundStyle(Color.text3)
-                                .rotationEffect(.degrees(isExpanded ? 90 : 0))
-                                .frame(width: 32, height: 32)
-                                .contentShape(Rectangle())
+                    Button(action: {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            isExpanded.toggle()
                         }
-                        .buttonStyle(.plain)
+                    }) {
+                        Image(systemName: "chevron.right")
+                            .font(.bodyText)
+                            .foregroundStyle(Color.text3)
+                            .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                            .frame(width: 32, height: 32)
+                            .contentShape(Rectangle())
                     }
-                }
-                .padding(16)
-                
-                Divider().background(Color.borderColor)
-                
-                // iPad는 항상 표시, iPhone은 isExpanded일 때만
-                if !isIPhone || isExpanded {
-                    keywordScrollView
+                    .buttonStyle(.plain)
                 }
             }
+            .padding(16)
             
-            // 키워드가 없을 때 표시 - 조건 수정
-            if keywordsToShow.isEmpty {
-                if !isIPhone || isExpanded {
-                    emptyStateView
+            Divider().background(Color.borderColor)
+            
+            // iPad는 항상 표시, iPhone은 isExpanded일 때만
+            if !isIPhone || isExpanded {
+                if keywordsToShow.isEmpty {
+                    emptyStateView  // 헤더 아래에 배치
+                } else {
+                    keywordScrollView
                 }
             }
         }
