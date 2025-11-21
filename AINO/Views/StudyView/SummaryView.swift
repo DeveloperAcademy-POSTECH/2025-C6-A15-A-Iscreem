@@ -89,10 +89,10 @@ struct SummaryView: View {
         case .failed(let msg):
             VStack(alignment: .leading, spacing: 12) {
                 Text("요약을 불러올 수 없습니다.")
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.system(size: isIPhone ? 18 : 16, weight: .semibold))
                     .foregroundStyle(Color.text1)
                 Text(msg)
-                    .font(.system(size: 16))
+                    .font(.system(size: isIPhone ? 16 : 14))
                     .foregroundStyle(Color.text2)
             }
             .padding(16)
@@ -106,11 +106,11 @@ struct SummaryView: View {
             Spacer()
             ProgressView()
             Text(statusLine)
-                .font(.system(size: 16))
+                .font(.system(size: isIPhone ? 16 : 14))
                 .foregroundStyle(Color.text3)
             if captionAnalyzer.summaryDebug.total > 0 {
                 Text("\(captionAnalyzer.summaryDebug.processed) / \(captionAnalyzer.summaryDebug.total)")
-                    .font(.system(size: 14))
+                    .font(.system(size: isIPhone ? 14 : 12))
                     .foregroundStyle(Color.text3)
             }
             Spacer()
@@ -156,12 +156,12 @@ struct SummaryView: View {
         ZStack(alignment: .bottomTrailing) {
             TabView(selection: $currentPage) {
                 ForEach(Array(list.enumerated()), id: \.offset) { (idx, s) in
-                    VStack(spacing: 12) {
+                    VStack(spacing: isIPhone ? 12 : 8) {
                         SummaryDisclosureCard(
                             index: idx + 1,
                             summary: s
                         )
-                        .padding(16)
+                        .padding(isIPhone ? 16 : 12)
                         Spacer()
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -181,9 +181,9 @@ struct SummaryView: View {
                         }
                     }) {
                         Image(systemName: "chevron.left")
-                            .font(.bodyTextSemibold)
+                            .font(isIPhone ? .bodyTextSemibold : .system(size: 12, weight: .semibold))
                             .foregroundStyle(Color.text1)
-                            .frame(width: 28, height: 28)
+                            .frame(width: isIPhone ? 28 : 24, height: isIPhone ? 28 : 24)
                             .background(Color.background2)
                             .cornerRadius(6)
                     }
@@ -192,14 +192,14 @@ struct SummaryView: View {
                 
                 // 페이지 인디케이터
                 Text("\(currentPage + 1) / \(max(list.count, 1))")
-                    .font(.bodyText)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
+                    .font(isIPhone ? .bodyText : .system(size: 13))
+                    .padding(.horizontal, isIPhone ? 10 : 8)
+                    .padding(.vertical, isIPhone ? 6 : 5)
                     .background(Color.background2)
                     .cornerRadius(8)
                     .foregroundStyle(Color.text3)
             }
-            .padding(12)
+            .padding(isIPhone ? 12 : 10)
         }
     }
 
@@ -216,33 +216,51 @@ struct SummaryView: View {
 private struct SummaryDisclosureCard: View {
     let index: Int
     let summary: Summary
+    
+    // 디바이스 타입 감지
+    private var isIPhone: Bool {
+        UIDevice.current.userInterfaceIdiom == .phone
+    }
+    
+    // 디바이스별 폰트 크기
+    private var titleFontSize: CGFloat {
+        isIPhone ? 22 : 18
+    }
+    
+    private var contentFontSize: CGFloat {
+        isIPhone ? 18 : 15
+    }
+    
+    private var cardPadding: CGFloat {
+        isIPhone ? 16 : 12
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: isIPhone ? 12 : 10) {
             // Header
             Text("#\(index). \(summary.title)")
-                .font(.system(size: 22, weight: .semibold))
+                .font(.system(size: titleFontSize, weight: .semibold))
                 .foregroundStyle(Color.text1)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .fixedSize(horizontal: false, vertical: true)
             
             // 항상 표시되는 내용
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: isIPhone ? 8 : 6) {
                 ForEach(Array(summary.items.enumerated()), id: \.offset) { _, line in
                     HStack(alignment: .top, spacing: 8) {
                         Text("•").foregroundStyle(Color.text3)
-                            .font(.system(size: 18))
+                            .font(.system(size: contentFontSize))
                         Text(line)
-                            .font(.system(size: 18))
+                            .font(.system(size: contentFontSize))
                             .foregroundStyle(Color.text2)
                             .multilineTextAlignment(.leading)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
             }
-            .padding(.top, 8)
+            .padding(.top, isIPhone ? 8 : 6)
         }
-        .padding(16)
+        .padding(cardPadding)
         .background(Color.background2)
         .cornerRadius(12)
     }
