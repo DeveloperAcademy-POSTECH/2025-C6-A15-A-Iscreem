@@ -105,7 +105,7 @@ struct SidebarView: View {
             sidebarSortOptionRaw = newValue.rawValue
         }
         .ignoresSafeArea(.keyboard, edges: .bottom)
-        .compactScaled(base: CGSize(width: 390, height: 844), min: 0.9, max: 1.0)
+        //.compactScaled(base: CGSize(width: 390, height: 844), min: 0.9, max: 1.0)
         .alert(isPresented: $showDeleteAlert) {
             let count = pendingDeleteFolderIDs.count
             let title = Text("삭제를 진행합니다")
@@ -555,6 +555,7 @@ private extension SidebarView {
     }
 }
 
+/*
 // MARK: - Sidebar Glass Effect Compatibility
 extension View {
     /// iOS 26.0 이상에서는 시스템 glassEffect를 사용하고,
@@ -573,7 +574,7 @@ extension View {
         }
     }
 }
-
+*/
 // 라우팅용 노티(사이드바 토글)
 extension Notification.Name {
     static let toggleSidebar = Notification.Name("ToggleSidebar")
