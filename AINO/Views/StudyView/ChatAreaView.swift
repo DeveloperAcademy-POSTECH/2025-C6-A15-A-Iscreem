@@ -50,7 +50,6 @@ struct ChatAreaView: View {
                             ForEach(messages) { message in
                                 ChatBubble(message: message)
                                     .id(message.id)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
                             }
 
                             if isLoading {
