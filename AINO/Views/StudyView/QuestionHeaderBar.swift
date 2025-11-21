@@ -14,7 +14,7 @@ struct QuestionHeaderBar: View {
     var body: some View {
         HStack {
             Text("AI에게 무엇이든 물어보세요!")
-                .font(.system(size: 15))
+                .font(.bodyText)
                 .foregroundStyle(Color.text2)
 
             Spacer()

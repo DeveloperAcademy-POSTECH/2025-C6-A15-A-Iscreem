@@ -72,9 +72,9 @@ struct SuggestionBubbleView: View {
                     .disabled(isLoading)
                     
                     // 닫기 버튼
-                    Button(action: { 
-                        withAnimation(.easeOut(duration: 0.2)) { 
-                            isPresented = false 
+                    Button(action: {
+                        withAnimation(.easeOut(duration: 0.2)) {
+                            isPresented = false
                         }
                     }) {
                         Image(systemName: "xmark")
@@ -126,7 +126,7 @@ struct SuggestionBubbleView: View {
                                             .background(
                                                 LinearGradient(
                                                     colors: [Color.secondColor, Color.secondColor.opacity(0.7)],
-                                                    startPoint: .topLeading, 
+                                                    startPoint: .topLeading,
                                                     endPoint: .bottomTrailing
                                                 )
                                             )
@@ -211,6 +211,11 @@ struct QuestionView: View {
     
     @EnvironmentObject private var learningLogStore: LearningLogStore
     
+    // 디바이스 타입 감지
+    private var isIPad: Bool {
+        UIDevice.current.userInterfaceIdiom == .pad
+    }
+    
     private var isFocusedBinding: Binding<Bool> {
         Binding(
             get: { isTextFieldFocused },
@@ -229,13 +234,16 @@ struct QuestionView: View {
             Divider()
                 .background(Color.borderColor)
             
-            // 채팅 영역
-            ChatAreaView(
-                messages: viewModel.messages,
-                isAPIKeyConfigured: viewModel.isAPIKeyValid,
-                isLoading: viewModel.isLoading,
-                isTextFieldFocused: isFocusedBinding
-            )
+            // 채팅 영역 - iPhone일 때만 maxHeight infinity 적용
+            Group {
+                ChatAreaView(
+                    messages: viewModel.messages,
+                    isAPIKeyConfigured: viewModel.isAPIKeyValid,
+                    isLoading: viewModel.isLoading,
+                    isTextFieldFocused: isFocusedBinding
+                )
+            }
+            .frame(maxHeight: isIPad ? nil : .infinity) // iPhone일 때만 하단 고정
             
             Divider().background(Color.borderColor)
             
@@ -339,4 +347,3 @@ struct QuestionView: View {
         }
     }
 }
-

@@ -30,11 +30,11 @@ struct CreateNoteView: View {
                     // YouTube 링크
                     TextField("", text: $youtubeLink, prompt: Text("YouTube 링크를 입력하세요!")
                         .foregroundColor(Color.text3), axis: .horizontal)
-                        .font(.system(size: 16))
+                        .font(.bodyText)
                         .foregroundStyle(Color.text1)
                         .lineLimit(1)
                         .padding(.horizontal, 24)
-                        .frame(height: 60)
+                        .frame(height: 80)
 
                     Divider()
                         .background(Color.borderColor)
@@ -42,13 +42,13 @@ struct CreateNoteView: View {
                     // 제목
                     TextField("", text: $noteTitle, prompt: Text("저장할 노트 제목을 입력하세요!")
                         .foregroundColor(Color.text3), axis: .horizontal)
-                        .font(.system(size: 16))
+                        .font(.bodyText)
                         .foregroundStyle(Color.text1)
                         .lineLimit(1)
                         .padding(.horizontal, 24)
-                        .frame(height: 60)
+                        .frame(height: 80)
                 }
-                .frame(width: cardWidth, height: 120)
+                .frame(width: cardWidth)
                 .background(
                     RoundedRectangle(cornerRadius: 16)
                         .fill(Color.background1)
@@ -65,12 +65,12 @@ struct CreateNoteView: View {
                         Button(action: onCreate) {
                             HStack(spacing: 6) {
                                 Image(systemName: "arrow.right")
-                                    .font(.system(size: 14, weight: .semibold))
+                                    .font(.bodyTextSemibold)
                                 Text("노트 생성")
-                                    .font(.system(size: 15, weight: .semibold))
+                                    .font(.bodyTextSemibold)
                             }
-                            .frame(height: 40)
-                            .frame(minWidth: 120)
+                            .padding(.vertical, 12)
+                            .padding(.horizontal, 28)
                         }
                         .buttonStyle(.glass)
                         .buttonBorderShape(.capsule)

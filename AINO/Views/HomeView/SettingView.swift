@@ -1,3 +1,7 @@
+//
+//
+//
+
 import SwiftUI
 import SwiftData
 
@@ -6,6 +10,10 @@ struct SettingsDetailView: View {
     @State private var isHelpPresented: Bool = false
     @State private var isFolderDeletePresented: Bool = false
     @State private var folderIDsPendingDelete = Set<PersistentIdentifier>()
+    
+    // 뒤로가기 제스처 상태
+    @State private var dragOffset: CGFloat = 0
+    @State private var isDragging: Bool = false
     
     // AppStorage를 사용하여 테마 설정을 영구적으로 저장
     @AppStorage("selectedTheme") private var selectedTheme: String = "system"
@@ -35,7 +43,7 @@ struct SettingsDetailView: View {
 #if os(iOS)
                 if UIDevice.current.userInterfaceIdiom == .phone {
                     Button {
-                        NotificationCenter.default.post(name: .hideSettings, object: nil)
+                        performDismiss()
                     } label: {
                         Image(systemName: "chevron.left")
                             .font(.system(size: 16, weight: .semibold))
@@ -51,7 +59,7 @@ struct SettingsDetailView: View {
 #endif
                 VStack(alignment: .leading, spacing: 4) {
                     Text("설정")
-                        .font(.system(size: 22, weight: .bold)) // ← 제목을 볼드로
+                        .font(.system(size: 22, weight: .bold))
                         .foregroundStyle(Color.text2)
                         .lineLimit(1)
                         .truncationMode(.tail)
@@ -198,12 +206,21 @@ struct SettingsDetailView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(.systemBackground))
-        .preferredColorScheme(colorScheme) // 테마 적용
+        // ✅ 드래그 오프셋 적용
+        .offset(x: dragOffset)
+        // ✅ 드래그 중일 때 살짝 어둡게
+        .overlay(
+            Color.black.opacity(isDragging ? 0.1 : 0)
+                .animation(.easeOut(duration: 0.2), value: isDragging)
+                .allowsHitTesting(false)
+        )
+        // ✅ 스와이프 제스처 추가
+        .gesture(swipeBackGesture)
+        .preferredColorScheme(colorScheme)
         .overlay {
             if isFolderDeletePresented {
                 FolderDeleteView(
                     onDelete: {
-                        // 🔴 설정 화면에서 폴더 삭제 시에도 학습 로그 동시 정리
                         for id in folderIDsPendingDelete {
                             if let target = folders.first(where: { $0.persistentModelID == id }) {
                                 learningLogStore.deleteSessions(in: target)
@@ -215,7 +232,6 @@ struct SettingsDetailView: View {
                         withAnimation(.easeInOut(duration: 0.2)) {
                             isFolderDeletePresented = false
                         }
-                        // 보수적 안전망
                         _ = learningLogStore.reconcileWithNotes(currentNotes: notes)
                     },
                     onCancel: {
@@ -226,6 +242,41 @@ struct SettingsDetailView: View {
                 )
                 .transition(.opacity.combined(with: .scale))
             }
+        }
+    }
+    
+    // MARK: - Swipe Back Gesture
+    private var swipeBackGesture: some Gesture {
+        DragGesture()
+            .onChanged { value in
+                // 왼쪽 끝 30pt 이내에서 시작한 오른쪽 드래그만 인식
+                if value.startLocation.x < 30 && value.translation.width > 0 {
+                    isDragging = true
+                    dragOffset = value.translation.width
+                }
+            }
+            .onEnded { value in
+                // 120pt 이상 드래그하면 뒤로가기
+                if value.translation.width > 120 && value.startLocation.x < 30 {
+                    performDismiss()
+                } else {
+                    // 취소 - 원위치
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        dragOffset = 0
+                        isDragging = false
+                    }
+                }
+            }
+    }
+    
+    private func performDismiss() {
+        withAnimation(.easeOut(duration: 0.25)) {
+            dragOffset = UIScreen.main.bounds.width
+        }
+        
+        // 뒤로가기 로직
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            NotificationCenter.default.post(name: .hideSettings, object: nil)
         }
     }
 }
@@ -266,7 +317,7 @@ struct SettingView: View {
                 SettingsDetailView(showResetConfirm: $showResetConfirm)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .preferredColorScheme(colorScheme) // 전체 앱에 테마 적용
+            .preferredColorScheme(colorScheme)
         }
         .overlay {
             if showResetConfirm {
@@ -281,7 +332,6 @@ struct SettingView: View {
                 ResetConfirmAlertView(
                     isPresented: $showResetConfirm,
                     onConfirm: {
-                        // 실제 초기화 로직 구현 필요
                         withAnimation(.easeInOut(duration: 0.2)) {
                             showResetConfirm = false
                         }
@@ -310,13 +360,11 @@ struct ThemeModePicker: View {
         .pickerStyle(.segmented)
         .labelsHidden()
         .background(.clear)
-        // 고정폭(370) 제거 → 기기 폭에 따라 자연스럽게 확장/축소
         .frame(minWidth: 200, idealWidth: 320, maxWidth: 460)
         .background(.clear, in: Capsule())
         .overlay(Capsule().stroke(Color.borderColor.opacity(0.5), lineWidth: 1))
     }
     
-    // Return a ShapeStyle so it matches the background(_:in:) overload.
     private var vibrancyBackground: AnyShapeStyle {
         if useVibrancy {
             if #available(iOS 15.0, *) {
@@ -344,7 +392,6 @@ struct LanguageModePicker: View {
         }
         .pickerStyle(.segmented)
         .labelsHidden()
-        // 고정폭(370) 제거 → 기기 폭에 따라 자연스럽게 확장/축소
         .frame(minWidth: 200, idealWidth: 320, maxWidth: 460)
         .background(.clear, in: Capsule())
         .overlay(Capsule().stroke(Color.borderColor.opacity(0.5), lineWidth: 1))
@@ -373,7 +420,6 @@ struct ResetConfirmAlertView: View {
     
     var body: some View {
         GeometryReader { geo in
-            // 화면 크기에 따라 카드 크기 계산 (상한을 두어 과도한 확대 방지)
             let cardWidth = min(420, geo.size.width * 0.9)
             let cardHeight = min(380, geo.size.height * 0.6)
             
