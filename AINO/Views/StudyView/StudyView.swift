@@ -21,6 +21,10 @@ struct StudyView: View {
     @AppStorage("hasSeenStudyOnboarding") private var hasSeenStudyOnboarding: Bool = false
     @State private var studyOnboardingStep: StudyOnboardingStep = .media
     
+    // 뒤로가기 제스처 상태
+    @State private var dragOffset: CGFloat = 0
+    @State private var isDragging: Bool = false
+    
     // 디바이스 타입 감지
     private var isIPad: Bool {
         UIDevice.current.userInterfaceIdiom == .pad
@@ -63,17 +67,7 @@ struct StudyView: View {
             // MARK: 헤더
             HStack {
                 Button(action: {
-                    viewModel.closeButtonTapped()
-                    // ▶︎ 1) 뒤로가기 직전에 현재 재생 위치 저장 요청
-                    NotificationCenter.default.post(name: .persistPlaybackPosition, object: viewModel.currentNote)
-                    // ▶︎ 2) 즉시 일시정지/정지 요청 (재생 중지)
-                    NotificationCenter.default.post(name: .pausePlaybackRequested, object: nil)
-                    // 홈 복귀 시 포스트 온보딩 트리거 플래그
-                    UserDefaults.standard.set(true, forKey: "TriggerPostHomeOnboarding")
-                    // JS 질의가 완료될 수 있도록 아주 짧게 지연 후 닫기
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                        onDismiss?()
-                    }
+                    performDismiss()
                 }) {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 20))
@@ -114,6 +108,16 @@ struct StudyView: View {
             }
         }
         .background(Color.background2)
+        // 드래그 오프셋 적용 (화면 전체가 오른쪽으로 이동)
+        .offset(x: dragOffset)
+        // 드래그 중일 때 살짝 어둡게
+        .overlay(
+            Color.black.opacity(isDragging ? 0.1 : 0)
+                .animation(.easeOut(duration: 0.2), value: isDragging)
+                .allowsHitTesting(false)
+        )
+        // 스와이프 제스처 추가
+        .gesture(swipeBackGesture)
         .keyboardOverlay()
         .overlayPreferenceValue(StudyTargetBoundsKey.self) { map in
             if !hasSeenStudyOnboarding {
@@ -124,7 +128,7 @@ struct StudyView: View {
         }
         .onAppear { captionAnalyzer.autoSummarizeEnabled = true }
         
-        // ✅ 1) 자막(VTT)이 준비된 순간 전체 길이 저장
+        // 1) 자막(VTT)이 준비된 순간 전체 길이 저장
         .onChange(of: captionAnalyzer.vttStatus) { _, newValue in
             if case .ready = newValue {
                 if let note = viewModel.currentNote {
@@ -136,12 +140,52 @@ struct StudyView: View {
             }
         }
         
-        // ✅ 2) 요약/챕터/키워드가 모두 준비되면 캐시까지 포함해서 저장
+        // 2) 요약/챕터/키워드가 모두 준비되면 캐시까지 포함해서 저장
         .onChange(of: captionAnalyzer.summaryStatus) { _, newValue in
             if case .ready = newValue {
                 // CaptionAnalyzer가 Note에 써둔 요약/챕터/키워드를 포함해 영구 저장
                 try? modelContext.save()
             }
+        }
+    }
+    
+    // MARK: - Swipe Back Gesture
+    private var swipeBackGesture: some Gesture {
+        DragGesture()
+            .onChanged { value in
+                // 왼쪽 끝 30pt 이내에서 시작한 오른쪽 드래그만 인식
+                if value.startLocation.x < 30 && value.translation.width > 0 {
+                    isDragging = true
+                    dragOffset = value.translation.width
+                }
+            }
+            .onEnded { value in
+                // 120pt 이상 드래그하면 뒤로가기
+                if value.translation.width > 120 && value.startLocation.x < 30 {
+                    performDismiss()
+                } else {
+                    // 취소 - 원위치
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        dragOffset = 0
+                        isDragging = false
+                    }
+                }
+            }
+    }
+    
+    private func performDismiss() {
+        withAnimation(.easeOut(duration: 0.25)) {
+            dragOffset = UIScreen.main.bounds.width
+        }
+        
+        // 기존 뒤로가기 로직
+        viewModel.closeButtonTapped()
+        NotificationCenter.default.post(name: .persistPlaybackPosition, object: viewModel.currentNote)
+        NotificationCenter.default.post(name: .pausePlaybackRequested, object: nil)
+        UserDefaults.standard.set(true, forKey: "TriggerPostHomeOnboarding")
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            onDismiss?()
         }
     }
     
@@ -423,7 +467,7 @@ struct StudyCoachOverlay: View {
     var body: some View {
         GeometryReader { proxy in
             let rect = targetRect(in: proxy)
-            // ✅ 강조 영역 확장
+            // 강조 영역 확장
             let highlightPadding: CGFloat = 12
             let highlightRect = rect.insetBy(dx: -highlightPadding, dy: -highlightPadding)
 
@@ -564,4 +608,3 @@ struct StudyCoachOverlay: View {
         return CGRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
     }
 }
-
