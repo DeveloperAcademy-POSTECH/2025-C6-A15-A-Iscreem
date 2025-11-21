@@ -797,12 +797,12 @@ struct HomeView: View {
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: "chart.line.uptrend.xyaxis")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.bodyTextSemibold)
                 Text("학습 기록")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.bodyTextSemibold)
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
             .background(
                 Color.background2
                     .opacity(0.96)

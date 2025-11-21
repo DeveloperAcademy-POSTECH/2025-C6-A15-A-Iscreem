@@ -151,7 +151,7 @@ struct StudyView: View {
         let total = captionAnalyzer.vttCues.map(\.end).max()
         let leftText = formatDurationString(last)
         let rightText = formatDurationString(total)
-        return "마지막 학습 시간: \(leftText) / 전체 학습 시간: \(rightText)"
+        return "마지막 학습 위치: \(leftText) / 전체 학습 길이: \(rightText)"
     }
     
     private func lastPositionFromLogs() -> Double? {
