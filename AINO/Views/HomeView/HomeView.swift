@@ -137,7 +137,10 @@ struct HomeView: View {
                     withAnimation(.easeInOut(duration: 0.2)) {
                         isFolderDeletePresented = true
                     }
-                }, selectedFolderName: $selectedFolderName) // ✅ Pass binding so Sidebar syncs highlight
+                }, selectedFolderName: $selectedFolderName,
+                            folderToRename: $folderToRename,
+                            folderRenameText: $renameText    // ← HomeView의 renameText 재사용
+                        ) // ✅ Pass binding so Sidebar syncs highlight
                 .navigationSplitViewColumnWidth(
                     min: sidebarWidth,
                     ideal: sidebarWidth,

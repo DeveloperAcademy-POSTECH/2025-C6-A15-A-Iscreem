@@ -21,12 +21,16 @@ struct SidebarView: View {
         onFolderSelected: ((String?) -> Void)? = nil,
         isHelpPresented: Binding<Bool> = .constant(false),
         requestDeleteConfirmation: ((Set<PersistentIdentifier>) -> Void)? = nil,
-        selectedFolderName: Binding<String?> = .constant(nil)
+        selectedFolderName: Binding<String?> = .constant(nil),
+        folderToRename: Binding<Folder?> = .constant(nil),
+            folderRenameText: Binding<String> = .constant("")
     ) {
         self.onFolderSelected = onFolderSelected
         self._isHelpPresented = isHelpPresented
         self.requestDeleteConfirmation = requestDeleteConfirmation
         self._selectedFolderName = selectedFolderName
+        self._folderToRename = folderToRename
+            self._folderRenameText = folderRenameText
     }
     
     @StateObject private var viewModel = SidebarViewModel()
@@ -37,8 +41,8 @@ struct SidebarView: View {
     // Non-trashed folders only for sidebar display
     private var activeFolders: [Folder] { folders.filter { !$0.isTrashed } }
 
-    @State private var folderToRename: Folder?
-    @State private var folderRenameText: String = ""
+    @Binding var folderToRename: Folder?
+    @Binding var folderRenameText: String
     @State private var isAddingFolder = false
     @State private var newFolderName = ""
     @FocusState private var newFolderFieldFocused: Bool
@@ -102,25 +106,6 @@ struct SidebarView: View {
         }
         .ignoresSafeArea(.keyboard, edges: .bottom)
         .compactScaled(base: CGSize(width: 390, height: 844), min: 0.9, max: 1.0)
-        // 홈뷰와 동일한 “이름 변경” 카드 오버레이
-        .overlay {
-            if let folder = folderToRename {
-                GeometryReader { geometry in
-                    let cardWidth = min(320, geometry.size.width - 32) // 좌우 16씩 여백
-                    RenameFolderSheet(
-                        folder: folder,
-                        folderToRename: $folderToRename,
-                        renameText: $folderRenameText,
-                        modelContext: modelContext
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    .shadow(color: .black.opacity(0.2), radius: 20, x: 0, y: 10)
-                    .frame(width: cardWidth)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-                    .transition(.opacity.combined(with: .scale))
-                }
-            }
-        }
         .alert(isPresented: $showDeleteAlert) {
             let count = pendingDeleteFolderIDs.count
             let title = Text("삭제를 진행합니다")
