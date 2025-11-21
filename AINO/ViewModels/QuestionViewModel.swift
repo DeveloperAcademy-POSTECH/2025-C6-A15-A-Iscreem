@@ -15,7 +15,7 @@ import Foundation
 /// API 키 및 시크릿 정보를 관리하는 구조체
 struct APIKeys {
     /// ChatGPT API 키 (실제 키는 별도 설정 필요)
-    static let openAI = "YOUR_OPENAI_API_KEY_HERE"
+    static let openAI = "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"
     
     /// API 엔드포인트
     static let openAIEndpoint = "https://api.openai.com/v1/chat/completions"
@@ -25,12 +25,12 @@ struct APIKeys {
     
     /// OpenAI 설정
     struct OpenAIConfig {
-        static let temperature: Double = 0.3    // 일관된 답변, 토큰 절약
-        static let maxTokens = 150             // 간결한 답변으로 비용 절약
+        static let temperature: Double = 0.3    // 일관된 답변
+        static let maxTokens = 2000              // 충분한 답변 길이 허용
         static let systemPrompt = """
         당신은 학습을 도와주는 AI 어시스턴트입니다. 
-        간결하고 명확한 답변을 제공하세요. 
-        질문에 직접적으로 답변하고 불필요한 부연설명은 피하세요.
+        질문에 대해 명확하고 자세한 답변을 제공하세요. 
+        사용자가 요청한 내용을 완전히 설명하고, 필요한 경우 예시나 추가 설명을 포함하세요.
         """
     }
     
@@ -54,8 +54,8 @@ class ChatGPTService: ObservableObject {
     
     private let logger = Logger(subsystem: "AINO", category: "ChatGPTService")
     
-    /// 메시지 전송 및 응답 받기
-    func sendMessage(_ message: String) async throws -> String {
+    /// 메시지 전송 및 응답 받기 (이미지 포함 가능)
+    func sendMessage(_ message: String, imageData: Data? = nil) async throws -> String {
         logger.info("ChatGPT API 요청 시작: \(message.prefix(50))...")
         
         // API 키 검증
@@ -78,11 +78,21 @@ class ChatGPTService: ObservableObject {
         request.timeoutInterval = 30.0
         
         // 요청 바디 구성 (비용 최적화 설정 적용)
+        var userMessageContent: [ChatGPTMessageContent] = [
+            ChatGPTMessageContent(text: message)
+        ]
+        
+        // 이미지가 있으면 base64로 인코딩하여 추가
+        if let imageData = imageData {
+            let base64Image = imageData.base64EncodedString()
+            userMessageContent.append(ChatGPTMessageContent(imageUrl: "data:image/jpeg;base64,\(base64Image)"))
+        }
+        
         let requestBody = ChatGPTRequest(
-            model: APIKeys.openAIModel,
+            model: imageData != nil ? "gpt-4o-mini" : APIKeys.openAIModel, // Vision API는 gpt-4o-mini도 지원
             messages: [
                 ChatGPTMessage(role: "system", content: APIKeys.OpenAIConfig.systemPrompt),
-                ChatGPTMessage(role: "user", content: message)
+                ChatGPTMessage(role: "user", content: userMessageContent)
             ],
             max_tokens: APIKeys.OpenAIConfig.maxTokens,
             temperature: APIKeys.OpenAIConfig.temperature
@@ -131,9 +141,31 @@ class ChatGPTService: ObservableObject {
                     throw ChatGPTError.noContent
                 }
                 
-                let content = firstChoice.message.content
+                // finish_reason 확인하여 응답이 잘렸는지 체크
+                if let finishReason = firstChoice.finish_reason {
+                    if finishReason == "length" {
+                        logger.warning("⚠️ 응답이 max_tokens 제한으로 인해 잘렸습니다. max_tokens를 늘려야 할 수 있습니다.")
+                    } else {
+                        logger.info("응답 완료 이유: \(finishReason)")
+                    }
+                }
                 
-                logger.info("ChatGPT 응답 성공: \(content.prefix(50))...")
+                // 사용량 정보 로깅
+                if let usage = chatResponse.usage {
+                    logger.info("토큰 사용량 - 프롬프트: \(usage.prompt_tokens), 완성: \(usage.completion_tokens), 총: \(usage.total_tokens)")
+                }
+                
+                // 응답 content는 항상 String이어야 함 (AI 응답)
+                let content: String
+                switch firstChoice.message.content {
+                case .string(let str):
+                    content = str
+                case .array:
+                    // 배열인 경우는 사용자 메시지에서만 발생하므로 여기서는 발생하지 않아야 함
+                    throw ChatGPTError.decodingFailed
+                }
+                
+                logger.info("ChatGPT 응답 성공: \(content.count)자, \(content.prefix(100))...")
                 return content.trimmingCharacters(in: .whitespacesAndNewlines)
                 
             } catch {
@@ -160,9 +192,80 @@ struct ChatGPTRequest: Codable {
     let temperature: Double
 }
 
+// MARK: - Message Content (텍스트 또는 이미지)
+struct ChatGPTMessageContent: Codable {
+    let type: String
+    let text: String?
+    let imageUrl: ImageUrl?
+    
+    struct ImageUrl: Codable {
+        let url: String
+    }
+    
+    enum CodingKeys: String, CodingKey {
+        case type, text, imageUrl = "image_url"
+    }
+    
+    init(text: String) {
+        self.type = "text"
+        self.text = text
+        self.imageUrl = nil
+    }
+    
+    init(imageUrl: String) {
+        self.type = "image_url"
+        self.text = nil
+        self.imageUrl = ImageUrl(url: imageUrl)
+    }
+}
+
 struct ChatGPTMessage: Codable {
     let role: String
-    let content: String
+    let content: ChatGPTMessageContentUnion
+    
+    enum CodingKeys: String, CodingKey {
+        case role, content
+    }
+    
+    init(role: String, content: String) {
+        self.role = role
+        self.content = .string(content)
+    }
+    
+    init(role: String, content: [ChatGPTMessageContent]) {
+        self.role = role
+        self.content = .array(content)
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(role, forKey: .role)
+        switch content {
+        case .string(let str):
+            try container.encode(str, forKey: .content)
+        case .array(let arr):
+            try container.encode(arr, forKey: .content)
+        }
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        role = try container.decode(String.self, forKey: .role)
+        
+        // content가 String인지 Array인지 확인
+        if let stringContent = try? container.decode(String.self, forKey: .content) {
+            content = .string(stringContent)
+        } else if let arrayContent = try? container.decode([ChatGPTMessageContent].self, forKey: .content) {
+            content = .array(arrayContent)
+        } else {
+            throw DecodingError.dataCorruptedError(forKey: .content, in: container, debugDescription: "Content must be String or Array")
+        }
+    }
+}
+
+enum ChatGPTMessageContentUnion {
+    case string(String)
+    case array([ChatGPTMessageContent])
 }
 
 struct ChatGPTResponse: Codable {
@@ -247,6 +350,7 @@ class QuestionViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var isAPIKeyValid = false
+    @Published var includeScreenshot = false
     
     // 추천질문 관련 상태
     @Published var suggestedQuestions: [String] = []
@@ -282,19 +386,70 @@ class QuestionViewModel: ObservableObject {
             return
         }
         
-        let userMessage = ChatMessage(text: currentMessage, isUser: true)
-        messages.append(userMessage)
-        
         let messageToSend = currentMessage
+        let shouldIncludeScreenshot = includeScreenshot
         currentMessage = ""
         isLoading = true
         errorMessage = nil
         
-        logger.info("사용자 질문 전송: \(messageToSend.prefix(50))...")
+        logger.info("사용자 질문 전송: \(messageToSend.prefix(50))... (스크린샷 포함: \(shouldIncludeScreenshot))")
         
         Task {
+            var imageData: Data? = nil
+            
+            // 스크린샷이 필요한 경우 캡쳐
+            if shouldIncludeScreenshot {
+                await MainActor.run {
+                    // NotificationCenter를 통해 스크린샷 요청
+                    NotificationCenter.default.post(name: .captureMediaViewScreenshot, object: nil)
+                }
+                
+                // 스크린샷 응답 대기 (continuation이 한 번만 resume되도록 보장)
+                imageData = await withCheckedContinuation { continuation in
+                    // 클래스로 감싸서 참조로 전달 (클로저 내부에서 수정 가능하도록)
+                    class ObserverWrapper {
+                        var observer: NSObjectProtocol?
+                    }
+                    let wrapper = ObserverWrapper()
+                    var hasResumed = false
+                    let resumeOnce: (Data?) -> Void = { data in
+                        guard !hasResumed else { return }
+                        hasResumed = true
+                        if let observer = wrapper.observer {
+                            NotificationCenter.default.removeObserver(observer)
+                            wrapper.observer = nil
+                        }
+                        continuation.resume(returning: data)
+                    }
+                    
+                    wrapper.observer = NotificationCenter.default.addObserver(
+                        forName: .mediaViewScreenshotCaptured,
+                        object: nil,
+                        queue: .main
+                    ) { notification in
+                        if let data = notification.userInfo?["imageData"] as? Data {
+                            resumeOnce(data)
+                        } else {
+                            resumeOnce(nil)
+                        }
+                    }
+                    
+                    // 타임아웃: 3초 후 nil 반환
+                    Task { @MainActor in
+                        try? await Task.sleep(nanoseconds: 3_000_000_000)
+                        resumeOnce(nil)
+                    }
+                }
+            }
+            
+            // 사용자 메시지를 이미지와 함께 추가
+            await MainActor.run {
+                let userMessage = ChatMessage(text: messageToSend, isUser: true, imageData: imageData)
+                self.messages.append(userMessage)
+            }
+            
             do {
-                let response = try await chatGPTService.sendMessage(messageToSend)
+                let response = try await chatGPTService.sendMessage(messageToSend, imageData: imageData)
                 
                 await MainActor.run {
                     let aiMessage = ChatMessage(text: response, isUser: false)
