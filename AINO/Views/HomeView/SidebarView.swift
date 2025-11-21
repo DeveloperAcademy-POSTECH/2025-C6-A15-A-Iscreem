@@ -111,6 +111,9 @@ struct SidebarView: View {
             folderRenameText = ""
         }) {
             renameSheet
+                // 더 낮은 높이로 표시
+                .presentationDetents([.height(180)])
+                .presentationDragIndicator(.hidden)
         }
         .alert(isPresented: $showDeleteAlert) {
             let count = pendingDeleteFolderIDs.count
@@ -449,15 +452,16 @@ private extension SidebarView {
     }
 
     var renameSheet: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("폴더 이름 변경").font(.title3)
+        VStack(alignment: .leading, spacing: 8) {
+            Text("폴더 이름 변경")
+                .font(.headline)
             TextField("폴더 이름", text: $folderRenameText)
                 .textFieldStyle(.roundedBorder)
                 .submitLabel(.done)
                 .focused($renameFieldFocused)
                 .onAppear { renameFieldFocused = true }
                 .onSubmit { saveRename() }
-            HStack {
+            HStack(spacing: 12) {
                 Spacer()
                 Button("취소") {
                     isRenamingSheet = false
@@ -467,8 +471,10 @@ private extension SidebarView {
                 }
                 .buttonStyle(.borderedProminent)
             }
+            .padding(.top, 4)
         }
-        .padding()
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
     }
     
     var bottomBar: some View {
