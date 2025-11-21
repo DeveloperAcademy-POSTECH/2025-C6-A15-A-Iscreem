@@ -675,6 +675,7 @@ struct HomeView: View {
                     selectedFolderName: $selectedFolderName,
                     headerSubtitle: $headerSubtitle,
                     noteToRename: $noteToRename,
+                    folderToRename: $folderToRename, // ✅ 누락되었던 인자 추가
                     renameText: $renameText,
                     onNoteSelected: onNoteSelected,
                     modelContext: modelContext
@@ -1595,4 +1596,3 @@ struct SidebarCoachOverlay: View {
         }
     }
 }
-
