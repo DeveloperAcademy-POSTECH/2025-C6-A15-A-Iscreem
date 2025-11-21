@@ -12,20 +12,17 @@ struct ChatMessage: Identifiable {
     let text: String
     let isUser: Bool
     let timestamp: Date
-    let imageData: Data?
     
     init(
         id: UUID = UUID(),
         text: String,
         isUser: Bool,
-        timestamp: Date = Date(),
-        imageData: Data? = nil
+        timestamp: Date = Date()
     ) {
         self.id = id
         self.text = text
         self.isUser = isUser
         self.timestamp = timestamp
-        self.imageData = imageData
     }
 }
 

@@ -73,26 +73,6 @@ struct MediaView: View {
                 representable?.stop()
             }
         }
-        // ▶︎ 스크린샷 요청 수신 시 캡쳐 수행
-        .onReceive(NotificationCenter.default.publisher(for: .captureMediaViewScreenshot)) { notification in
-            Task { @MainActor in
-                captureScreenshot { imageData in
-                    if let imageData = imageData {
-                        NotificationCenter.default.post(
-                            name: .mediaViewScreenshotCaptured,
-                            object: nil,
-                            userInfo: ["imageData": imageData]
-                        )
-                    } else {
-                        NotificationCenter.default.post(
-                            name: .mediaViewScreenshotCaptured,
-                            object: nil,
-                            userInfo: [:]
-                        )
-                    }
-                }
-            }
-        }
         .onAppear {
             if representable == nil {
                 // YouTubePane의 역할을 이 View에서 수행: 캡션 분석기와 연결된 WebView 브리지 준비
@@ -230,16 +210,6 @@ struct MediaView: View {
         return out
     }
 
-    // MARK: - Screenshot Capture
-    private func captureScreenshot(completion: @escaping (Data?) -> Void) {
-        guard let rep = representable else {
-            completion(nil)
-            return
-        }
-        
-        rep.captureScreenshot(completion: completion)
-    }
-    
     // MARK: - Helpers
     private func loadIfNeeded(_ url: String) {
         // 이어보기: 재개 시간이 있으면 URL에 붙여서 로드
@@ -342,8 +312,6 @@ struct MediaView: View {
 extension Notification.Name {
     static let persistPlaybackPosition = Notification.Name("PersistPlaybackPosition")
     static let pausePlaybackRequested = Notification.Name("PausePlaybackRequested")
-    static let captureMediaViewScreenshot = Notification.Name("CaptureMediaViewScreenshot")
-    static let mediaViewScreenshotCaptured = Notification.Name("MediaViewScreenshotCaptured")
 }
 
 #Preview(traits: .landscapeLeft) {

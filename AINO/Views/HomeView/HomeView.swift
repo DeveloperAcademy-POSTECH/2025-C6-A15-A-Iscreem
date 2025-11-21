@@ -20,7 +20,6 @@ struct HomeView: View {
     @EnvironmentObject private var learningLogStore: LearningLogStore
     @State private var showStudyHistory: Bool = false
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-    @Environment(\.scenePhase) private var scenePhase
     
     @Environment(\.modelContext) var modelContext
     @Query(sort: [SortDescriptor(\Note.lastRead, order: .reverse)]) var notes: [Note]
@@ -31,18 +30,6 @@ struct HomeView: View {
     
     @State var noteToRename: Note?
     @State var renameText: String = ""
-    
-    // 새 폴더 생성 모달 (아이폰 전용)
-    @State var showNewFolderSheet: Bool = false
-    @State var newFolderName: String = ""
-    @FocusState private var newFolderFieldFocused: Bool
-    
-    // 폴더 이름 변경 모달
-    @State var showRenameFolderSheet: Bool = false
-    @State var folderToRename: Folder?
-    @State var folderRenameText: String = ""
-    @State var folderOriginalName: String = "" // 변경 전 폴더 이름 저장
-    @FocusState private var folderRenameFieldFocused: Bool
     
     @State var isKeyboardVisible: Bool = false
     @State var keyboardHeight: CGFloat = 0
@@ -107,135 +94,120 @@ struct HomeView: View {
     
     var body: some View {
         GeometryReader { proxy in
+            // Utils/BaseLayoutScaler로 분리된 기준 해상도 스케일러
             let scaler = BaseLayoutScaler(proxy: proxy, base: CGSize(width: 1366, height: 1024))
-            let sidebarRatio: CGFloat = 256.0 / (256.0 + 762.0)
-            let sidebarWidth = scaler.sidebarWidth(ratio: sidebarRatio)
-            let metrics = createLayoutMetrics(scaler: scaler)
             
-            applyBodyModifiers(
-                content: mainContentView(scaler: scaler, sidebarWidth: sidebarWidth, metrics: metrics),
-                scaler: scaler,
-                metrics: metrics
+            // iPad 랜드스케이프 기준 사이드바 비율(256 : 762)
+            let sidebarRatio: CGFloat = 256.0 / (256.0 + 762.0) // ≈ 0.2514
+            let sidebarWidth = scaler.sidebarWidth(ratio: sidebarRatio)
+
+            // Local dynamic metrics derived from the scaler (no Environment)
+            let metrics = HomeView.LayoutMetrics(
+                searchMinWidth: scaler.w(220),
+                searchMaxWidth: scaler.w(320),
+                searchHeight: scaler.h(36),
+                sortButtonSize: scaler.uni(36),
+                toggleWidth: scaler.w(116),
+                toggleHeight: scaler.h(36),
+                addButtonLegacyDiameter: scaler.h(60),
+                addButtonLegacyIcon: scaler.h(50),
+                addButtonModernSide: scaler.h(60),
+                addButtonModernIcon: horizontalSizeClass == .compact ? scaler.h(32) : scaler.h(28),
+                overlayPadding: scaler.uni(32),
+                menuButtonSide: scaler.h(36),
+                controlMinSide: scaler.uni(92),
+                controlIconPadding: scaler.uni(6),
+                compactHeaderRowSpacing: scaler.h(12),
+                compactHeaderBottomPadding: horizontalSizeClass == .compact ? scaler.h(12) : scaler.h(8),
+                overlayTrailingExtra: (horizontalSizeClass == .compact ? scaler.w(40) : 0)
             )
-        }
-    }
-    
-    // MARK: - Helper Methods for Body
-    private func createLayoutMetrics(scaler: BaseLayoutScaler) -> LayoutMetrics {
-        LayoutMetrics(
-            searchMinWidth: scaler.w(220),
-            searchMaxWidth: scaler.w(320),
-            searchHeight: scaler.h(36),
-            sortButtonSize: scaler.uni(36),
-            toggleWidth: scaler.w(116),
-            toggleHeight: scaler.h(36),
-            addButtonLegacyDiameter: scaler.h(60),
-            addButtonLegacyIcon: scaler.h(50),
-            addButtonModernSide: scaler.h(60),
-            addButtonModernIcon: horizontalSizeClass == .compact ? scaler.h(32) : scaler.h(28),
-            overlayPadding: scaler.uni(32),
-            menuButtonSide: scaler.h(36),
-            controlMinSide: scaler.uni(92),
-            controlIconPadding: scaler.uni(6),
-            compactHeaderRowSpacing: scaler.h(12),
-            compactHeaderBottomPadding: horizontalSizeClass == .compact ? scaler.h(12) : scaler.h(8),
-            overlayTrailingExtra: (horizontalSizeClass == .compact ? scaler.w(40) : 0)
-        )
-    }
-    
-    private var backgroundGradient: some View {
-        LinearGradient(
-            colors: [
-                Color.black.opacity(0.12),
-                Color.blue.opacity(0.10)
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-        .ignoresSafeArea()
-        .backgroundExtensionEffect()
-    }
-    
-    private func mainContentView(scaler: BaseLayoutScaler, sidebarWidth: CGFloat, metrics: LayoutMetrics) -> some View {
-        NavigationSplitView(columnVisibility: $splitVisibility, preferredCompactColumn: $preferredCompactColumn) {
-            SidebarView(onFolderSelected: { name in
-                if name == "__ALL__" {
-                    applySelection(folderName: "__ALL__", subtitle: "전체 보기")
-                } else if let name {
-                    applySelection(folderName: name, subtitle: name)
-                } else {
-                    applySelection(folderName: nil, subtitle: "최근 열어본 항목")
-                }
-            }, isHelpPresented: $isHelpPresented, requestDeleteConfirmation: { ids in
-                folderIDsPendingDelete = ids
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    isFolderDeletePresented = true
-                }
-            }, selectedFolderName: $selectedFolderName)
-            .navigationSplitViewColumnWidth(
-                min: sidebarWidth,
-                ideal: sidebarWidth,
-                max: sidebarWidth
-            )
-            .toolbar(.hidden, for: .navigationBar)
-        } detail: {
-            ZStack {
-                if isShowingTrash {
-                    TrashView()
-                        .environmentObject(learningLogStore)
-                } else {
-                    VStack(spacing: 0) {
-                        headerView(metrics: metrics)
-                        Divider().background(Color.borderColor)
-                        contentView(metrics: metrics)
-                            .id(sortChangeTick)
-                            .tagPostHomeTarget(.homeList)
-                            .overlay {
-                                if shouldShowEmptyState {
-                                    emptyStateView
+            
+            NavigationSplitView(columnVisibility: $splitVisibility, preferredCompactColumn: $preferredCompactColumn) {
+                SidebarView(onFolderSelected: { name in
+                    if name == "__ALL__" {
+                        applySelection(folderName: "__ALL__", subtitle: "전체 보기")
+                    } else if let name {
+                        applySelection(folderName: name, subtitle: name)
+                    } else {
+                        applySelection(folderName: nil, subtitle: "최근 열어본 항목")
+                    }
+                }, isHelpPresented: $isHelpPresented, requestDeleteConfirmation: { ids in
+                    folderIDsPendingDelete = ids
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        isFolderDeletePresented = true
+                    }
+                }, selectedFolderName: $selectedFolderName) // ✅ Pass binding so Sidebar syncs highlight
+                .navigationSplitViewColumnWidth(
+                    min: sidebarWidth,
+                    ideal: sidebarWidth,
+                    max: sidebarWidth
+                )
+                .toolbar(.hidden, for: .navigationBar)
+            } detail: {
+                ZStack {
+                    if isShowingTrash {
+                        TrashView()
+                            .environmentObject(learningLogStore)
+                    } else {
+                        VStack(spacing: 0) {
+                            // 헤더
+                            headerView(metrics: metrics)
+
+                            Divider().background(Color.borderColor)
+
+                            // 노트 그리드/리스트
+                            contentView(metrics: metrics)
+                                .id(sortChangeTick) // ✅ 정렬 변경 시 안전한 리빌드 트리거
+                                .tagPostHomeTarget(.homeList)
+                                .overlay {
+                                    if shouldShowEmptyState {
+                                        emptyStateView
+                                    }
                                 }
-                            }
+                        }
+                    }
+                    if isShowingSettings {
+                        SettingsDetailView(showResetConfirm: $showResetConfirm)
+                            .transition(.opacity)
+                            .background(Color(.systemBackground))
                     }
                 }
-                if isShowingSettings {
-                    SettingsDetailView(showResetConfirm: $showResetConfirm)
-                        .transition(.opacity)
-                        .background(Color(.systemBackground))
-                }
+//                .overlay(alignment: .topLeading) {
+//                    // ✅ iPad에서 compact 사이즈일 때, 설정/휴지통 화면 상단 좌측에 뒤로가기 버튼 표시
+//                    if horizontalSizeClass == .compact && (isShowingSettings || isShowingTrash) {
+//                        backButton(metrics: metrics)
+//                            .padding(.leading, 16)
+//                            .padding(.top, 12)
+//                            .safeAreaPadding(.top)
+//                    }
+//                }
+                .navigationBarBackButtonHidden(horizontalSizeClass == .compact)
             }
-            .navigationBarBackButtonHidden(horizontalSizeClass == .compact)
-        }
-        .overlay(alignment: .bottomTrailing) {
-            VStack(spacing: scaler.h(20)) {
-                if !isShowingTrash && !isShowingSettings {
-                    historyButton
-                        .padding(.bottom, horizontalSizeClass == .compact ? scaler.h(8) : 0)
-                    addButton(metrics: metrics)
+            .overlay(alignment: .bottomTrailing) {
+                VStack(spacing: scaler.h(20)) {
+                    if !isShowingTrash && !isShowingSettings {
+                        historyButton
+                            .padding(.bottom, horizontalSizeClass == .compact ? scaler.h(8) : 0)
+                        addButton(metrics: metrics)
+                    }
                 }
+                .padding(.leading, metrics.overlayPadding)
+                .padding(.top, metrics.overlayPadding)
+                .padding(.trailing, metrics.overlayPadding + (horizontalSizeClass == .compact ? metrics.overlayTrailingExtra : 0))
+                .padding(.bottom, horizontalSizeClass == .compact ? scaler.h(4) : metrics.overlayPadding)
             }
-            .padding(.leading, metrics.overlayPadding)
-            .padding(.top, metrics.overlayPadding)
-            .padding(.trailing, metrics.overlayPadding + (horizontalSizeClass == .compact ? metrics.overlayTrailingExtra : 0))
-            .padding(.bottom, horizontalSizeClass == .compact ? scaler.h(4) : metrics.overlayPadding)
-        }
-    }
-    
-    private func applyBodyModifiers<Content: View>(content: Content, scaler: BaseLayoutScaler, metrics: LayoutMetrics) -> some View {
-        applyOverlayModifiers(
-            content: applySheetModifiers(
-                content: applyLifecycleModifiers(
-                    content: applyNotificationModifiers(
-                        content: applyBasicModifiers(content: content)
-                    )
+            .background {
+                LinearGradient(
+                    colors: [
+                        Color.black.opacity(0.12),
+                        Color.blue.opacity(0.10)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
                 )
-            )
-        )
-        .preferredColorScheme(colorScheme)
-    }
-    
-    private func applyBasicModifiers<Content: View>(content: Content) -> some View {
-        content
-            .background(backgroundGradient)
+                .ignoresSafeArea()
+                .backgroundExtensionEffect()
+            }
             .navigationSplitViewStyle(.balanced)
             .keyboardOverlay()
             .applyOverlays(
@@ -255,13 +227,33 @@ struct HomeView: View {
                 modelContext: modelContext,
                 isFormValid: isFormValid,
                 createNoteTapped: createNoteTapped,
-                onFolderDeleteConfirmed: handleFolderDeleteConfirmed
+                onFolderDeleteConfirmed: {
+                    // 폴더를 휴지통으로 이동
+                    for id in folderIDsPendingDelete {
+                        if let target = folders.first(where: { $0.persistentModelID == id }) {
+                            target.isTrashed = true
+                            target.trashedAt = Date()
+                            // 포함된 노트도 함께 휴지통으로 이동
+                            for n in target.notes {
+                                n.isTrashed = true
+                                n.trashedAt = Date()
+                            }
+                        }
+                    }
+                    try? modelContext.save()
+                    folderIDsPendingDelete.removeAll()
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        isFolderDeletePresented = false
+                    }
+                    // 보수적 안전망: 현재 남아있는 노트로 재동기화
+                    _ = learningLogStore.reconcileWithNotes(currentNotes: notes)
+                    // 프리로드(재실행/새로고침 후에도 동일 표시)
+                    learningLogStore.preloadChapterSummariesFromNotes(currentNotes: notes)
+                    // 세션은 보존(복원 시 그대로 사용). 영구 삭제 시에만 정리.
+                }
             )
-    }
-    
-    private func applyNotificationModifiers<Content: View>(content: Content) -> some View {
-        content
             .onReceive(NotificationCenter.default.publisher(for: .showSettings)) { _ in
+                // 설정 화면으로 진입하기 직전 상태를 스택에 저장
                 pushCurrentSnapshot()
                 withAnimation(.easeInOut(duration: 0.2)) {
                     isShowingSettings = true
@@ -275,6 +267,7 @@ struct HomeView: View {
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: .showTrash)) { _ in
+                // 휴지통으로 진입하기 직전 상태를 스택에 저장
                 pushCurrentSnapshot()
                 withAnimation(.easeInOut(duration: 0.2)) {
                     isShowingTrash = true
@@ -287,78 +280,81 @@ struct HomeView: View {
                     isShowingTrash = false
                 }
             }
+            // ✅ 사이드바 숨김 토글 노티 수신 → 실제 표시 상태 토글
             .onReceive(NotificationCenter.default.publisher(for: .toggleSidebar)) { _ in
                 withAnimation(.easeInOut(duration: 0.2)) {
                     splitVisibility = (splitVisibility == .all) ? .detailOnly : .all
                 }
             }
+//            .onReceive(NotificationCenter.default.publisher(for: .goBack)) { _ in
+//                // 동일 로직: 뒤로가기 버튼 탭 시와 동일하게 스택에서 복원
+//                if let snap = backStack.popLast() {
+//                    restore(from: snap)
+//                }
+//            }
             .onReceive(NotificationCenter.default.publisher(for: .returnedFromStudyView)) { _ in
+                // 사용자가 StudyView에서 홈으로 돌아왔을 때,
+                // 아직 포스트 온보딩을 보지 않았다면 다시 표시되도록 재무장
                 if !hasSeenHomePostNoteOnboarding && !notes.isEmpty {
                     shouldTriggerPostOnboarding = true
                     postOnboardingStep = .list
                 }
             }
-            .onReceive(NotificationCenter.default.publisher(for: .handleYouTubeURL)) { notification in
-                handleYouTubeURLNotification(notification)
-            }
-            .onReceive(NotificationCenter.default.publisher(for: .appWillEnterForeground)) { _ in
-                handleAppWillEnterForeground()
-            }
-            .onReceive(NotificationCenter.default.publisher(for: .appDidBecomeActive)) { _ in
-                handleAppDidBecomeActive()
-            }
-    }
-    
-    private func applyLifecycleModifiers<Content: View>(content: Content) -> some View {
-        content
             .onAppear {
-                handleOnAppear()
-            }
-            .onChange(of: scenePhase) { oldPhase, newPhase in
-                handleScenePhaseChange(oldPhase: oldPhase, newPhase: newPhase)
+                // 앱 시작 직후 ‘전체 보기’로 진입 → + 버튼 보이게
+                if selectedFolderName == nil {
+                    // 초기 진입은 스택에 기록하지 않음
+                    setSelection(folderName: "__ALL__", subtitle: "전체 보기")
+                }
+                // 1) 세션 생성(없으면)
+                _ = learningLogStore.bootstrapSessionsIfNeeded(currentNotes: notes)
+                // 2) 세션 보강(빈 필드 채우기)
+                _ = learningLogStore.enrichSessionsFromNotes(currentNotes: notes)
+                // 3) 고아 세션 정리(노트에 없는 세션 제거)
+                _ = learningLogStore.reconcileWithNotes(currentNotes: notes)
+                // 4) ✅ 재실행 시에도 동일하게 보이도록, 노트 캐시로 메모리 맵 프리로드
+                learningLogStore.preloadChapterSummariesFromNotes(currentNotes: notes)
+                if !hasSeenHomeOnboarding {
+                    onboardingStep = (horizontalSizeClass == .compact ? .makeFolderIphone : .makeFolder)
+                }
+                lastFolderCount = folders.count
+                // 앱을 다시 그리면서 HomeView가 재생성된 경우에도
+                // 첫 노트 이후 온보딩이 한 번도 완료되지 않았다면 다시 보여준다.
+                if !hasSeenHomePostNoteOnboarding && !notes.isEmpty {
+                    shouldTriggerPostOnboarding = true
+                    postOnboardingStep = .list
+                }
+                // ✅ Combine 파이프라인 설정
+                setupCombinePipelines()
             }
             .onChange(of: notes) { oldValue, newValue in
-                handleNotesChange(oldValue: oldValue, newValue: newValue)
+                _ = learningLogStore.bootstrapSessionsIfNeeded(currentNotes: newValue)
+                _ = learningLogStore.enrichSessionsFromNotes(currentNotes: newValue)
+                _ = learningLogStore.reconcileWithNotes(currentNotes: newValue)
+                // ✅ 노트 캐시 → 메모리 맵 프리로드
+                learningLogStore.preloadChapterSummariesFromNotes(currentNotes: newValue)
+
+                // 첫 노트가 생성된 순간에 사후 온보딩 표시
+                if !hasSeenHomePostNoteOnboarding && oldValue.isEmpty && !newValue.isEmpty {
+                    shouldTriggerPostOnboarding = true
+                    postOnboardingStep = .list
+                }
             }
             .onChange(of: folders) { oldValue, newValue in
-                handleFoldersChange(oldValue: oldValue, newValue: newValue)
+                if !hasSeenFolderSidebarOnboarding && newValue.count > oldValue.count {
+                    showFolderSidebarOnboarding = true
+                    folderSidebarStep = .list
+                }
+                lastFolderCount = newValue.count
             }
+            // 🔁 Observe @AppStorage changes via SwiftUI instead of Combine on Binding
             .onChange(of: sidebarSortOptionRaw) { _, _ in
                 sortChangeTick &+= 1
             }
-    }
-    
-    private func applySheetModifiers<Content: View>(content: Content) -> some View {
-        content
             .sheet(isPresented: $showStudyHistory) {
                 StudyHistoryView()
                     .environmentObject(learningLogStore)
             }
-            .sheet(isPresented: $showNewFolderSheet, onDismiss: {
-                newFolderName = ""
-                newFolderFieldFocused = false
-            }) {
-                newFolderSheet
-            }
-            .onChange(of: showNewFolderSheet) { _, isPresented in
-                if isPresented {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                        newFolderFieldFocused = true
-                    }
-                }
-            }
-            .sheet(isPresented: $showRenameFolderSheet, onDismiss: {
-                folderToRename = nil
-                folderRenameText = ""
-                folderOriginalName = ""
-                folderRenameFieldFocused = false
-            }) {
-                renameFolderSheet
-            }
-    }
-    
-    private func applyOverlayModifiers<Content: View>(content: Content) -> some View {
-        content
             .overlayPreferenceValue(TargetBoundsKey.self) { map in
                 if !hasSeenHomeOnboarding {
                     CoachOverlay(step: $onboardingStep, map: map) {
@@ -388,23 +384,9 @@ struct HomeView: View {
                     .transition(.opacity)
                 }
             }
-    }
-    
-    private func handleYouTubeURLNotification(_ notification: Notification) {
-        print("📬 [HomeView] ========== handleYouTubeURL notification received ==========")
-        print("📬 [HomeView] Notification userInfo: \(notification.userInfo ?? [:])")
-        if let urlString = notification.userInfo?["url"] as? String {
-            let title = notification.userInfo?["title"] as? String
-            print("📬 [HomeView] URL = \(urlString), Title = \(title ?? "nil")")
-            print("📬 [HomeView] Current notes count before: \(notes.count)")
-            handleYouTubeURL(urlString, title: title)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                print("📬 [HomeView] Current notes count after: \(notes.count)")
-            }
-        } else {
-            print("❌ [HomeView] No URL in notification userInfo")
         }
-        print("📬 [HomeView] ========== handleYouTubeURL notification processed ==========")
+        // ✅ 설정의 테마를 홈에도 적용
+        .preferredColorScheme(colorScheme)
     }
     
     // MARK: - Header View
@@ -420,27 +402,13 @@ struct HomeView: View {
                     sidebarMenuButton(metrics: metrics)
                         .layoutPriority(2)
 
-                    Button {
-                        // 폴더가 선택되어 있고, 전체 보기나 최근 열어본 항목이 아닐 때만 이름 변경 가능
-                        if let folderName = selectedFolderName,
-                           folderName != "__ALL__",
-                           let folder = folders.first(where: { $0.name == folderName }) {
-                            folderToRename = folder
-                            folderRenameText = folder.name
-                            folderOriginalName = folder.name // 변경 전 이름 저장
-                            showRenameFolderSheet = true
-                        }
-                    } label: {
-                        Text(headerSubtitle)
-                            .padding(.leading, 6)
-                            .font(.system(size: 22, weight: .bold))
-                            .foregroundStyle(Color.text1)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                            .minimumScaleFactor(0.85)
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(selectedFolderName == nil || selectedFolderName == "__ALL__" || headerSubtitle == "최근 열어본 항목" || headerSubtitle == "설정" || headerSubtitle == "휴지통")
+                    Text(headerSubtitle)
+                        .padding(.leading, 6)
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundStyle(Color.text1)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .minimumScaleFactor(0.85)
 
                     Spacer()
 
@@ -482,26 +450,12 @@ struct HomeView: View {
                     if horizontalSizeClass != .compact {
                         
                     }
-                    Button {
-                        // 폴더가 선택되어 있고, 전체 보기나 최근 열어본 항목이 아닐 때만 이름 변경 가능
-                        if let folderName = selectedFolderName,
-                           folderName != "__ALL__",
-                           let folder = folders.first(where: { $0.name == folderName }) {
-                            folderToRename = folder
-                            folderRenameText = folder.name
-                            folderOriginalName = folder.name // 변경 전 이름 저장
-                            showRenameFolderSheet = true
-                        }
-                    } label: {
-                        Text(headerSubtitle)
-                            .font(.system(size: 22, weight: .bold))
-                            .foregroundStyle(Color.text2)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                            .minimumScaleFactor(0.85)
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(selectedFolderName == nil || selectedFolderName == "__ALL__" || headerSubtitle == "최근 열어본 항목" || headerSubtitle == "설정" || headerSubtitle == "휴지통")
+                    Text(headerSubtitle)
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundStyle(Color.text2)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .minimumScaleFactor(0.85)
                 }
 
                 Spacer()
@@ -984,426 +938,22 @@ struct HomeView: View {
 
     // 새 폴더 생성 후 즉시 선택
     private func createNewFolderAndSelect() {
-        // 아이폰에서는 모달을 띄우고, 아이패드에서는 기존 방식 유지
-        if horizontalSizeClass == .compact {
-            // 아이폰: 모달 표시
-            newFolderName = ""
-            showNewFolderSheet = true
-        } else {
-            // 아이패드: 기존 방식 (사이드바에 인라인 입력)
-            // 중복 방지 이름 생성
-            let existing = Set(folders.map { $0.name })
-            let base = "새 폴더"
-            var finalName = base
-            if existing.contains(finalName) {
-                var i = 1
-                while existing.contains("\(base) \(i)") { i += 1 }
-                finalName = "\(base) \(i)"
-            }
-            let folder = Folder(name: finalName)
-            modelContext.insert(folder)
-            try? modelContext.save()
-            // 생성 직전 화면 상태 스냅샷 + 선택 적용
-            applySelection(folderName: folder.name, subtitle: folder.name)
-        }
-    }
-    
-    // 새 폴더 생성 모달에서 폴더 생성
-    private func commitNewFolder() {
-        let trimmed = newFolderName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else {
-            showNewFolderSheet = false
-            newFolderName = ""
-            return
-        }
         // 중복 방지 이름 생성
-        var finalName = trimmed
         let existing = Set(folders.map { $0.name })
+        let base = "새 폴더"
+        var finalName = base
         if existing.contains(finalName) {
             var i = 1
-            while existing.contains("\(finalName) \(i)") { i += 1 }
-            finalName = "\(finalName) \(i)"
+            while existing.contains("\(base) \(i)") { i += 1 }
+            finalName = "\(base) \(i)"
         }
         let folder = Folder(name: finalName)
         modelContext.insert(folder)
         try? modelContext.save()
-        showNewFolderSheet = false
-        newFolderName = ""
         // 생성 직전 화면 상태 스냅샷 + 선택 적용
         applySelection(folderName: folder.name, subtitle: folder.name)
     }
-    
-    // 폴더 이름 변경
-    private func saveFolderRename() {
-        guard let folder = folderToRename else {
-            showRenameFolderSheet = false
-            folderRenameText = ""
-            return
-        }
-        let trimmed = folderRenameText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else {
-            showRenameFolderSheet = false
-            folderRenameText = ""
-            return
-        }
-        // 변경 없음이면 바로 닫기
-        if trimmed == folder.name {
-            showRenameFolderSheet = false
-            folderRenameText = ""
-            return
-        }
-        // 현재 폴더를 제외한 기존 이름 집합
-        let otherNames = Set(folders.filter { $0.persistentModelID != folder.persistentModelID }.map { $0.name })
-        
-        // 중복 방지: 동일 이름이 있으면 숫자 접미사 부여
-        var finalName = trimmed
-        if otherNames.contains(finalName) {
-            var i = 1
-            while otherNames.contains("\(finalName) \(i)") { i += 1 }
-            finalName = "\(finalName) \(i)"
-        }
-        
-        folder.name = finalName
-        try? modelContext.save()
-        folderRenameFieldFocused = false
-        showRenameFolderSheet = false
-        folderRenameText = ""
-        // 헤더 제목과 선택된 폴더 이름도 업데이트 (변경 전 이름과 비교)
-        if selectedFolderName == folderOriginalName {
-            selectedFolderName = finalName
-            headerSubtitle = finalName
-        }
-        folderOriginalName = ""
-    }
 
-    // MARK: - YouTube URL Handling
-    private func handleYouTubeURL(_ urlString: String, title: String? = nil) {
-        print("🎯 handleYouTubeURL called with URL: \(urlString), Title: \(title ?? "nil")")
-        
-        // YouTube URL 정규화 (공백 제거 등)
-        let normalizedURL = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
-        print("📝 Normalized URL: \(normalizedURL)")
-        
-        // YouTube URL인지 다시 한 번 확인
-        guard isYouTubeURL(normalizedURL) else {
-            print("❌ URL is not a valid YouTube URL")
-            return
-        }
-        
-        // 제목 설정 (전달된 제목이 있으면 사용, 없으면 기본 제목 생성)
-        let finalTitle = title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? generateDefaultTitle(from: normalizedURL)
-        print("📝 Final title: \(finalTitle)")
-        
-        // 노트 자동 생성
-        createNoteFromShare(url: normalizedURL, title: finalTitle)
-    }
-    
-    // Scene Phase 변경 핸들러 (SwiftUI의 직접적인 생명주기 감지)
-    private func handleScenePhaseChange(oldPhase: ScenePhase, newPhase: ScenePhase) {
-        print("🔄 [HomeView] ========== Scene Phase 변경 감지 ==========")
-        print("🔄 [HomeView] 이전 Phase: \(oldPhase)")
-        print("🔄 [HomeView] 새로운 Phase: \(newPhase)")
-        
-        switch newPhase {
-        case .active:
-            print("✅ [HomeView] Scene이 활성화되었습니다 (active)")
-            print("📱 [HomeView] ========== 앱이 포그라운드로 돌아옴 (Scene Phase: active) ==========")
-            checkForSharedURLInHomeView()
-        case .inactive:
-            print("⏸️ [HomeView] Scene이 비활성화되었습니다 (inactive)")
-        case .background:
-            print("🔙 [HomeView] Scene이 백그라운드로 이동했습니다 (background)")
-        @unknown default:
-            print("❓ [HomeView] 알 수 없는 Scene Phase: \(newPhase)")
-        }
-    }
-    
-    // 앱 생명주기 이벤트 핸들러 (UIApplicationDelegate를 통한 감지)
-    private func handleAppWillEnterForeground() {
-        print("📱 [HomeView] ========== 앱이 포그라운드로 돌아옴 (UIApplicationDelegate: appWillEnterForeground) ==========")
-        checkForSharedURLInHomeView()
-    }
-    
-    private func handleAppDidBecomeActive() {
-        print("📱 [HomeView] ========== 앱이 활성화됨 (UIApplicationDelegate: appDidBecomeActive) ==========")
-        checkForSharedURLInHomeView()
-    }
-    
-    // MARK: - Handler Methods
-    private func handleOnAppear() {
-        if selectedFolderName == nil {
-            setSelection(folderName: "__ALL__", subtitle: "전체 보기")
-        }
-        _ = learningLogStore.bootstrapSessionsIfNeeded(currentNotes: notes)
-        _ = learningLogStore.enrichSessionsFromNotes(currentNotes: notes)
-        _ = learningLogStore.reconcileWithNotes(currentNotes: notes)
-        learningLogStore.preloadChapterSummariesFromNotes(currentNotes: notes)
-        if !hasSeenHomeOnboarding {
-            onboardingStep = (horizontalSizeClass == .compact ? .makeFolderIphone : .makeFolder)
-        }
-        lastFolderCount = folders.count
-        if !hasSeenHomePostNoteOnboarding && !notes.isEmpty {
-            shouldTriggerPostOnboarding = true
-            postOnboardingStep = .list
-        }
-        setupCombinePipelines()
-    }
-    
-    private func handleNotesChange(oldValue: [Note], newValue: [Note]) {
-        print("🔄 [HomeView] Notes changed: \(oldValue.count) -> \(newValue.count)")
-        _ = learningLogStore.bootstrapSessionsIfNeeded(currentNotes: newValue)
-        _ = learningLogStore.enrichSessionsFromNotes(currentNotes: newValue)
-        _ = learningLogStore.reconcileWithNotes(currentNotes: newValue)
-        learningLogStore.preloadChapterSummariesFromNotes(currentNotes: newValue)
-        if !hasSeenHomePostNoteOnboarding && oldValue.isEmpty && !newValue.isEmpty {
-            shouldTriggerPostOnboarding = true
-            postOnboardingStep = .list
-        }
-    }
-    
-    private func handleFoldersChange(oldValue: [Folder], newValue: [Folder]) {
-        if !hasSeenFolderSidebarOnboarding && newValue.count > oldValue.count {
-            showFolderSidebarOnboarding = true
-            folderSidebarStep = .list
-        }
-        lastFolderCount = newValue.count
-    }
-    
-    // 폴더 삭제 확인 핸들러
-    private func handleFolderDeleteConfirmed() {
-        // 폴더를 휴지통으로 이동
-        for id in folderIDsPendingDelete {
-            if let target = folders.first(where: { $0.persistentModelID == id }) {
-                target.isTrashed = true
-                target.trashedAt = Date()
-                // 포함된 노트도 함께 휴지통으로 이동
-                for n in target.notes {
-                    n.isTrashed = true
-                    n.trashedAt = Date()
-                }
-            }
-        }
-        try? modelContext.save()
-        folderIDsPendingDelete.removeAll()
-        withAnimation(.easeInOut(duration: 0.2)) {
-            isFolderDeletePresented = false
-        }
-        // 보수적 안전망: 현재 남아있는 노트로 재동기화
-        _ = learningLogStore.reconcileWithNotes(currentNotes: notes)
-        // 프리로드(재실행/새로고침 후에도 동일 표시)
-        learningLogStore.preloadChapterSummariesFromNotes(currentNotes: notes)
-        // 세션은 보존(복원 시 그대로 사용). 영구 삭제 시에만 정리.
-    }
-    
-    // HomeView에서 직접 App Group UserDefaults 확인
-    private func checkForSharedURLInHomeView() {
-        print("🔍 [HomeView] ========== UserDefaults 확인 시작 ==========")
-        print("🔍 [HomeView] App Group UserDefaults를 확인하여 추가할 항목이 있는지 검사합니다...")
-        
-        let userDefaults = UserDefaults(suiteName: "group.site.eifer.app.learningTool")
-        
-        if userDefaults == nil {
-            print("❌ [HomeView] App Group UserDefaults가 nil입니다. App Group 설정을 확인하세요.")
-            print("🔍 [HomeView] ========== UserDefaults 확인 종료 (App Group 없음) ==========")
-            return
-        }
-        
-        guard let sharedURL = userDefaults?.string(forKey: "sharedYouTubeURL") else {
-            print("🔍 [HomeView] 추가할 항목이 없습니다. (sharedYouTubeURL이 없음)")
-            print("🔍 [HomeView] ========== UserDefaults 확인 종료 (항목 없음) ==========")
-            return
-        }
-        
-        let sharedTitle = userDefaults?.string(forKey: "sharedYouTubeTitle") ?? ""
-        let timestamp = userDefaults?.double(forKey: "sharedYouTubeTimestamp") ?? 0
-        let lastProcessed = UserDefaults.standard.double(forKey: "lastProcessedYouTubeTimestamp")
-        
-        print("✅ [HomeView] 추가할 항목을 발견했습니다!")
-        print("📬 [HomeView] URL: \(sharedURL)")
-        print("📬 [HomeView] 제목: '\(sharedTitle)'")
-        print("📬 [HomeView] 타임스탬프: \(timestamp > 0 ? Date(timeIntervalSince1970: timestamp) : Date())")
-        print("📬 [HomeView] 마지막 처리 타임스탬프: \(lastProcessed > 0 ? Date(timeIntervalSince1970: lastProcessed) : Date(timeIntervalSince1970: 0))")
-        
-        // 중복 처리 방지
-        if timestamp > 0 && timestamp <= lastProcessed {
-            print("⚠️ [HomeView] 이미 처리된 항목입니다. 건너뜁니다.")
-            print("🔍 [HomeView] ========== UserDefaults 확인 종료 (이미 처리됨) ==========")
-            return
-        }
-        
-        print("📝 [HomeView] 항목을 추가하는 중...")
-        
-        // 즉시 UserDefaults에서 삭제 (중복 방지)
-        userDefaults?.removeObject(forKey: "sharedYouTubeURL")
-        userDefaults?.removeObject(forKey: "sharedYouTubeTitle")
-        userDefaults?.removeObject(forKey: "sharedYouTubeTimestamp")
-        userDefaults?.synchronize()
-        print("🗑️ [HomeView] UserDefaults에서 항목 데이터를 삭제했습니다.")
-        
-        // 타임스탬프 업데이트
-        let newTimestamp = timestamp > 0 ? timestamp : Date().timeIntervalSince1970
-        UserDefaults.standard.set(newTimestamp, forKey: "lastProcessedYouTubeTimestamp")
-        UserDefaults.standard.synchronize()
-        print("📝 [HomeView] 마지막 처리 타임스탬프를 업데이트했습니다.")
-        
-        // 노트 생성
-        let notesCountBefore = notes.count
-        print("📝 [HomeView] 노트 생성 전 현재 노트 개수: \(notesCountBefore)")
-        handleYouTubeURL(sharedURL, title: sharedTitle)
-        
-        // 목록 리프레시를 위한 처리
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-            // ModelContext의 pending changes 처리
-            self.modelContext.processPendingChanges()
-            print("🔄 [HomeView] ModelContext의 pending changes를 처리했습니다.")
-            
-            // 노트 개수 확인
-            let notesCountAfter = self.notes.count
-            print("📝 [HomeView] 노트 생성 후 현재 노트 개수: \(notesCountAfter)")
-            
-            if notesCountAfter > notesCountBefore {
-                print("✅ [HomeView] 노트가 성공적으로 추가되었습니다! (개수: \(notesCountBefore) → \(notesCountAfter))")
-                print("🔄 [HomeView] 목록이 자동으로 리프레시됩니다. (@Query가 자동 업데이트)")
-            } else {
-                print("⚠️ [HomeView] 노트 개수가 변경되지 않았습니다. 확인이 필요합니다.")
-            }
-            
-            print("✅ [HomeView] ========== UserDefaults 확인 및 항목 추가 완료 ==========")
-        }
-    }
-    
-    // Share Extension에서 공유받은 URL로 노트 자동 생성
-    private func createNoteFromShare(url: String, title: String) {
-        print("📝 [HomeView] ========== createNoteFromShare START ==========")
-        print("📝 [HomeView] URL: \(url)")
-        print("📝 [HomeView] Title: \(title)")
-        
-        // 메인 스레드에서 실행 보장
-        guard Thread.isMainThread else {
-            print("⚠️ [HomeView] Not on main thread, dispatching to main thread")
-            DispatchQueue.main.async {
-                self.createNoteFromShare(url: url, title: title)
-            }
-            return
-        }
-        
-        // 제목이 비어있으면 기본 제목 생성
-        let noteTitle = title.isEmpty ? generateDefaultTitle(from: url) : title
-        print("📝 [HomeView] Note title: \(noteTitle)")
-        
-        let newNote = Note(
-            title: noteTitle,
-            lastRead: Date(),
-            thumbnailURL: url,
-            videoURL: url
-        )
-        print("📝 [HomeView] Note object created: \(newNote.title)")
-        
-        // 현재 선택된 폴더가 있으면 해당 폴더에 추가
-        if let selected = selectedFolderName,
-           selected != "__ALL__",
-           let target = folders.first(where: { $0.name == selected }) {
-            newNote.folder = target
-            print("📝 [HomeView] Note assigned to folder: \(selected)")
-        } else {
-            print("📝 [HomeView] Note assigned to root (no folder selected)")
-        }
-        
-        // ModelContext에 삽입
-        modelContext.insert(newNote)
-        print("📝 [HomeView] Note inserted into modelContext")
-        
-        // 저장 시도
-        do {
-            // Pending changes 처리
-            modelContext.processPendingChanges()
-            print("📝 [HomeView] Processed pending changes")
-            
-            // 저장
-            try modelContext.save()
-            print("✅ [HomeView] Note saved successfully: \(noteTitle)")
-            
-            // 저장 후 다시 pending changes 처리 (UI 업데이트 보장)
-            modelContext.processPendingChanges()
-            print("📝 [HomeView] Processed pending changes after save")
-            
-            // @Query가 업데이트되도록 명시적으로 트리거
-            // SwiftData의 @Query는 자동으로 업데이트되어야 하지만, 때로는 명시적 트리거가 필요
-            print("📝 [HomeView] Current notes count before callback: \(notes.count)")
-            
-            // SwiftData의 @Query가 업데이트되도록 약간의 지연 후 콜백 호출
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                print("📝 [HomeView] Current notes count after delay: \(notes.count)")
-                print("📝 [HomeView] Calling onNoteCreated callback")
-                self.onNoteCreated?(newNote)
-                print("📝 [HomeView] Callback completed")
-                
-                // 추가 확인: @Query가 업데이트되었는지 확인
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    print("📝 [HomeView] Final notes count check: \(notes.count)")
-                    if !notes.contains(where: { $0.videoURL == url }) {
-                        print("⚠️ [HomeView] WARNING: New note not found in @Query!")
-                        print("   This might indicate a @Query update issue")
-                    } else {
-                        print("✅ [HomeView] New note found in @Query - UI should update")
-                    }
-                }
-            }
-            
-            print("✅ [HomeView] ========== createNoteFromShare END (Success) ==========")
-        } catch {
-            print("❌ [HomeView] Note save failed: \(error.localizedDescription)")
-            print("❌ [HomeView] Error details: \(error)")
-            print("❌ [HomeView] ========== createNoteFromShare END (Error) ==========")
-        }
-    }
-    
-    // YouTube URL에서 기본 제목 생성
-    private func generateDefaultTitle(from url: String) -> String {
-        // URL에서 비디오 ID 추출 시도
-        if let videoID = extractVideoID(from: url) {
-            return "YouTube 노트 - \(videoID)"
-        }
-        return "YouTube 노트"
-    }
-    
-    // YouTube URL에서 비디오 ID 추출
-    private func extractVideoID(from urlString: String) -> String? {
-        guard let url = URL(string: urlString) else { return nil }
-        
-        // youtu.be/<id>
-        if url.host?.contains("youtu.be") == true {
-            return url.lastPathComponent
-        }
-        
-        // youtube.com/watch?v=<id>
-        if let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
-           let videoID = components.queryItems?.first(where: { $0.name == "v" })?.value {
-            return videoID
-        }
-        
-        // youtube.com/shorts/<id>
-        if url.path.contains("/shorts/") {
-            return url.path.components(separatedBy: "/shorts/").last?.components(separatedBy: "/").first
-        }
-        
-        // youtube.com/live/<id>
-        if url.path.contains("/live/") {
-            return url.path.components(separatedBy: "/live/").last?.components(separatedBy: "/").first
-        }
-        
-        return nil
-    }
-    
-    private func isYouTubeURL(_ urlString: String) -> Bool {
-        let lowercased = urlString.lowercased()
-        return lowercased.contains("youtube.com") || 
-               lowercased.contains("youtu.be") ||
-               lowercased.contains("youtube.com/watch") ||
-               lowercased.contains("youtube.com/shorts") ||
-               lowercased.contains("youtube.com/live")
-    }
-    
     // MARK: - Combine pipelines
     private func setupCombinePipelines() {
         // 1) UserDefaults.didChange → sidebarSortOption 변경 감지
@@ -1420,86 +970,6 @@ struct HomeView: View {
 
         // 2) Removed: @AppStorage Binding is not a Combine Publisher.
         // Use .onChange(of: sidebarSortOptionRaw) in the view instead.
-    }
-    
-    // MARK: - Modal Sheets
-    private var newFolderSheet: some View {
-        NavigationStack {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("새 폴더 이름을 입력하세요")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(Color.text2)
-                    .padding(.top, 8)
-                
-                TextField("폴더 이름", text: $newFolderName)
-                    .textFieldStyle(.roundedBorder)
-                    .submitLabel(.done)
-                    .focused($newFolderFieldFocused)
-                    .onSubmit {
-                        commitNewFolder()
-                    }
-            }
-            .padding()
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .navigationTitle("새 폴더 만들기")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("취소") {
-                        showNewFolderSheet = false
-                    }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("완료") {
-                        commitNewFolder()
-                    }
-                    .disabled(newFolderName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                }
-            }
-        }
-        .presentationDetents([.height(220)])
-    }
-    
-    private var renameFolderSheet: some View {
-        NavigationStack {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("폴더 이름을 변경하세요")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(Color.text2)
-                    .padding(.top, 8)
-                
-                TextField("폴더 이름", text: $folderRenameText)
-                    .textFieldStyle(.roundedBorder)
-                    .submitLabel(.done)
-                    .focused($folderRenameFieldFocused)
-                    .onAppear {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                            folderRenameFieldFocused = true
-                        }
-                    }
-                    .onSubmit {
-                        saveFolderRename()
-                    }
-            }
-            .padding()
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .navigationTitle("폴더 이름 변경")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("취소") {
-                        showRenameFolderSheet = false
-                    }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("저장") {
-                        saveFolderRename()
-                    }
-                    .disabled(folderRenameText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                }
-            }
-        }
-        .presentationDetents([.height(220)])
     }
 }
 
@@ -1586,68 +1056,6 @@ extension HomeView {
             }
             .keyboardOverlay()
             .preferredColorScheme(colorScheme)
-            .onOpenURL { url in
-                print("🔗 [HomeView] ========== onOpenURL CALLED ==========")
-                print("🔗 [HomeView] URL: \(url.absoluteString)")
-                print("🔗 [HomeView] Scheme: \(url.scheme ?? "nil")")
-                print("🔗 [HomeView] Host: \(url.host ?? "nil")")
-                handleIncomingURL(url)
-            }
-        }
-        
-        // MARK: - URL Handling
-        private func handleIncomingURL(_ url: URL) {
-            print("🔗 [HomeView] handleIncomingURL called with: \(url.absoluteString)")
-            var urlString: String?
-            var titleString: String?
-            
-            // aino://share?url=... 형식 처리
-            if url.scheme == "aino" && url.host == "share" {
-                print("✅ [HomeView] URL matches aino://share pattern")
-                if let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
-                   let queryItems = components.queryItems {
-                    if let sharedURL = queryItems.first(where: { $0.name == "url" })?.value {
-                        urlString = sharedURL.removingPercentEncoding ?? sharedURL
-                        print("✅ [HomeView] Extracted URL: \(urlString ?? "nil")")
-                    }
-                    if let sharedTitle = queryItems.first(where: { $0.name == "title" })?.value {
-                        titleString = sharedTitle.removingPercentEncoding ?? sharedTitle
-                        print("✅ [HomeView] Extracted Title: \(titleString ?? "nil")")
-                    }
-                }
-            } else {
-                // 일반 URL 처리
-                urlString = url.absoluteString
-                print("🔗 [HomeView] Treating as direct URL: \(urlString ?? "nil")")
-            }
-            
-            guard let finalURL = urlString, isYouTubeURL(finalURL) else {
-                print("❌ [HomeView] URL is not valid YouTube URL: \(urlString ?? "nil")")
-                return
-            }
-            
-            print("✅ [HomeView] Valid YouTube URL, posting notification")
-            var userInfo: [String: Any] = ["url": finalURL]
-            if let title = titleString {
-                userInfo["title"] = title
-            }
-            
-            // YouTube URL을 NotificationCenter를 통해 HomeView에 전달
-            NotificationCenter.default.post(
-                name: .handleYouTubeURL,
-                object: nil,
-                userInfo: userInfo
-            )
-            print("📤 [HomeView] Notification posted with userInfo: \(userInfo)")
-        }
-        
-        private func isYouTubeURL(_ urlString: String) -> Bool {
-            let lowercased = urlString.lowercased()
-            return lowercased.contains("youtube.com") || 
-                   lowercased.contains("youtu.be") ||
-                   lowercased.contains("youtube.com/watch") ||
-                   lowercased.contains("youtube.com/shorts") ||
-                   lowercased.contains("youtube.com/live")
         }
     }
 }
@@ -1673,8 +1081,6 @@ extension Notification.Name {
     static let showTrash = Notification.Name("ShowTrash")
     static let hideTrash = Notification.Name("HideTrash")
     static let returnedFromStudyView = Notification.Name("ReturnedFromStudyView")
-    static let handleYouTubeURL = Notification.Name("HandleYouTubeURL")
-    // appWillEnterForeground와 appDidBecomeActive는 LearningToolApp.swift에서 선언됨
 }
 // MARK: - Onboarding (Coach Marks)
 

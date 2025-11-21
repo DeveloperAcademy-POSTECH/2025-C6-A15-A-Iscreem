@@ -56,7 +56,6 @@
 		68F3EDF72EC066F30093FF07 /* TrashService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68F3EDF62EC066F30093FF07 /* TrashService.swift */; };
 		6AA7E3132EB87F6D00E17BF6 /* ChatBubbleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AA7E3122EB87F6D00E17BF6 /* ChatBubbleView.swift */; };
 		6AC9C8622EB09A780050A812 /* FolderDeleteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AC9C8612EB09A780050A812 /* FolderDeleteView.swift */; };
-		C20B419C2ED057F200D7CB7B /* AINO Share Extension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = C20B41922ED057F200D7CB7B /* AINO Share Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		C934CC2B2EBA1D7B00902FF0 /* SummaizerEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = C934CC2A2EBA1D7B00902FF0 /* SummaizerEngine.swift */; };
 		C934CC2D2EBA1DAD00902FF0 /* KeywordExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C934CC2C2EBA1DAD00902FF0 /* KeywordExtractor.swift */; };
 		C934CC2F2EBA1DDA00902FF0 /* VTTParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = C934CC2E2EBA1DDA00902FF0 /* VTTParser.swift */; };
@@ -65,30 +64,6 @@
 		C989B1AF2EB7608F00FD3752 /* ListMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = C989B1AE2EB7608F00FD3752 /* ListMode.swift */; };
 		C989B1B12EB760A800FD3752 /* Helpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = C989B1B02EB760A800FD3752 /* Helpers.swift */; };
 /* End PBXBuildFile section */
-
-/* Begin PBXContainerItemProxy section */
-		C20B419A2ED057F200D7CB7B /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 6A6F29402EA351BC006AF158 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = C20B41912ED057F200D7CB7B;
-			remoteInfo = "AINO Share Extension";
-		};
-/* End PBXContainerItemProxy section */
-
-/* Begin PBXCopyFilesBuildPhase section */
-		C20B41A12ED057F200D7CB7B /* Embed Foundation Extensions */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 13;
-			files = (
-				C20B419C2ED057F200D7CB7B /* AINO Share Extension.appex in Embed Foundation Extensions */,
-			);
-			name = "Embed Foundation Extensions";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		684152A62EB47CED00075A8F /* HeaderComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeaderComponents.swift; sourceTree = "<group>"; };
@@ -141,9 +116,6 @@
 		6A6F29482EA351BC006AF158 /* AINO.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AINO.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6AA7E3122EB87F6D00E17BF6 /* ChatBubbleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatBubbleView.swift; sourceTree = "<group>"; };
 		6AC9C8612EB09A780050A812 /* FolderDeleteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderDeleteView.swift; sourceTree = "<group>"; };
-		C20B418D2ED0508400D7CB7B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
-		C20B41922ED057F200D7CB7B /* AINO Share Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "AINO Share Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
-		C2E793A12ED08D33008A0FDD /* AINO.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AINO.entitlements; sourceTree = "<group>"; };
 		C934CC2A2EBA1D7B00902FF0 /* SummaizerEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SummaizerEngine.swift; sourceTree = "<group>"; };
 		C934CC2C2EBA1DAD00902FF0 /* KeywordExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeywordExtractor.swift; sourceTree = "<group>"; };
 		C934CC2E2EBA1DDA00902FF0 /* VTTParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VTTParser.swift; sourceTree = "<group>"; };
@@ -153,25 +125,7 @@
 		C989B1B02EB760A800FD3752 /* Helpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Helpers.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		C2E793942ED08469008A0FDD /* Exceptions for "AINO Share Extension" folder in "AINO Share Extension" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = C20B41912ED057F200D7CB7B /* AINO Share Extension */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		C20B41932ED057F200D7CB7B /* AINO Share Extension */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				C2E793942ED08469008A0FDD /* Exceptions for "AINO Share Extension" folder in "AINO Share Extension" target */,
-			);
-			path = "AINO Share Extension";
-			sourceTree = "<group>";
-		};
 		C989B1A52EB7602300FD3752 /* Utils */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = Utils;
@@ -181,13 +135,6 @@
 
 /* Begin PBXFrameworksBuildPhase section */
 		6A6F29452EA351BC006AF158 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		C20B418F2ED057F200D7CB7B /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -329,8 +276,6 @@
 		68B08B672EB083F50067AD9E /* AINO */ = {
 			isa = PBXGroup;
 			children = (
-				C2E793A12ED08D33008A0FDD /* AINO.entitlements */,
-				C20B418D2ED0508400D7CB7B /* Info.plist */,
 				68B08B422EB083F50067AD9E /* Extensions */,
 				68B08B462EB083F50067AD9E /* Models */,
 				68B08B602EB083F50067AD9E /* Views */,
@@ -347,7 +292,6 @@
 			isa = PBXGroup;
 			children = (
 				68B08B672EB083F50067AD9E /* AINO */,
-				C20B41932ED057F200D7CB7B /* AINO Share Extension */,
 				6A6F29492EA351BC006AF158 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -356,7 +300,6 @@
 			isa = PBXGroup;
 			children = (
 				6A6F29482EA351BC006AF158 /* AINO.app */,
-				C20B41922ED057F200D7CB7B /* AINO Share Extension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -371,12 +314,10 @@
 				6A6F29442EA351BC006AF158 /* Sources */,
 				6A6F29452EA351BC006AF158 /* Frameworks */,
 				6A6F29462EA351BC006AF158 /* Resources */,
-				C20B41A12ED057F200D7CB7B /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				C20B419B2ED057F200D7CB7B /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				C989B1A52EB7602300FD3752 /* Utils */,
@@ -387,28 +328,6 @@
 			productName = learningTool;
 			productReference = 6A6F29482EA351BC006AF158 /* AINO.app */;
 			productType = "com.apple.product-type.application";
-		};
-		C20B41912ED057F200D7CB7B /* AINO Share Extension */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = C20B419E2ED057F200D7CB7B /* Build configuration list for PBXNativeTarget "AINO Share Extension" */;
-			buildPhases = (
-				C20B418E2ED057F200D7CB7B /* Sources */,
-				C20B418F2ED057F200D7CB7B /* Frameworks */,
-				C20B41902ED057F200D7CB7B /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				C20B41932ED057F200D7CB7B /* AINO Share Extension */,
-			);
-			name = "AINO Share Extension";
-			packageProductDependencies = (
-			);
-			productName = "AINO Share Extension";
-			productReference = C20B41922ED057F200D7CB7B /* AINO Share Extension.appex */;
-			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -421,9 +340,6 @@
 				LastUpgradeCheck = 2600;
 				TargetAttributes = {
 					6A6F29472EA351BC006AF158 = {
-						CreatedOnToolsVersion = 26.0.1;
-					};
-					C20B41912ED057F200D7CB7B = {
 						CreatedOnToolsVersion = 26.0.1;
 					};
 				};
@@ -443,7 +359,6 @@
 			projectRoot = "";
 			targets = (
 				6A6F29472EA351BC006AF158 /* AINO */,
-				C20B41912ED057F200D7CB7B /* AINO Share Extension */,
 			);
 		};
 /* End PBXProject section */
@@ -454,13 +369,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				68B08B682EB083F50067AD9E /* Assets.xcassets in Resources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		C20B41902ED057F200D7CB7B /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -529,22 +437,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		C20B418E2ED057F200D7CB7B /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXSourcesBuildPhase section */
-
-/* Begin PBXTargetDependency section */
-		C20B419B2ED057F200D7CB7B /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = C20B41912ED057F200D7CB7B /* AINO Share Extension */;
-			targetProxy = C20B419A2ED057F200D7CB7B /* PBXContainerItemProxy */;
-		};
-/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		6A6F29512EA351BD006AF158 /* Debug */ = {
@@ -675,28 +568,25 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = AINO/AINO.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 6;
-				DEVELOPMENT_TEAM = 9B2R76R5TD;
+				DEVELOPMENT_TEAM = 5Z8G42AVKD;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = AINO/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = AINO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
-				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "채팅에서 공유된 이미지를 사진 앨범에 저장하기 위해 사진 라이브러리 접근 권한이 필요합니다. 저장된 이미지는 언제든지 사진 앱에서 확인하실 수 있습니다.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.2;
-				PRODUCT_BUNDLE_IDENTIFIER = site.eifer.app.learningTool;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = site.eifer.app.aino;
 				PRODUCT_NAME = AINO;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -717,28 +607,25 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = AINO/AINO.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 6;
-				DEVELOPMENT_TEAM = 9B2R76R5TD;
+				DEVELOPMENT_TEAM = 5Z8G42AVKD;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = AINO/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = AINO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
-				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "채팅에서 공유된 이미지를 사진 앨범에 저장하기 위해 사진 라이브러리 접근 권한이 필요합니다. 저장된 이미지는 언제든지 사진 앱에서 확인하실 수 있습니다.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.2;
-				PRODUCT_BUNDLE_IDENTIFIER = site.eifer.app.learningTool;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = site.eifer.app.aino;
 				PRODUCT_NAME = AINO;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -747,66 +634,6 @@
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Release;
-		};
-		C20B419F2ED057F200D7CB7B /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = "AINO Share Extension/AINO Share Extension.entitlements";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 100;
-				DEVELOPMENT_TEAM = RYGMZZJ6M5;
-				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = "AINO Share Extension/Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "AINO Share Extension";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MARKETING_VERSION = 1.0.2;
-				PRODUCT_BUNDLE_IDENTIFIER = "site.eifer.app.learningTool.AINO-Share-Extension";
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SKIP_INSTALL = YES;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Debug;
-		};
-		C20B41A02ED057F200D7CB7B /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = "AINO Share Extension/AINO Share Extension.entitlements";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 100;
-				DEVELOPMENT_TEAM = RYGMZZJ6M5;
-				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = "AINO Share Extension/Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "AINO Share Extension";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MARKETING_VERSION = 1.0.2;
-				PRODUCT_BUNDLE_IDENTIFIER = "site.eifer.app.learningTool.AINO-Share-Extension";
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SKIP_INSTALL = YES;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
@@ -831,15 +658,6 @@
 			buildConfigurations = (
 				6A6F29542EA351BD006AF158 /* Debug */,
 				6A6F29552EA351BD006AF158 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		C20B419E2ED057F200D7CB7B /* Build configuration list for PBXNativeTarget "AINO Share Extension" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				C20B419F2ED057F200D7CB7B /* Debug */,
-				C20B41A02ED057F200D7CB7B /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
