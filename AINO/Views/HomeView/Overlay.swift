@@ -16,6 +16,7 @@ extension View {
         isFolderDeletePresented: Binding<Bool>,
         showCreateNote: Binding<Bool>,
         noteToRename: Binding<Note?>,
+        folderToRename: Binding<Folder?>,
         renameText: Binding<String>,
         youtubeLink: Binding<String>,
         noteTitle: Binding<String>,
@@ -74,6 +75,14 @@ extension View {
                 RenameNoteSheet(
                     note: note,
                     noteToRename: noteToRename,
+                    renameText: renameText,
+                    modelContext: modelContext
+                )
+            }
+            .sheet(item: folderToRename) { folder in
+                RenameFolderSheet(
+                    folder: folder,
+                    folderToRename: folderToRename,
                     renameText: renameText,
                     modelContext: modelContext
                 )
@@ -284,3 +293,46 @@ struct RenameNoteSheet: View {
         .background(.ultraThinMaterial)
     }
 }
+
+// MARK: - 🔵 Rename Folder Sheet (폴더 이름 변경 시트)
+struct RenameFolderSheet: View {
+    let folder: Folder
+    @Binding var folderToRename: Folder?
+    @Binding var renameText: String
+    let modelContext: ModelContext
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("폴더 이름 변경")
+                .font(.title3.weight(.semibold))
+            
+            TextField("폴더 이름", text: $renameText)
+                .textFieldStyle(.roundedBorder)
+                .padding(.vertical, 4)
+            
+            HStack(spacing: 12) {
+                Spacer()
+                Button("취소") {
+                    folderToRename = nil
+                }
+                .buttonStyle(.bordered)
+                .tint(.secondary)
+                
+                Button {
+                    folder.name = renameText
+                    try? modelContext.save()
+                    folderToRename = nil
+                } label: {
+                    Text("저장")
+                        .fontWeight(.semibold)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(Color.secondColor)
+            }
+        }
+        .padding(24)
+        .frame(minWidth: 360)
+        .background(.ultraThinMaterial)
+    }
+}
+

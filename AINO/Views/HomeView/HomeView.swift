@@ -29,6 +29,7 @@ struct HomeView: View {
     let onNoteCreated: ((Note) -> Void)?
     
     @State var noteToRename: Note?
+    @State var folderToRename: Folder?
     @State var renameText: String = ""
     
     @State var isKeyboardVisible: Bool = false
@@ -216,6 +217,7 @@ struct HomeView: View {
                 isFolderDeletePresented: $isFolderDeletePresented,
                 showCreateNote: $showCreateNote,
                 noteToRename: $noteToRename,
+                folderToRename: $folderToRename,
                 renameText: $renameText,
                 youtubeLink: $youtubeLink,
                 noteTitle: $noteTitle,
@@ -436,7 +438,6 @@ struct HomeView: View {
                             .layoutPriority(2)
                     }
                 }
-                .tagTarget(.searchCluster)
                 .tagPostHomeTarget(.searchCluster)
             }
             .padding(.horizontal, 16)
@@ -476,7 +477,6 @@ struct HomeView: View {
                     .frame(width: metrics.toggleWidth, height: metrics.toggleHeight)
                     .layoutPriority(2)
                 }
-                .tagTarget(.searchCluster)
                 .tagPostHomeTarget(.searchCluster)
             }
             .padding()
@@ -690,6 +690,7 @@ struct HomeView: View {
                     selectedFolderName: $selectedFolderName,
                     headerSubtitle: $headerSubtitle,
                     noteToRename: $noteToRename,
+                    folderToRename: $folderToRename,
                     renameText: $renameText,
                     onNoteSelected: onNoteSelected,
                     modelContext: modelContext
