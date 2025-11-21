@@ -189,10 +189,6 @@ struct ResetConfirmOverlay: View {
                 )
                 .frame(width: cardWidth, height: cardHeight)
                 .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20)
-                        .strokeBorder(.white.opacity(0.3), lineWidth: 1)
-                )
                 .shadow(color: .black.opacity(0.25), radius: 30, x: 0, y: 15)
                 // 키보드 상태에 따라 중앙 ↔ 하단 정렬 전환
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: isKeyboardVisible ? .bottom : .center)
