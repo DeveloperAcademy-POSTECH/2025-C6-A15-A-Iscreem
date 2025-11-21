@@ -71,21 +71,42 @@ extension View {
                     )
                 }
             }
-            .sheet(item: noteToRename) { note in
-                RenameNoteSheet(
-                    note: note,
-                    noteToRename: noteToRename,
-                    renameText: renameText,
-                    modelContext: modelContext
-                )
+            // 🔵 배경 dim 없이 카드만 보이도록 overlay로 교체 + 가로 폭 축소(반응형)
+            .overlay {
+                if let note = noteToRename.wrappedValue {
+                    GeometryReader { geometry in
+                        let cardWidth = min(320, geometry.size.width - 32) // 좌우 16씩 여백 고려
+                        RenameNoteSheet(
+                            note: note,
+                            noteToRename: noteToRename,
+                            renameText: renameText,
+                            modelContext: modelContext
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .shadow(color: .black.opacity(0.2), radius: 20, x: 0, y: 10)
+                        .frame(width: cardWidth)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                        .transition(.opacity.combined(with: .scale))
+                    }
+                }
             }
-            .sheet(item: folderToRename) { folder in
-                RenameFolderSheet(
-                    folder: folder,
-                    folderToRename: folderToRename,
-                    renameText: renameText,
-                    modelContext: modelContext
-                )
+            .overlay {
+                if let folder = folderToRename.wrappedValue {
+                    GeometryReader { geometry in
+                        let cardWidth = min(320, geometry.size.width - 32) // 좌우 16씩 여백 고려
+                        RenameFolderSheet(
+                            folder: folder,
+                            folderToRename: folderToRename,
+                            renameText: renameText,
+                            modelContext: modelContext
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .shadow(color: .black.opacity(0.2), radius: 20, x: 0, y: 10)
+                        .frame(width: cardWidth)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                        .transition(.opacity.combined(with: .scale))
+                    }
+                }
             }
     }
 }
