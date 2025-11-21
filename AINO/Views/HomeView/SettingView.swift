@@ -154,16 +154,10 @@ struct SettingsDetailView: View {
             // 푸터 영역 (Caution!)
             VStack(spacing: 0) {
                 VStack(alignment: .leading, spacing: 16) {
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("Caution!")
-                            .font(.system(size: 20, weight: .semibold))
-                            .foregroundStyle(Color.text1)
-                        
-                        // 구분선
-                        Rectangle()
-                            .fill(Color.borderColor)
-                            .frame(height: 1)
-                    }
+                    // 구분선
+                    Rectangle()
+                        .fill(Color.borderColor)
+                        .frame(height: 1)
                     
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
@@ -268,6 +262,7 @@ struct SettingView: View {
             }
             .preferredColorScheme(colorScheme) // 전체 앱에 테마 적용
         }
+        /*
         .overlay {
             if showResetConfirm {
                 Color.black.opacity(0.4)
@@ -289,7 +284,7 @@ struct SettingView: View {
                 )
                 .transition(.opacity.combined(with: .scale))
             }
-        }
+        }*/
     }
 }
 
@@ -374,8 +369,8 @@ struct ResetConfirmAlertView: View {
     var body: some View {
         GeometryReader { geo in
             // 화면 크기에 따라 카드 크기 계산 (상한을 두어 과도한 확대 방지)
-            let cardWidth = min(420, geo.size.width * 0.9)
-            let cardHeight = min(380, geo.size.height * 0.6)
+            //let cardWidth = min(420, geo.size.width * 0.9)
+            //let cardHeight = min(380, geo.size.height * 0.6)
             
             VStack(spacing: 0) {
                 // Title & description
@@ -450,10 +445,10 @@ struct ResetConfirmAlertView: View {
                 .padding(.horizontal, 20)
                 .padding(.bottom, 16)
             }
-            .frame(width: cardWidth, height: cardHeight)
-            .background(Color(.systemBackground))
+            //.frame(width: cardWidth, height: cardHeight)
+            //.background(Color(.systemBackground))
             .cornerRadius(20)
-            .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.borderColor, lineWidth: 1))
+            //.overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.borderColor, lineWidth: 1))
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         }
     }
