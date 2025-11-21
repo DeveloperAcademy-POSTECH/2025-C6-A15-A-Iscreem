@@ -44,7 +44,7 @@ struct KeywordView: View {
                 // 헤더
                 HStack(spacing: 12) {
                     Text("이 강의에서 자주 언급되는 핵심 키워드들이 나열됩니다.")
-                        .font(.system(size: 15))
+                        .font(.bodyText)
                         .foregroundStyle(Color.text2)
                     
                     // iPhone에서만 chevron 버튼 표시
@@ -57,7 +57,7 @@ struct KeywordView: View {
                             }
                         }) {
                             Image(systemName: "chevron.right")
-                                .font(.system(size: 14, weight: .medium))
+                                .font(.bodyText)
                                 .foregroundStyle(Color.text3)
                                 .rotationEffect(.degrees(isExpanded ? 90 : 0))
                                 .frame(width: 32, height: 32)
@@ -103,7 +103,7 @@ struct KeywordView: View {
                             } else {
                                 selectedKeyword = keyword
                                 studyViewModel.selectKeyword(keyword)
-
+                                
                                 if let note = studyViewModel.currentNote {
                                     learningLogStore.recordKeywordUse(
                                         folderName: note.folder?.name,
@@ -126,23 +126,16 @@ struct KeywordView: View {
     
     // MARK: - Empty State View
     private var emptyStateView: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 15) {
+            Spacer()
             ProgressView()
-                .progressViewStyle(CircularProgressViewStyle(tint: Color.text2))
-                .scaleEffect(1.2)
-            
             Text("키워드 도출 중...")
-                .font(.title3.weight(.medium))
-                .foregroundStyle(Color.text2)
+                .font(.system(size: 16))
+                .foregroundStyle(Color.text3)
+            Spacer()
         }
-        .padding(32)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
-        .overlay(
-            RoundedRectangle(cornerRadius: 20)
-                .strokeBorder(.white.opacity(0.2), lineWidth: 0.5)
-        )
-        .shadow(color: .black.opacity(0.1), radius: 15, x: 0, y: 8)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(minHeight: 150)
     }
 }
 
@@ -157,7 +150,7 @@ struct KeywordChip: View {
     var body: some View {
         Button(action: onTap) {
             Text(keyword)
-                .font(.system(size: 15, weight: .medium))
+                .font(.buttonText)
                 .foregroundStyle(isSelected ? Color.white : Color.text1)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)

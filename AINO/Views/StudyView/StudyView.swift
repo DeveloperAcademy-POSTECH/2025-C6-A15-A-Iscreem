@@ -361,9 +361,6 @@ struct StudyView: View {
             }
         }()
         
-        // 동적 높이 계산
-        let summaryHeight: CGFloat = isSummaryExpanded ? phoneSummaryHeight : phoneSummaryCollapsedHeight
-        let keywordHeight: CGFloat = isKeywordExpanded ? phoneKeywordHeight : phoneKeywordCollapsedHeight
         
         ScrollView {
             VStack(spacing: 0) {
@@ -376,8 +373,8 @@ struct StudyView: View {
                 // SummaryView (중간) - Binding 전달 + 동적 높이
                 SummaryView(isExpanded: $isSummaryExpanded)
                     .frame(maxWidth: .infinity)
-                    .frame(height: summaryHeight)
-                    .animation(.easeInOut(duration: 0.2), value: summaryHeight)
+                    .frame(height: isSummaryExpanded ? nil : phoneSummaryCollapsedHeight)  // 펼쳤을 때만 자동, 접혔을 때 60
+                    .animation(.easeInOut(duration: 0.2), value: isSummaryExpanded)
                     .tagStudyTarget(.sidebar)
                 
                 // KeywordView (요약 아래) - Binding 전달 + 동적 높이
@@ -387,8 +384,8 @@ struct StudyView: View {
                     isExpanded: $isKeywordExpanded
                 )
                 .frame(maxWidth: .infinity)
-                .frame(height: keywordHeight)
-                .animation(.easeInOut(duration: 0.2), value: keywordHeight)
+                .frame(height: isKeywordExpanded ? nil : phoneKeywordCollapsedHeight)  // 펼쳤을 때만 자동, 접혔을 때 60
+                .animation(.easeInOut(duration: 0.2), value: isKeywordExpanded)
                 .background(Color.background1)
                 .tagStudyTarget(.sidebarBottom)
                 

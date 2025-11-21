@@ -33,7 +33,7 @@ struct SummaryView: View {
             // 헤더
             HStack(spacing: 12) {
                 Text("AI가 구간별 요약을 제공합니다.")
-                    .font(.system(size: 17))  
+                    .font(.bodyText)
                     .foregroundStyle(Color.text2)
                 
                 if isIPhone {
@@ -45,7 +45,7 @@ struct SummaryView: View {
                         }
                     }) {
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 15, weight: .medium))
+                            .font(.bodyText)
                             .foregroundStyle(Color.text3)
                             .rotationEffect(.degrees(isExpanded ? 90 : 0))
                             .frame(width: 36, height: 36)
@@ -85,19 +85,19 @@ struct SummaryView: View {
                 progressView
             } else {
                 pagedChapters(list)
+                    .frame(minHeight: 500)
             }
         case .failed(let msg):
-            ScrollView {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("요약을 불러올 수 없습니다.")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(Color.text1)
-                    Text(msg)
-                        .font(.system(size: 16))
-                        .foregroundStyle(Color.text2)
-                }
-                .padding(16)
+            VStack(alignment: .leading, spacing: 12) {
+                Text("요약을 불러올 수 없습니다.")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(Color.text1)
+                Text(msg)
+                    .font(.system(size: 16))
+                    .foregroundStyle(Color.text2)
             }
+            .padding(16)
+            .frame(maxHeight: .infinity, alignment: .top)
         }
     }
 
@@ -157,30 +157,49 @@ struct SummaryView: View {
         ZStack(alignment: .bottomTrailing) {
             TabView(selection: $currentPage) {
                 ForEach(Array(list.enumerated()), id: \.offset) { (idx, s) in
-                    ScrollView {
-                        VStack(spacing: 12) {
-                            SummaryDisclosureCard(
-                                index: idx + 1,
-                                summary: s
-                            )
-                            .padding(16)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    VStack(spacing: 12) {
+                        SummaryDisclosureCard(
+                            index: idx + 1,
+                            summary: s
+                        )
+                        .padding(16)
+                        Spacer()
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                     .tag(idx)
                 }
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
 
-            // 우하단 페이지 인디케이터
-            Text("\(currentPage + 1) / \(max(list.count, 1))")
-                .font(.system(size: 14))
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(Color.background2)
-                .cornerRadius(8)
-                .foregroundStyle(Color.text3)
-                .padding(12)
+            // 좌상단 페이지 인디케이터 + 처음으로 버튼
+            HStack(spacing: 8) {
+                // 처음으로 버튼 (첫 페이지가 아닐 때만 표시)
+                if currentPage > 0 {
+                    Button(action: {
+                        withAnimation {
+                            currentPage = 0
+                        }
+                    }) {
+                        Image(systemName: "chevron.left")
+                            .font(.bodyTextSemibold)
+                            .foregroundStyle(Color.text1)
+                            .frame(width: 28, height: 28)
+                            .background(Color.background2)
+                            .cornerRadius(6)
+                    }
+                    .buttonStyle(.plain)
+                }
+                
+                // 페이지 인디케이터
+                Text("\(currentPage + 1) / \(max(list.count, 1))")
+                    .font(.bodyText)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color.background2)
+                    .cornerRadius(8)
+                    .foregroundStyle(Color.text3)
+            }
+            .padding(12)
         }
     }
 
@@ -202,9 +221,10 @@ private struct SummaryDisclosureCard: View {
         VStack(alignment: .leading, spacing: 12) {
             // Header
             Text("#\(index). \(summary.title)")
-                .font(.system(size: 20, weight: .semibold))
+                .font(.system(size: 22, weight: .semibold))
                 .foregroundStyle(Color.text1)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true)
             
             // 항상 표시되는 내용
             VStack(alignment: .leading, spacing: 8) {
@@ -216,6 +236,7 @@ private struct SummaryDisclosureCard: View {
                             .font(.system(size: 18))
                             .foregroundStyle(Color.text2)
                             .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
             }
