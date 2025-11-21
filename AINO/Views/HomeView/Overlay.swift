@@ -310,7 +310,6 @@ struct RenameNoteSheet: View {
             }
         }
         .padding(24)
-        .frame(minWidth: 360)
         .background(.ultraThinMaterial)
     }
 }
@@ -352,8 +351,6 @@ struct RenameFolderSheet: View {
             }
         }
         .padding(24)
-        .frame(minWidth: 360)
         .background(.ultraThinMaterial)
     }
 }
-
