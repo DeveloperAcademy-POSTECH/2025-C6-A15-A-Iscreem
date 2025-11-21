@@ -34,7 +34,7 @@ struct CreateNoteView: View {
                         .foregroundStyle(Color.text1)
                         .lineLimit(1)
                         .padding(.horizontal, 24)
-                        .frame(height: 60)
+                        .frame(height: 80)
 
                     Divider()
                         .background(Color.borderColor)
@@ -46,9 +46,9 @@ struct CreateNoteView: View {
                         .foregroundStyle(Color.text1)
                         .lineLimit(1)
                         .padding(.horizontal, 24)
-                        .frame(height: 60)
+                        .frame(height: 80)
                 }
-                .frame(width: cardWidth, height: 120)
+                .frame(width: cardWidth)
                 .background(
                     RoundedRectangle(cornerRadius: 16)
                         .fill(Color.background1)
@@ -69,8 +69,8 @@ struct CreateNoteView: View {
                                 Text("노트 생성")
                                     .font(.bodyTextSemibold)
                             }
-                            .frame(height: 40)
-                            .frame(minWidth: 120)
+                            .padding(.vertical, 12)
+                            .padding(.horizontal, 28)
                         }
                         .buttonStyle(.glass)
                         .buttonBorderShape(.capsule)
