@@ -1031,31 +1031,60 @@ extension HomeView {
             default:      return nil
             }
         }
-        
+
+        @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
         var body: some View {
-            ScaledContainer(baseSize: CGSize(width: 1366, height: 1024),
-                            minScale: 0.78,  // 터치 최소 44pt 근사 유지용(원하면 0.75~0.85 사이 조절)
-                            maxScale: 1.0,
-                            alignment: .topLeading) {
-                ZStack {
-                    if showStudyView, let note = selectedNote {
-                        StudyView(note: note) {
-                            showStudyView = false
-                            selectedNote = nil
-                            // 홈으로 복귀 알림 → HomeView에서 포스트 온보딩 재무장
-                            NotificationCenter.default.post(name: .returnedFromStudyView, object: nil)
-                        }
-                    } else {
-                        HomeView(
-                            onNoteSelected: { note in
-                                selectedNote = note
-                                withAnimation { showStudyView = true }
-                            },
-                            onNoteCreated: { note in
-                                selectedNote = note
-                                withAnimation { showStudyView = true }
+            Group {
+                if horizontalSizeClass == .compact {
+                    // 📱 iPhone / compact width: 기존처럼 ScaledContainer 사용
+                    ScaledContainer(baseSize: CGSize(width: 1366, height: 1024),
+                                    minScale: 0.78,  // 터치 최소 44pt 근사 유지용
+                                    maxScale: 1.0,
+                                    alignment: .topLeading) {
+                        ZStack {
+                            if showStudyView, let note = selectedNote {
+                                StudyView(note: note) {
+                                    showStudyView = false
+                                    selectedNote = nil
+                                    // 홈으로 복귀 알림 → HomeView에서 포스트 온보딩 재무장
+                                    NotificationCenter.default.post(name: .returnedFromStudyView, object: nil)
+                                }
+                            } else {
+                                HomeView(
+                                    onNoteSelected: { note in
+                                        selectedNote = note
+                                        withAnimation { showStudyView = true }
+                                    },
+                                    onNoteCreated: { note in
+                                        selectedNote = note
+                                        withAnimation { showStudyView = true }
+                                    }
+                                )
                             }
-                        )
+                        }
+                    }
+                } else {
+                    // 💻 iPad / regular width / Mac: 전체 화면에 NavigationSplitView를 그대로 사용
+                    ZStack {
+                        if showStudyView, let note = selectedNote {
+                            StudyView(note: note) {
+                                showStudyView = false
+                                selectedNote = nil
+                                NotificationCenter.default.post(name: .returnedFromStudyView, object: nil)
+                            }
+                        } else {
+                            HomeView(
+                                onNoteSelected: { note in
+                                    selectedNote = note
+                                    withAnimation { showStudyView = true }
+                                },
+                                onNoteCreated: { note in
+                                    selectedNote = note
+                                    withAnimation { showStudyView = true }
+                                }
+                            )
+                        }
                     }
                 }
             }
