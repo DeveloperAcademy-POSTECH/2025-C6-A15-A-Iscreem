@@ -21,6 +21,7 @@ extension HomeView {
         selectedFolderName: Binding<String?>,
         headerSubtitle: Binding<String>,
         noteToRename: Binding<Note?>,
+        folderToRename: Binding<Folder?>,
         renameText: Binding<String>,
         onNoteSelected: ((Note) -> Void)?,
         modelContext: ModelContext
@@ -38,6 +39,7 @@ extension HomeView {
                             selectedFolderName: selectedFolderName,
                             headerSubtitle: headerSubtitle,
                             noteToRename: noteToRename,
+                            folderToRename: folderToRename,
                             renameText: renameText,
                             onNoteSelected: onNoteSelected,
                             modelContext: modelContext
@@ -175,6 +177,7 @@ extension HomeView {
         selectedFolderName: Binding<String?>,
         headerSubtitle: Binding<String>,
         noteToRename: Binding<Note?>,
+        folderToRename: Binding<Folder?>,
         renameText: Binding<String>,
         onNoteSelected: ((Note) -> Void)?,
         modelContext: ModelContext
@@ -196,6 +199,12 @@ extension HomeView {
                                 RoundedRectangle(cornerRadius: 10)
                                     .strokeBorder(.white.opacity(0.2), lineWidth: 0.5)
                             )
+                            // ✅ 아이콘만 길게 눌러도 표시
+                            .onLongPressGesture(minimumDuration: 0.35) {
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                folderToRename.wrappedValue = folder
+                                renameText.wrappedValue = folder.name
+                            }
                         
                         Text(folder.name)
                             .font(.system(size: 16, weight: .medium))
@@ -217,11 +226,20 @@ extension HomeView {
                     RoundedRectangle(cornerRadius: 10)
                         .fill(.ultraThinMaterial.opacity(0.3))
                 )
+                // ✅ 행 전체에서도 길게 누르면 표시 (탭과 충돌 방지용 simultaneousGesture)
+                .simultaneousGesture(
+                    LongPressGesture(minimumDuration: 0.35).onEnded { _ in
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        folderToRename.wrappedValue = folder
+                        renameText.wrappedValue = folder.name
+                    }
+                )
             }
             .buttonStyle(.plain)
             .contextMenu {
                 Button {
-                    noteToRename.wrappedValue = nil
+                    // ✅ 컨텍스트 메뉴에서도 모달 트리거
+                    folderToRename.wrappedValue = folder
                     renameText.wrappedValue = folder.name
                 } label: {
                     Label("이름 변경", systemImage: "pencil")

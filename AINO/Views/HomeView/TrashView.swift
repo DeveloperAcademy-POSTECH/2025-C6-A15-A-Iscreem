@@ -277,7 +277,11 @@ struct TrashView: View {
         .padding(10)
         .background(RoundedRectangle(cornerRadius: 10).fill(Color.background1))
         .contextMenu {
-            Button("복원") { service.restore(f) }
+            Button {
+                    service.restore(f)
+                } label: {
+                    Label("복원", systemImage: "arrow.clockwise")
+                }
             Button(role: .destructive) {
                 pendingFolderForDeletion = f
                 alertKind = .deleteSingleFolder
@@ -309,7 +313,11 @@ struct TrashView: View {
         .padding(10)
         .background(RoundedRectangle(cornerRadius: 10).fill(Color.background1))
         .contextMenu {
-            Button("복원") { service.restore(n) }
+            Button {
+                    service.restore(n)
+                } label: {
+                    Label("복원", systemImage: "arrow.clockwise")
+                }
             Button(role: .destructive) {
                 pendingNoteForDeletion = n
                 alertKind = .deleteSingleNote
