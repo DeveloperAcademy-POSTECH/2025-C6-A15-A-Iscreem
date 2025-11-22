@@ -4,7 +4,7 @@
 <dict>
 	<key>com.apple.security.application-groups</key>
 	<array>
-		<string>group.site.eifer.app.learningTool</string>
+		<string>group.com.kimminung.aino</string>
 	</array>
 </dict>
 </plist>
