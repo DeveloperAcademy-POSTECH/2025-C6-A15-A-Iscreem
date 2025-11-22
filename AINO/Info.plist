@@ -8,7 +8,7 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>CFBundleURLName</key>
-			<string>com.kimminung.aino</string>
+			<string>site.eifer.app.learningTool</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>aino</string>
