@@ -175,13 +175,13 @@ struct LearningToolApp: App {
     
     private func checkForSharedURL() {
         // TODO: Xcode에서 App Group 설정 필요 (APP_GROUP_SETUP.md 참고)
-        let userDefaults = UserDefaults(suiteName: "group.com.kimminung.aino")
+        let userDefaults = UserDefaults(suiteName: "group.site.eifer.app.learningTool")
         print("🔍 [Main App] ========== checkForSharedURL START ==========")
         print("🔍 [Main App] Checking App Group UserDefaults for sharedYouTubeURL...")
         
         if userDefaults == nil {
             print("❌ [Main App] WARNING: App Group UserDefaults is nil!")
-            print("   This means App Group 'group.com.kimminung.aino' is not configured.")
+            print("   This means App Group 'group.site.eifer.app.learningTool' is not configured.")
             print("   See APP_GROUP_SETUP.md for setup instructions.")
             print("🔍 [Main App] ========== checkForSharedURL END (No App Group) ==========")
             return
