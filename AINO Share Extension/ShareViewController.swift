@@ -386,7 +386,7 @@ class ShareViewController: UIViewController {
             
             // UserDefaults에 데이터 저장 (App Group 사용)
             // TODO: Xcode에서 App Group 설정 필요 (APP_GROUP_SETUP.md 참고)
-            let userDefaults = UserDefaults(suiteName: "group.site.eifer.app.learningTool")
+            let userDefaults = UserDefaults(suiteName: "group.com.kimminung.aino")
             userDefaults?.set(url, forKey: "sharedYouTubeURL")
             userDefaults?.set(title, forKey: "sharedYouTubeTitle")
             userDefaults?.set(Date().timeIntervalSince1970, forKey: "sharedYouTubeTimestamp")
@@ -395,7 +395,7 @@ class ShareViewController: UIViewController {
             
             if userDefaults == nil {
                 print("❌ [Share Extension] WARNING: App Group UserDefaults is nil!")
-                print("   This means App Group 'group.site.eifer.app.learningTool' is not configured.")
+                print("   This means App Group 'group.com.kimminung.aino' is not configured.")
                 print("   See APP_GROUP_SETUP.md for setup instructions.")
             }
             
