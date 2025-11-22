@@ -148,10 +148,10 @@ private extension SidebarView {
                 Spacer()
 
                 // ✅ 숨김 버튼을 정렬 버튼 왼쪽에, 5pt 간격으로 항상 표시
-                hideSidebarButton
+                sortMenu
                     .padding(.trailing, 5)
 
-                sortMenu
+                hideSidebarButton
             }
             .padding(.horizontal, 20)
             // 고정 50 → 안전영역을 고려한 top 패딩
