@@ -9,6 +9,7 @@ import SwiftUI
 
 struct QuestionInputBar: View {
     @Binding var text: String
+    @Binding var includeScreenshot: Bool
     var isEnabled: Bool
     var isSending: Bool
     var isGenerating: Bool
@@ -19,6 +20,22 @@ struct QuestionInputBar: View {
 
     var body: some View {
         HStack(spacing: 12) {
+            // 메뉴 버튼
+            Menu {
+                Toggle("영상 캡쳐 포함", isOn: $includeScreenshot)
+            } label: {
+                Image(systemName: includeScreenshot ? "checkmark.circle.fill" : "ellipsis.circle")
+                    .font(.system(size: 18))
+                    .foregroundStyle(includeScreenshot ? Color.secondColor : Color.text3)
+                    .frame(width: 40, height: 40)
+                    .background(
+                        includeScreenshot ? Color.secondColor.opacity(0.15) : Color.background2
+                    )
+                    .clipShape(Circle())
+            }
+            .buttonStyle(.plain)
+            .disabled(!isEnabled)
+            
             TextField(placeholder, text: $text, axis: .horizontal)
                 .focused($focus)
                 .submitLabel(.send)
