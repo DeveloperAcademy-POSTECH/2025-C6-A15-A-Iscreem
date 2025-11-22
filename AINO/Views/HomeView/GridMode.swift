@@ -33,6 +33,7 @@ extension HomeView {
         selectedFolderName: Binding<String?>,
         headerSubtitle: Binding<String>,
         noteToRename: Binding<Note?>,
+        folderToRename: Binding<Folder?>,
         renameText: Binding<String>,
         onNoteSelected: ((Note) -> Void)?,
         modelContext: ModelContext
@@ -46,6 +47,7 @@ extension HomeView {
                         selectedFolderName: selectedFolderName,
                         headerSubtitle: headerSubtitle,
                         noteToRename: noteToRename,
+                        folderToRename: folderToRename,
                         renameText: renameText,
                         onNoteSelected: onNoteSelected,
                         modelContext: modelContext
@@ -86,6 +88,7 @@ extension HomeView {
         selectedFolderName: Binding<String?>,
         headerSubtitle: Binding<String>,
         noteToRename: Binding<Note?>,
+        folderToRename: Binding<Folder?>,
         renameText: Binding<String>,
         onNoteSelected: ((Note) -> Void)?,
         modelContext: ModelContext
@@ -138,7 +141,8 @@ extension HomeView {
             }
             .contextMenu {
                 Button {
-                    noteToRename.wrappedValue = nil
+                    // 폴더 이름 변경 시트 표시
+                    folderToRename.wrappedValue = folder
                     renameText.wrappedValue = folder.name
                 } label: {
                     Label("이름 변경", systemImage: "pencil")
@@ -179,3 +183,4 @@ extension HomeView {
         }
     }
 }
+

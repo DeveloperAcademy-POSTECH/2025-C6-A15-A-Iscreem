@@ -21,12 +21,16 @@ struct SidebarView: View {
         onFolderSelected: ((String?) -> Void)? = nil,
         isHelpPresented: Binding<Bool> = .constant(false),
         requestDeleteConfirmation: ((Set<PersistentIdentifier>) -> Void)? = nil,
-        selectedFolderName: Binding<String?> = .constant(nil)
+        selectedFolderName: Binding<String?> = .constant(nil),
+        folderToRename: Binding<Folder?> = .constant(nil),
+            folderRenameText: Binding<String> = .constant("")
     ) {
         self.onFolderSelected = onFolderSelected
         self._isHelpPresented = isHelpPresented
         self.requestDeleteConfirmation = requestDeleteConfirmation
         self._selectedFolderName = selectedFolderName
+        self._folderToRename = folderToRename
+            self._folderRenameText = folderRenameText
     }
     
     @StateObject private var viewModel = SidebarViewModel()
@@ -37,13 +41,11 @@ struct SidebarView: View {
     // Non-trashed folders only for sidebar display
     private var activeFolders: [Folder] { folders.filter { !$0.isTrashed } }
 
-    @State private var folderToRename: Folder?
-    @State private var folderRenameText: String = ""
-    @State private var isRenamingSheet = false
+    @Binding var folderToRename: Folder?
+    @Binding var folderRenameText: String
     @State private var isAddingFolder = false
     @State private var newFolderName = ""
     @FocusState private var newFolderFieldFocused: Bool
-    @FocusState private var renameFieldFocused: Bool
     @State private var isDeletingFolders = false
     @State private var selectedFolderIDs = Set<PersistentIdentifier>()
     @State private var showDeleteAlert = false
@@ -103,15 +105,7 @@ struct SidebarView: View {
             sidebarSortOptionRaw = newValue.rawValue
         }
         .ignoresSafeArea(.keyboard, edges: .bottom)
-        .compactScaled(base: CGSize(width: 390, height: 844), min: 0.9, max: 1.0)
-        // 폴더 이름 변경 시트
-        .sheet(isPresented: $isRenamingSheet, onDismiss: {
-            // 닫힐 때 편집 상태 초기화
-            folderToRename = nil
-            folderRenameText = ""
-        }) {
-            renameSheet
-        }
+        //.compactScaled(base: CGSize(width: 390, height: 844), min: 0.9, max: 1.0)
         .alert(isPresented: $showDeleteAlert) {
             let count = pendingDeleteFolderIDs.count
             let title = Text("삭제를 진행합니다")
@@ -355,7 +349,6 @@ private extension SidebarView {
             Button {
                 folderToRename = folder
                 folderRenameText = folder.name
-                isRenamingSheet = true
             } label: {
                 Label("이름 변경", systemImage: "pencil")
             }
@@ -371,7 +364,6 @@ private extension SidebarView {
             Button {
                 folderToRename = folder
                 folderRenameText = folder.name
-                isRenamingSheet = true
             } label: {
                 Label("이름 변경", systemImage: "pencil")
             }
@@ -447,29 +439,6 @@ private extension SidebarView {
             .listRowInsets(EdgeInsets(top: 8, leading: 5, bottom: 8, trailing: 20))
         }
     }
-
-    var renameSheet: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("폴더 이름 변경").font(.title3)
-            TextField("폴더 이름", text: $folderRenameText)
-                .textFieldStyle(.roundedBorder)
-                .submitLabel(.done)
-                .focused($renameFieldFocused)
-                .onAppear { renameFieldFocused = true }
-                .onSubmit { saveRename() }
-            HStack {
-                Spacer()
-                Button("취소") {
-                    isRenamingSheet = false
-                }
-                Button("저장") {
-                    saveRename()
-                }
-                .buttonStyle(.borderedProminent)
-            }
-        }
-        .padding()
-    }
     
     var bottomBar: some View {
         VStack(spacing: 0) {
@@ -529,38 +498,6 @@ private extension SidebarView {
         }
     }
 
-    func saveRename() {
-        guard let folder = folderToRename else {
-            isRenamingSheet = false
-            return
-        }
-        let trimmed = folderRenameText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else {
-            isRenamingSheet = false
-            return
-        }
-        // 변경 없음이면 바로 닫기
-        if trimmed == folder.name {
-            isRenamingSheet = false
-            return
-        }
-        // 현재 폴더를 제외한 기존 이름 집합
-        let otherNames = Set(folders.filter { $0.persistentModelID != folder.persistentModelID }.map { $0.name })
-
-        // 중복 방지: 동일 이름이 있으면 숫자 접미사 부여
-        var finalName = trimmed
-        if otherNames.contains(finalName) {
-            var i = 1
-            while otherNames.contains("\(finalName) \(i)") { i += 1 }
-            finalName = "\(finalName) \(i)"
-        }
-
-        folder.name = finalName
-        try? modelContext.save()
-        renameFieldFocused = false
-        isRenamingSheet = false
-    }
-
     func commitNewFolder() {
         let trimmed = newFolderName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
@@ -618,6 +555,7 @@ private extension SidebarView {
     }
 }
 
+/*
 // MARK: - Sidebar Glass Effect Compatibility
 extension View {
     /// iOS 26.0 이상에서는 시스템 glassEffect를 사용하고,
@@ -636,7 +574,7 @@ extension View {
         }
     }
 }
-
+*/
 // 라우팅용 노티(사이드바 토글)
 extension Notification.Name {
     static let toggleSidebar = Notification.Name("ToggleSidebar")
