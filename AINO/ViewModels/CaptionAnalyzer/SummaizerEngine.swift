@@ -149,6 +149,56 @@ final class SummarizerEngine {
         return t
     }
     
+    /// Remove leading list markers like "1.", "1)", "(1)", "[1]", "a)", roman numerals, circled digits, etc.
+    private func stripLeadingListMarker(_ s: String) -> String {
+        var t = s.trimmingCharacters(in: .whitespacesAndNewlines)
+        // remove known bullet/dash first
+        t = stripBulletPrefix(t)
+        
+        // Patterns for common list markers at the start of the line
+        let patterns: [String] = [
+            #"^\(?\d{1,3}\)?[.)]\s*"#,   // 1. / 1) / (1).
+            #"^\d{1,3}[:\-]\s*"#,        // 1: / 1-
+            #"^\[\d{1,3}\]\s*"#,         // [1]
+            #"^[IVXLCMivxlcm]{1,5}[.)]\s*"#, // I. / iv)
+            #"^[a-zA-Z][.)]\s*"#,        // a) / A.
+            #"^\([a-zA-Z]\)\s*"#,        // (a)
+            #"^[①-⑳]\s*"#                // circled digits 1~20
+        ]
+        
+        var changed = true
+        while changed {
+            changed = false
+            let before = t
+            t = stripBulletPrefix(t)
+            if t != before { changed = true }
+            
+            for p in patterns {
+                if let r = t.range(of: p, options: .regularExpression) {
+                    t.removeSubrange(r)
+                    t = t.trimmingCharacters(in: .whitespacesAndNewlines)
+                    changed = true
+                    break
+                }
+            }
+        }
+        return t.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+    
+    /// Normalize raw lines: remove any numbering/bullets and prefix a single "• ".
+    private func normalizeBulletedLines(_ lines: [String], maxCount: Int = 7) -> [String] {
+        var out: [String] = []
+        for line in lines {
+            var t = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !t.isEmpty else { continue }
+            t = stripLeadingListMarker(t)
+            guard !t.isEmpty else { continue }
+            out.append("• " + t)
+            if out.count >= maxCount { break }
+        }
+        return out
+    }
+    
     private func makeParagraphs(from chunks: [CueChunk], targetChars: Int = 600) -> [String] {
         var paragraphs: [String] = []
         for ch in chunks {
@@ -206,11 +256,11 @@ final class SummarizerEngine {
                     let cleanedTitle = title.replacingOccurrences(of: "\n", with: " ").trimmingCharacters(in: .whitespacesAndNewlines)
                     await onTitleUpdate(ch.id, cleanedTitle)
                     
-                    // 3) Bullets: 6~7개의 핵심 포인트 생성
+                    // 3) chapter gist: 6~7개의 핵심 포인트 생성
                     do {
                         let bulletsRaw = try await summarizer.summarizeChunk(
                             text: sample,
-                            instruction: "다음 챕터 내용을 한국어로 6~7개의 핵심 포인트로 요약. 각 항목은 1문장, 불릿/숫자/머리말 없이, 간결하게. 줄바꿈으로 항목을 구분."
+                            instruction: "다음 챕터 내용을 한국어로 6~7개의 핵심 포인트로 요약. 각 항목은 1문장, 반드시 '• '로 시작. 숫자/머리말/번호/따옴표 금지. 줄바꿈으로 항목을 구분."
                         )
                         let lines = bulletsRaw
                             .replacingOccurrences(of: "\r\n", with: "\n")
@@ -218,15 +268,18 @@ final class SummarizerEngine {
                             .components(separatedBy: "\n")
                             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
                             .filter { !$0.isEmpty }
-                        let top4 = Array(lines.prefix(7))
-                        await onBulletsUpdate(ch.id, top4)
+                        
+                        let bullets = normalizeBulletedLines(lines, maxCount: 7)
+                        await onBulletsUpdate(ch.id, bullets)
                     } catch {
-                        let fallback = cleanedGist
-                            .replacingOccurrences(of: "•", with: "")
+                        // 프롬프트 실패 시 gist 문장을 나눠 불릿으로 정규화
+                        let fallbackLines = cleanedGist
                             .split(whereSeparator: { ".!?".contains($0) })
                             .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
-                        let top4 = Array(fallback.prefix(7)).filter { !$0.isEmpty }
-                        await onBulletsUpdate(ch.id, top4)
+                            .filter { !$0.isEmpty }
+                        
+                        let bullets = normalizeBulletedLines(fallbackLines, maxCount: 7)
+                        await onBulletsUpdate(ch.id, bullets)
                     }
                     self.log.info("sum[\(runTag)] chapter gist+title ok for \(idx+1)/\(chapters.count)")
                 } catch {
@@ -246,4 +299,3 @@ final class SummarizerEngine {
         return filtered.joined(separator: " ")
     }
 }
-
