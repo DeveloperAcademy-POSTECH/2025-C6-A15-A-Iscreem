@@ -740,6 +740,7 @@ struct HomeView: View {
         .multilineTextAlignment(.center)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .offset(y: -50)
+        .ignoresSafeArea(.keyboard, edges: .bottom)
     }
     
     // Add button visibility: 폴더 내부에서도 노트 추가 가능하도록, 설정 화면에서만 숨김
