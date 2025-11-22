@@ -18,6 +18,11 @@ struct ViewModeToggle: View {
         static let maxWidth: CGFloat = 160
         // 높이는 시스템 기본을 따르되, 너무 커지지 않도록 얕게 지정 가능
         static let height: CGFloat = 32
+        
+        // 반응형 아이콘 크기 계산
+        static func iconSize(for height: CGFloat) -> CGFloat {
+            return height * 0.55  // 높이의 55% 정도
+        }
     }
     
     var body: some View {
@@ -31,6 +36,7 @@ struct ViewModeToggle: View {
         .labelStyle(.iconOnly)          // 아이콘만 표시
         .labelsHidden()                 // 접근성 라벨만 유지, 시각 라벨 숨김
         .tint(Color.text1)              // 선택된 세그먼트 색상
+        .font(.system(size: Layout.iconSize(for: Layout.height), weight: .medium))  // ✅ 반응형 아이콘 크기
         // 고정폭/고정높이 제거 → 기기/컨테이너 폭에 반응
         .frame(minWidth: Layout.minWidth, idealWidth: Layout.idealWidth, maxWidth: Layout.maxWidth)
         .frame(height: Layout.height)

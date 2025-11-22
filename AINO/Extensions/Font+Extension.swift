@@ -8,21 +8,24 @@
 import SwiftUI
 
 extension Font {
-    /// Title Text: SF Pro Display Semibold, 28pt
-    static let titleText = Font.custom("SFProDisplay-Semibold", size: 28)
+    /// Title Text: SF Pro Display Semibold, 32pt
+    static let titleText = Font.system(size: 32, weight: .semibold, design: .default)
     
-    /// Subtitle Text: SF Pro Display Medium, 22pt
-    static let subtitleText = Font.custom("SFProDisplay-Medium", size: 22)
+    /// Subtitle Text: SF Pro Display Medium, 24pt
+    static let subtitleText = Font.system(size: 24, weight: .medium, design: .default)
     
-    /// Body Text: SF Pro Text Medium, 16pt
-    static let bodyText = Font.custom("SFProText-Medium", size: 16)
+    /// Body Text: SF Pro Text Medium, 18pt
+    static let bodyText = Font.system(size: 18, weight: .medium, design: .default)
     
-    /// Caption Text: SF Pro Text Medium, 13pt
-    static let captionText = Font.custom("SFProText-Medium", size: 13)
+    /// Body Text Semibold: SF Pro Text Semibold, 18pt
+    static let bodyTextSemibold = Font.system(size: 18, weight: .semibold, design: .default)
     
-    /// Button Text: SF Pro Display, 15pt
-    static let buttonText = Font.custom("SFProDisplay-Regular", size: 15)
+    /// Caption Text: SF Pro Text Medium, 14pt
+    static let captionText = Font.system(size: 14, weight: .medium, design: .default)
     
-    /// Chatting Text: SF Pro Text Regular, 12pt
-    static let chattingText = Font.custom("SFProText-Regular", size: 12)
+    /// Button Text: SF Pro Display, 16pt
+    static let buttonText = Font.system(size: 16, weight: .regular, design: .default)
+    
+    /// Chatting Text: SF Pro Text Regular, 16pt
+    static let chattingText = Font.system(size: 16, weight: .regular, design: .default)
 }
