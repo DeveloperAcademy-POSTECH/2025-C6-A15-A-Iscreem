@@ -50,6 +50,16 @@ struct SidebarView: View {
     @State private var selectedFolderIDs = Set<PersistentIdentifier>()
     @State private var showDeleteAlert = false
     @State private var pendingDeleteFolderIDs = Set<PersistentIdentifier>()
+    
+    // 아이폰에서 새 폴더 생성 모달
+    @State private var showNewFolderSheet: Bool = false
+    @State private var newFolderNameForSheet: String = ""
+    @FocusState private var newFolderSheetFieldFocused: Bool
+    
+    // 디바이스 타입 확인
+    private var isIPhone: Bool {
+        UIDevice.current.userInterfaceIdiom == .phone
+    }
 
     // Glass 효과 유니온용 네임스페이스 (HomeView와 동일 스타일)
     @Namespace private var glassNS
@@ -106,13 +116,19 @@ struct SidebarView: View {
         }
         .ignoresSafeArea(.keyboard, edges: .bottom)
         .compactScaled(base: CGSize(width: 390, height: 844), min: 0.9, max: 1.0)
-        // 폴더 이름 변경 시트
-        .sheet(isPresented: $isRenamingSheet, onDismiss: {
-            // 닫힐 때 편집 상태 초기화
-            folderToRename = nil
-            folderRenameText = ""
+        .sheet(isPresented: $showNewFolderSheet, onDismiss: {
+            newFolderNameForSheet = ""
+            newFolderSheetFieldFocused = false
         }) {
-            renameSheet
+            newFolderSheet
+        }
+        .onChange(of: showNewFolderSheet) { _, isPresented in
+            if isPresented {
+                // 모달이 나타날 때 포커스 설정
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    newFolderSheetFieldFocused = true
+                }
+            }
         }
         .alert(isPresented: $showDeleteAlert) {
             let count = pendingDeleteFolderIDs.count
@@ -179,9 +195,16 @@ private extension SidebarView {
         Button {
             isDeletingFolders = false
             selectedFolderIDs.removeAll()
-            isAddingFolder = true
-            newFolderName = ""
-            DispatchQueue.main.async { newFolderFieldFocused = true }
+            if isIPhone {
+                // 아이폰: 모달 표시
+                newFolderNameForSheet = ""
+                showNewFolderSheet = true
+            } else {
+                // 아이패드: 기존 방식 (인라인 입력)
+                isAddingFolder = true
+                newFolderName = ""
+                DispatchQueue.main.async { newFolderFieldFocused = true }
+            }
         } label: {
             Image(systemName: "plus")
                 .foregroundStyle(Color.secondColor)
@@ -447,27 +470,41 @@ private extension SidebarView {
             .listRowInsets(EdgeInsets(top: 8, leading: 5, bottom: 8, trailing: 20))
         }
     }
-    var renameSheet: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("폴더 이름 변경").font(.title3)
-            TextField("폴더 이름", text: $folderRenameText)
-                .textFieldStyle(.roundedBorder)
-                .submitLabel(.done)
-                .focused($renameFieldFocused)
-                .onAppear { renameFieldFocused = true }
-                .onSubmit { saveRename() }
-            HStack {
-                Spacer()
-                Button("취소") {
-                    isRenamingSheet = false
+    var newFolderSheet: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("새 폴더 이름을 입력하세요")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(Color.text2)
+                    .padding(.top, 8)
+                
+                TextField("폴더 이름", text: $newFolderNameForSheet)
+                    .textFieldStyle(.roundedBorder)
+                    .submitLabel(.done)
+                    .focused($newFolderSheetFieldFocused)
+                    .onSubmit {
+                        commitNewFolderFromSheet()
+                    }
+            }
+            .padding()
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .navigationTitle("새 폴더 만들기")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("취소") {
+                        showNewFolderSheet = false
+                    }
                 }
-                Button("저장") {
-                    saveRename()
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("완료") {
+                        commitNewFolderFromSheet()
+                    }
+                    .disabled(newFolderNameForSheet.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
-                .buttonStyle(.borderedProminent)
             }
         }
-        .padding()
+        .presentationDetents([.height(220)])
     }
     
     var bottomBar: some View {
@@ -546,6 +583,31 @@ private extension SidebarView {
         modelContext.insert(folder)
         try? modelContext.save()
         cancelAdd()
+    }
+    
+    func commitNewFolderFromSheet() {
+        let trimmed = newFolderNameForSheet.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            showNewFolderSheet = false
+            newFolderNameForSheet = ""
+            return
+        }
+        // Ensure uniqueness by suffixing an index if needed
+        var finalName = trimmed
+        let existing = Set(folders.map { $0.name })
+        if existing.contains(finalName) {
+            var i = 1
+            while existing.contains("\(finalName) \(i)") { i += 1 }
+            finalName = "\(finalName) \(i)"
+        }
+        let folder = Folder(name: finalName)
+        modelContext.insert(folder)
+        try? modelContext.save()
+        showNewFolderSheet = false
+        newFolderNameForSheet = ""
+        // 폴더 선택 및 콜백 호출
+        viewModel.selectFolder(folder.persistentModelID)
+        onFolderSelected?(folder.name)
     }
 
     func cancelAdd() {
