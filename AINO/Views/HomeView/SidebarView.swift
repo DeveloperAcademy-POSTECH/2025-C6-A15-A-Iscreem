@@ -105,7 +105,15 @@ struct SidebarView: View {
             sidebarSortOptionRaw = newValue.rawValue
         }
         .ignoresSafeArea(.keyboard, edges: .bottom)
-        //.compactScaled(base: CGSize(width: 390, height: 844), min: 0.9, max: 1.0)
+        .compactScaled(base: CGSize(width: 390, height: 844), min: 0.9, max: 1.0)
+        // 폴더 이름 변경 시트
+        .sheet(isPresented: $isRenamingSheet, onDismiss: {
+            // 닫힐 때 편집 상태 초기화
+            folderToRename = nil
+            folderRenameText = ""
+        }) {
+            renameSheet
+        }
         .alert(isPresented: $showDeleteAlert) {
             let count = pendingDeleteFolderIDs.count
             let title = Text("삭제를 진행합니다")
@@ -438,6 +446,28 @@ private extension SidebarView {
             .listRowBackground(Color.clear)
             .listRowInsets(EdgeInsets(top: 8, leading: 5, bottom: 8, trailing: 20))
         }
+    }
+    var renameSheet: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("폴더 이름 변경").font(.title3)
+            TextField("폴더 이름", text: $folderRenameText)
+                .textFieldStyle(.roundedBorder)
+                .submitLabel(.done)
+                .focused($renameFieldFocused)
+                .onAppear { renameFieldFocused = true }
+                .onSubmit { saveRename() }
+            HStack {
+                Spacer()
+                Button("취소") {
+                    isRenamingSheet = false
+                }
+                Button("저장") {
+                    saveRename()
+                }
+                .buttonStyle(.borderedProminent)
+            }
+        }
+        .padding()
     }
     
     var bottomBar: some View {
