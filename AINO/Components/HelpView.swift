@@ -20,6 +20,25 @@ struct HelpView: View {
     // 본문 하단 패딩(요청: 더 넉넉하게)
     private let contentBottomPadding: CGFloat = 32
     
+    // Apple Intelligence 링크가 포함된 AttributedString
+    private var attributedString: AttributedString {
+        var attributedString = AttributedString("Apple Intelligence 지원 기기확인은 ")
+        attributedString.foregroundColor = UIColor(Color.text2)
+        
+        let urlString = "https://www.apple.com/kr/apple-intelligence/"
+        var linkString = AttributedString(urlString)
+        linkString.link = URL(string: urlString)
+        linkString.foregroundColor = UIColor.blue
+        
+        attributedString.append(linkString)
+        
+        var suffix = AttributedString(" 참조 바랍니다.")
+        suffix.foregroundColor = UIColor(Color.text2)
+        attributedString.append(suffix)
+        
+        return attributedString
+    }
+    
     var body: some View {
         VStack(spacing: 0) {
             // 헤더
@@ -136,6 +155,12 @@ struct HelpView: View {
                                 .font(.system(size: 14))
                                 .foregroundStyle(Color.text2)
                             Text("요약 영역 : 내가 듣고있는 구간 뿐 아니라, 강의 속에서 내가 잘 이해가 가지 않았던 부분의 요약을 골라서 확인해 보세요! AINO는 구간별 요약 정보 제공을 통해, 학습자 여러분이 원하는 영역만을 쉽고 빠르게 요약본에 다가갈 수 있도록 도와줍니다! (iOS 18.* 이상, Apple Intelligence 연결 후)")
+                                .font(.system(size: 14))
+                                .foregroundStyle(Color.text2)
+                        }
+                        
+                        HStack(alignment: .top, spacing: 0) {
+                            Text(attributedString)
                                 .font(.system(size: 14))
                                 .foregroundStyle(Color.text2)
                         }

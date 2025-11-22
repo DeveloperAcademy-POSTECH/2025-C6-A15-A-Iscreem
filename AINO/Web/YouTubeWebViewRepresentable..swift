@@ -64,19 +64,102 @@ struct YouTubeWebViewRepresentable: UIViewRepresentable {
         host.seek(to: seconds, autoPlay: autoPlay)
     }
     
-    // ✅ Helper: 스크린샷 캡쳐 (비디오 영역만)
+    // ✅ Helper: 스크린샷 캡쳐 (비디오 영역만) - JavaScript로 비디오 프레임 직접 캡쳐
     @MainActor
     func captureScreenshot(completion: @escaping (Data?) -> Void) {
         let webView = host.webView
         
-        // JavaScript로 video 요소 또는 플레이어 컨테이너의 위치와 크기 가져오기
+        // JavaScript로 video 요소의 현재 프레임을 canvas에 그려서 base64로 가져오기
         let js = """
         (function() {
             try {
-                // 먼저 video 요소를 찾기
+                var video = document.querySelector('video');
+                if (!video || video.readyState < 2) {
+                    // video가 없거나 준비되지 않음
+                    return JSON.stringify({ error: 'Video not ready' });
+                }
+                
+                // canvas 생성
+                var canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth || video.clientWidth;
+                canvas.height = video.videoHeight || video.clientHeight;
+                
+                // videoWidth/videoHeight가 0이면 실제 표시 크기 사용
+                if (canvas.width === 0 || canvas.height === 0) {
+                    var rect = video.getBoundingClientRect();
+                    canvas.width = rect.width;
+                    canvas.height = rect.height;
+                }
+                
+                var ctx = canvas.getContext('2d');
+                
+                // video의 현재 프레임을 canvas에 그리기
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                // canvas를 JPEG base64로 변환 (품질 0.9)
+                var dataURL = canvas.toDataURL('image/jpeg', 0.9);
+                
+                // base64 데이터만 추출 (data:image/jpeg;base64, 제거)
+                var base64Data = dataURL.split(',')[1];
+                
+                return JSON.stringify({
+                    success: true,
+                    data: base64Data,
+                    width: canvas.width,
+                    height: canvas.height
+                });
+            } catch(e) {
+                return JSON.stringify({
+                    error: e.message || 'Unknown error'
+                });
+            }
+        })();
+        """
+        
+        webView.evaluateJavaScript(js) { result, error in
+            if let error = error {
+                print("JavaScript 캡쳐 실패: \(error.localizedDescription)")
+                // JavaScript 실패 시 iOS 레벨 캡쳐로 폴백
+                self.captureWithIOSMethod(webView: webView, completion: completion)
+                return
+            }
+            
+            guard let jsonString = result as? String,
+                  let data = jsonString.data(using: .utf8),
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                print("JSON 파싱 실패")
+                self.captureWithIOSMethod(webView: webView, completion: completion)
+                return
+            }
+            
+            // 에러가 있으면 iOS 레벨 캡쳐로 폴백
+            if let errorMsg = json["error"] as? String {
+                print("JavaScript 에러: \(errorMsg)")
+                self.captureWithIOSMethod(webView: webView, completion: completion)
+                return
+            }
+            
+            // 성공한 경우 base64 데이터를 디코딩
+            if let success = json["success"] as? Bool, success,
+               let base64Data = json["data"] as? String,
+               let imageData = Data(base64Encoded: base64Data) {
+                completion(imageData)
+            } else {
+                print("base64 디코딩 실패")
+                self.captureWithIOSMethod(webView: webView, completion: completion)
+            }
+        }
+    }
+    
+    // iOS 레벨 캡쳐 (폴백)
+    @MainActor
+    private func captureWithIOSMethod(webView: WKWebView, completion: @escaping (Data?) -> Void) {
+        // JavaScript로 비디오 영역 좌표 가져오기
+        let js = """
+        (function() {
+            try {
                 var video = document.querySelector('video');
                 if (!video) {
-                    // video가 없으면 플레이어 컨테이너 찾기
                     var player = document.querySelector('#player, #player-container, .html5-video-player, ytd-player');
                     if (player) {
                         var rect = player.getBoundingClientRect();
@@ -87,7 +170,6 @@ struct YouTubeWebViewRepresentable: UIViewRepresentable {
                             height: Math.min(rect.height, window.innerHeight || document.documentElement.clientHeight)
                         });
                     }
-                    // 아무것도 없으면 전체 영역 반환
                     return JSON.stringify({
                         x: 0, y: 0,
                         width: window.innerWidth || document.documentElement.clientWidth,
@@ -95,35 +177,13 @@ struct YouTubeWebViewRepresentable: UIViewRepresentable {
                     });
                 }
                 
-                // video 요소의 실제 표시 영역 가져오기
                 var rect = video.getBoundingClientRect();
-                // video의 부모 컨테이너도 확인 (더 정확한 영역)
-                var parent = video.parentElement;
-                var parentRect = parent ? parent.getBoundingClientRect() : null;
-                
-                // video가 실제로 보이는 영역만 사용
-                var visibleRect = {
+                return JSON.stringify({
                     x: Math.max(0, rect.left),
                     y: Math.max(0, rect.top),
                     width: Math.min(rect.width, window.innerWidth || document.documentElement.clientWidth),
                     height: Math.min(rect.height, window.innerHeight || document.documentElement.clientHeight)
-                };
-                
-                // 부모 컨테이너가 있고 더 작으면 부모 영역 사용
-                if (parentRect && parentRect.width > 0 && parentRect.height > 0) {
-                    var parentVisible = {
-                        x: Math.max(0, parentRect.left),
-                        y: Math.max(0, parentRect.top),
-                        width: Math.min(parentRect.width, window.innerWidth || document.documentElement.clientWidth),
-                        height: Math.min(parentRect.height, window.innerHeight || document.documentElement.clientHeight)
-                    };
-                    // video 영역과 부모 영역 중 더 작은 것을 사용 (실제 플레이어 영역)
-                    if (parentVisible.width <= visibleRect.width && parentVisible.height <= visibleRect.height) {
-                        visibleRect = parentVisible;
-                    }
-                }
-                
-                return JSON.stringify(visibleRect);
+                });
             } catch(e) {
                 return JSON.stringify({
                     x: 0, y: 0,
@@ -135,25 +195,12 @@ struct YouTubeWebViewRepresentable: UIViewRepresentable {
         """
         
         webView.evaluateJavaScript(js) { result, error in
-            if let error = error {
-                print("스크린샷 영역 계산 실패: \(error.localizedDescription)")
-                // 오류 시 전체 영역 캡쳐 후 크롭
-                self.captureFullArea(webView: webView, completion: completion)
-                return
-            }
-            
-            // JavaScript 결과 파싱
             var captureRect = webView.bounds
             if let jsonString = result as? String,
                let data = jsonString.data(using: .utf8),
                let rect = try? JSONDecoder().decode(VideoRect.self, from: data) {
-                // JavaScript 좌표는 뷰포트 기준이므로, 웹뷰의 contentScaleFactor를 고려
-                let contentScale = webView.contentScaleFactor
                 let viewportWidth = webView.bounds.width
                 let viewportHeight = webView.bounds.height
-                
-                // JavaScript에서 반환한 좌표가 뷰포트 기준이므로 직접 사용
-                // 단, 웹뷰 bounds를 넘지 않도록 제한
                 captureRect = CGRect(
                     x: max(0, min(rect.x, viewportWidth)),
                     y: max(0, min(rect.y, viewportHeight)),
@@ -161,62 +208,92 @@ struct YouTubeWebViewRepresentable: UIViewRepresentable {
                     height: min(rect.height, viewportHeight - max(0, rect.y))
                 )
             }
-            
             self.captureArea(webView: webView, rect: captureRect, completion: completion)
         }
     }
     
-    // 비디오 영역만 캡쳐
+    // 비디오 영역만 캡쳐 (iOS 레벨 렌더링 사용)
     @MainActor
     private func captureArea(webView: WKWebView, rect: CGRect, completion: @escaping (Data?) -> Void) {
-        let config = WKSnapshotConfiguration()
-        config.rect = rect
-        config.snapshotWidth = NSNumber(value: Int(rect.width))
+        // iOS 레벨에서 전체 웹뷰를 먼저 캡쳐한 후, rect 영역만 크롭
+        let scale = UIScreen.main.scale
+        let webViewSize = webView.bounds.size
+        let targetSize = CGSize(width: webViewSize.width * scale, height: webViewSize.height * scale)
         
-        webView.takeSnapshot(with: config) { image, error in
-            if let error = error {
-                print("스크린샷 캡쳐 실패: \(error.localizedDescription)")
-                completion(nil)
-                return
-            }
-            
-            guard let image = image else {
-                completion(nil)
-                return
-            }
-            
-            // 이미지를 16:9 비율로 크롭 (불필요한 여백 제거)
-            // 단, 이미 비디오 영역만 캡쳐된 경우 크롭을 건너뛸 수 있음
-            let croppedImage = self.cropTo16to9(image: image, allowSkip: true)
-            
-            // UIImage를 불투명 이미지로 변환하여 alpha 채널 경고 방지
-            let opaqueImage: UIImage
-            if let cgImage = croppedImage.cgImage {
-                let context = CGContext(
-                    data: nil,
-                    width: cgImage.width,
-                    height: cgImage.height,
-                    bitsPerComponent: 8,
-                    bytesPerRow: cgImage.width * 4,
-                    space: CGColorSpaceCreateDeviceRGB(),
-                    bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue
-                )
-                context?.draw(cgImage, in: CGRect(x: 0, y: 0, width: cgImage.width, height: cgImage.height))
-                if let opaqueCGImage = context?.makeImage() {
-                    opaqueImage = UIImage(cgImage: opaqueCGImage)
-                } else {
-                    opaqueImage = croppedImage
-                }
+        // 그래픽 컨텍스트 생성 (전체 웹뷰 크기)
+        UIGraphicsBeginImageContextWithOptions(targetSize, true, scale)
+        defer { UIGraphicsEndImageContext() }
+        
+        guard let context = UIGraphicsGetCurrentContext() else {
+            completion(nil)
+            return
+        }
+        
+        // 배경을 검은색으로 채우기
+        context.setFillColor(UIColor.black.cgColor)
+        context.fill(CGRect(origin: .zero, size: targetSize))
+        
+        // drawHierarchy를 사용하여 실제 화면에 렌더링된 내용 캡쳐
+        // afterScreenUpdates를 true로 설정하여 최신 렌더링 내용 캡쳐
+        let success = webView.drawHierarchy(in: webView.bounds, afterScreenUpdates: true)
+        
+        if !success {
+            // drawHierarchy 실패 시 layer 렌더링 시도
+            webView.layer.render(in: context)
+        }
+        
+        // 전체 이미지 가져오기
+        guard let fullImage = UIGraphicsGetImageFromCurrentImageContext() else {
+            completion(nil)
+            return
+        }
+        
+        // rect 영역만 크롭 (scale 고려)
+        let cropRect = CGRect(
+            x: rect.origin.x * scale,
+            y: rect.origin.y * scale,
+            width: rect.width * scale,
+            height: rect.height * scale
+        )
+        
+        guard let cgImage = fullImage.cgImage,
+              let croppedCGImage = cgImage.cropping(to: cropRect) else {
+            completion(nil)
+            return
+        }
+        
+        let croppedImage = UIImage(cgImage: croppedCGImage, scale: scale, orientation: .up)
+        
+        // 이미지를 16:9 비율로 크롭 (불필요한 여백 제거)
+        let finalImage = self.cropTo16to9(image: croppedImage, allowSkip: true)
+        
+        // UIImage를 불투명 이미지로 변환하여 alpha 채널 경고 방지
+        let opaqueImage: UIImage
+        if let finalCGImage = finalImage.cgImage {
+            let context = CGContext(
+                data: nil,
+                width: finalCGImage.width,
+                height: finalCGImage.height,
+                bitsPerComponent: 8,
+                bytesPerRow: finalCGImage.width * 4,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue
+            )
+            context?.draw(finalCGImage, in: CGRect(x: 0, y: 0, width: finalCGImage.width, height: finalCGImage.height))
+            if let opaqueCGImage = context?.makeImage() {
+                opaqueImage = UIImage(cgImage: opaqueCGImage)
             } else {
-                opaqueImage = croppedImage
+                opaqueImage = finalImage
             }
-            
-            // UIImage를 JPEG 데이터로 변환 (alpha 채널 없음)
-            if let jpegData = opaqueImage.jpegData(compressionQuality: 0.8) {
-                completion(jpegData)
-            } else {
-                completion(nil)
-            }
+        } else {
+            opaqueImage = finalImage
+        }
+        
+        // UIImage를 JPEG 데이터로 변환 (alpha 채널 없음)
+        if let jpegData = opaqueImage.jpegData(compressionQuality: 0.8) {
+            completion(jpegData)
+        } else {
+            completion(nil)
         }
     }
     

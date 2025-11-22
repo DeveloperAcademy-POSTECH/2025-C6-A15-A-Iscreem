@@ -15,7 +15,7 @@ import Foundation
 /// API 키 및 시크릿 정보를 관리하는 구조체
 struct APIKeys {
     /// ChatGPT API 키 (실제 키는 별도 설정 필요)
-    static let openAI = ""
+    static let openAI = "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"
     
     /// API 엔드포인트
     static let openAIEndpoint = "https://api.openai.com/v1/chat/completions"
