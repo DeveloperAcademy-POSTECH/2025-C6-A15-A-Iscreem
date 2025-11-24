@@ -70,6 +70,7 @@ extension HomeView {
         let thumbWidth: CGFloat = 56
         let titleSpacing: CGFloat = 12
         let rowHorizontalPadding: CGFloat = 8
+        let metricColumnWidth: CGFloat = 72
         
         HStack(spacing: 6) {
             Text(LocalizedText(korean: "제목", english: "Title").text)
@@ -77,7 +78,6 @@ extension HomeView {
                 .foregroundStyle(Color.text3)
                 .lineLimit(1)
                 .minimumScaleFactor(0.9)
-                .padding(.leading, rowHorizontalPadding + thumbWidth + titleSpacing)
                 .frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
             
             Text(LocalizedText(korean: "강의 길이", english: "Duration").text)
@@ -85,21 +85,21 @@ extension HomeView {
                 .foregroundStyle(Color.text3)
                 .lineLimit(1)
                 .minimumScaleFactor(0.9)
-                .frame(width: 60, alignment: .trailing)
+                .frame(width: metricColumnWidth, alignment: .center)
             
             Text(LocalizedText(korean: "수강률", english: "Progress").text)
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Color.text3)
                 .lineLimit(1)
                 .minimumScaleFactor(0.9)
-                .frame(width: 60, alignment: .trailing)
+                .frame(width: metricColumnWidth, alignment: .center)
             
             Text(LocalizedText(korean: "최근 학습 일시", english: "Last Studied").text)
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Color.text3)
                 .lineLimit(1)
                 .minimumScaleFactor(0.85)
-                .frame(width: 88, alignment: .trailing)
+                .frame(width: metricColumnWidth, alignment: .center)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
@@ -131,20 +131,20 @@ extension HomeView {
             Text(formatDurationString(note.totalDurationSeconds))
                 .font(.system(size: 14))
                 .foregroundStyle(Color.text2)
-                .frame(width: 60, alignment: .trailing)
+                .frame(width: 72, alignment: .center)
             
             Text(formatProgressPercent(for: note))
                 .font(.system(size: 14))
                 .foregroundStyle(Color.text2)
-                .frame(width: 60, alignment: .trailing)
+                .frame(width: 72, alignment: .center)
             
             Text(NoteFormattingUtils.lastReadText(for: note))
                 .font(.system(size: 14))
                 .foregroundStyle(Color.text2)
-                .frame(width: 88, alignment: .trailing)
+                .frame(width: 72, alignment: .center)
         }
         .padding(.vertical, 10)
-        .padding(.horizontal, 8)
+        .padding(.horizontal, 0)
         .background(
             RoundedRectangle(cornerRadius: 10)
                 .fill(Color.clear)
@@ -213,15 +213,19 @@ extension HomeView {
                     }
                     .frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
                     
-                    Text("—").frame(width: 60, alignment: .trailing).foregroundStyle(Color.text3)
-                    Text("—").frame(width: 60, alignment: .trailing).foregroundStyle(Color.text3)
+                    Text("—")
+                        .frame(width: 72, alignment: .center)
+                        .foregroundStyle(Color.text3)
+                    Text("—")
+                        .frame(width: 72, alignment: .center)
+                        .foregroundStyle(Color.text3)
                     Text(NoteFormattingUtils.relativeDate(folder.createdAt))
                         .font(.system(size: 14))
                         .foregroundStyle(Color.text2)
-                        .frame(width: 88, alignment: .trailing)
+                        .frame(width: 72, alignment: .center)
                 }
                 .padding(.vertical, 10)
-                .padding(.horizontal, 8)
+                .padding(.horizontal, 0)
                 .background(
                     RoundedRectangle(cornerRadius: 10)
                         .fill(.ultraThinMaterial.opacity(0.3))
