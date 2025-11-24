@@ -64,7 +64,7 @@ extension HomeView {
                                 noteToRename.wrappedValue = note
                                 renameText.wrappedValue = note.title
                             } label: {
-                                Label("이름 변경", systemImage: "pencil")
+                                Label(LocalizedText(korean: "이름 변경", english: "Rename").text, systemImage: "pencil")
                             }
                             Button {
                                 // 휴지통으로 이동(소프트 삭제)
@@ -72,7 +72,7 @@ extension HomeView {
                                 note.trashedAt = Date()
                                 try? modelContext.save()
                             } label: {
-                                Label("휴지통으로 이동", systemImage: "trash")
+                                Label(LocalizedText(korean: "휴지통으로 이동", english: "Move to Trash").text, systemImage: "trash")
                             }
                         }
                 }

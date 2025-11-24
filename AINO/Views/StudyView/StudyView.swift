@@ -16,6 +16,7 @@ struct StudyView: View {
     
     @EnvironmentObject private var captionAnalyzer: CaptionAnalyzer
     @EnvironmentObject private var learningLogStore: LearningLogStore
+    @EnvironmentObject private var localizationManager: LocalizationManager
     @Query private var notes: [Note]
     
     @AppStorage("hasSeenStudyOnboarding") private var hasSeenStudyOnboarding: Bool = false
@@ -52,8 +53,17 @@ struct StudyView: View {
     
     // 사이드바 탭 (키워드/요약 전환)
     private enum SidebarTab: String, CaseIterable {
-        case keywords = "키워드"
-        case summary = "요약"
+        case keywords = "keywords"
+        case summary = "summary"
+        
+        var displayName: String {
+            switch self {
+            case .keywords:
+                return LocalizedText(korean: "키워드", english: "Keywords").text
+            case .summary:
+                return LocalizedText(korean: "요약", english: "Summary").text
+            }
+        }
     }
     @State private var sidebarTab: SidebarTab = .summary
     @State private var isSidebarCollapsed: Bool = false
@@ -84,7 +94,7 @@ struct StudyView: View {
                 VStack(spacing: 2) {
                     Text(
                         viewModel.currentNote?.title
-                        ?? "노트의 제목"
+                        ?? LocalizedText(korean: "노트의 제목", english: "Note Title").text
                     )
                     .font(.system(size: 18, weight: .semibold))
                     .foregroundStyle(Color.text1)
@@ -188,7 +198,9 @@ struct StudyView: View {
         let total = captionAnalyzer.vttCues.map(\.end).max()
         let leftText = formatDurationString(last)
         let rightText = formatDurationString(total)
-        return "마지막 학습 위치: \(leftText) / 전체 학습 길이: \(rightText)"
+        let lastText = LocalizedText(korean: "마지막 학습 위치", english: "Last Position").text
+        let totalText = LocalizedText(korean: "전체 학습 길이", english: "Total Length").text
+        return "\(lastText): \(leftText) / \(totalText): \(rightText)"
     }
     
     private func lastPositionFromLogs() -> Double? {
@@ -246,8 +258,8 @@ struct StudyView: View {
                 VStack(spacing: 0) {
                     HStack(spacing: 8) {
                         Picker("", selection: $sidebarTab) {
-                            Text(SidebarTab.summary.rawValue).tag(SidebarTab.summary)
-                            Text(SidebarTab.keywords.rawValue).tag(SidebarTab.keywords)
+                            Text(SidebarTab.summary.displayName).tag(SidebarTab.summary)
+                            Text(SidebarTab.keywords.displayName).tag(SidebarTab.keywords)
                         }
                         .pickerStyle(.segmented)
                     }
@@ -323,7 +335,7 @@ struct StudyView: View {
                     HStack(spacing: 6) {
                         Image(systemName: "sidebar.left")
                             .font(.system(size: 14, weight: .semibold))
-                        Text("사이드바 열기")
+                        Text(LocalizedText(korean: "사이드바 열기", english: "Open Sidebar").text)
                             .font(.system(size: 12, weight: .semibold))
                     }
                     .foregroundStyle(Color.text2)
@@ -501,7 +513,7 @@ struct StudyCoachOverlay: View {
                         .foregroundStyle(.white.opacity(0.9))
                         .frame(maxWidth: .infinity)
                     HStack {
-                        Button("건너뛰기") { onFinish() }
+                        Button(LocalizedText(korean: "건너뛰기", english: "Skip").text) { onFinish() }
                         Spacer()
                         Button(nextButtonTitle) { next() }
                             .buttonStyle(.borderedProminent)
@@ -526,16 +538,16 @@ struct StudyCoachOverlay: View {
     
     private var nextButtonTitle: String {
         switch step {
-        case .question, .done: return "완료"
-        default: return "다음"
+        case .question, .done: return LocalizedText(korean: "완료", english: "Done").text
+        default: return LocalizedText(korean: "다음", english: "Next").text
         }
     }
     
     private var title: String {
         switch step {
-        case .media:   return "영상 재생"
-        case .sidebar: return "요약 · 키워드"
-        case .question:return "질문하기(채팅)"
+        case .media:   return LocalizedText(korean: "영상 재생", english: "Video Playback").text
+        case .sidebar: return LocalizedText(korean: "요약 · 키워드", english: "Summary · Keywords").text
+        case .question:return LocalizedText(korean: "질문하기(채팅)", english: "Ask Questions (Chat)").text
         case .done:    return ""
         }
     }
@@ -543,11 +555,11 @@ struct StudyCoachOverlay: View {
     private var message: String {
         switch step {
         case .media:
-            return "여기서 영상이 재생돼요."
+            return LocalizedText(korean: "여기서 영상이 재생돼요.", english: "Videos play here.").text
         case .sidebar:
-            return "영상에 맞춰 요약과 키워드가 자동으로 표시돼요."
+            return LocalizedText(korean: "영상에 맞춰 요약과 키워드가 자동으로 표시돼요.", english: "Summaries and keywords are automatically displayed based on the video.").text
         case .question:
-            return "모르는 건 채팅으로 질문해보세요. 대화는 학습 기록에 남길 수 있어요."
+            return LocalizedText(korean: "모르는 건 채팅으로 질문해보세요. 대화는 학습 기록에 남길 수 있어요.", english: "Ask questions in chat about anything you don't know. Conversations can be saved to your learning history.").text
         case .done:
             return ""
         }

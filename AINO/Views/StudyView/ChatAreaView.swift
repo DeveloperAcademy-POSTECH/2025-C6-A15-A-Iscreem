@@ -12,6 +12,7 @@ struct ChatAreaView: View {
     let isAPIKeyConfigured: Bool
     let isLoading: Bool
     @Binding var isTextFieldFocused: Bool
+    @EnvironmentObject private var localizationManager: LocalizationManager
 
     var body: some View {
         GeometryReader { geo in
@@ -23,10 +24,10 @@ struct ChatAreaView: View {
                                 Image(systemName: "exclamationmark.triangle.fill")
                                     .font(.system(size: 40))
                                     .foregroundStyle(Color.orange.opacity(0.6))
-                                Text("AI 기능을 사용할 수 없습니다")
+                                Text(LocalizedText(korean: "AI 기능을 사용할 수 없습니다", english: "AI features are unavailable").text)
                                     .font(.system(size: 16, weight: .semibold))
                                     .foregroundStyle(Color.text3)
-                                Text("ChatGPT API 키를 확인해주세요.\n개발자에게 문의하시기 바랍니다.")
+                                Text(LocalizedText(korean: "ChatGPT API 키를 확인해주세요.\n개발자에게 문의하시기 바랍니다.", english: "Please check your ChatGPT API key.\nContact the developer for assistance.").text)
                                     .font(.system(size: 13))
                                     .foregroundStyle(Color.text3.opacity(0.8))
                                     .multilineTextAlignment(.center)
@@ -38,7 +39,7 @@ struct ChatAreaView: View {
                                 Image(systemName: "bubble.left.and.bubble.right.fill")
                                     .font(.system(size: 40))
                                     .foregroundStyle(Color.secondColor.opacity(0.6))
-                                Text("AI에게 학습 관련 질문을 해보세요!\n간결하고 명확한 답변을 받을 수 있습니다.")
+                                Text(LocalizedText(korean: "AI에게 학습 관련 질문을 해보세요!\n간결하고 명확한 답변을 받을 수 있습니다.", english: "Ask AI questions about your learning!\nGet concise and clear answers.").text)
                                     .font(.system(size: 14))
                                     .foregroundStyle(Color.text3.opacity(0.8))
                                     .multilineTextAlignment(.center)
@@ -57,7 +58,7 @@ struct ChatAreaView: View {
                                 HStack {
                                     ProgressView()
                                         .tint(Color.secondColor)
-                                    Text("AI가 답변을 생성중입니다...")
+                                    Text(LocalizedText(korean: "AI가 답변을 생성중입니다...", english: "AI is generating an answer...").text)
                                         .font(.system(size: 13))
                                         .foregroundStyle(Color.text3)
                                     Spacer()

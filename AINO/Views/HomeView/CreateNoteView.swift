@@ -13,6 +13,7 @@ struct CreateNoteView: View {
     @Binding var noteTitle: String
     let isFormValid: Bool
     let onCreate: () -> Void
+    @EnvironmentObject private var localizationManager: LocalizationManager
     
     // 디바이스 타입 감지
     private var isIPad: Bool {
@@ -28,7 +29,7 @@ struct CreateNoteView: View {
                 // 흰 상자(입력 카드)
                 VStack(spacing: 0) {
                     // YouTube 링크
-                    TextField("", text: $youtubeLink, prompt: Text("YouTube 링크를 입력하세요!")
+                    TextField("", text: $youtubeLink, prompt: Text(LocalizedText(korean: "YouTube 링크를 입력하세요!", english: "Enter YouTube link!").text)
                         .foregroundColor(Color.text3), axis: .horizontal)
                         .font(.bodyText)
                         .foregroundStyle(Color.text1)
@@ -40,7 +41,7 @@ struct CreateNoteView: View {
                         .background(Color.borderColor)
 
                     // 제목
-                    TextField("", text: $noteTitle, prompt: Text("저장할 노트 제목을 입력하세요!")
+                    TextField("", text: $noteTitle, prompt: Text(LocalizedText(korean: "저장할 노트 제목을 입력하세요!", english: "Enter note title to save!").text)
                         .foregroundColor(Color.text3), axis: .horizontal)
                         .font(.bodyText)
                         .foregroundStyle(Color.text1)
@@ -66,7 +67,7 @@ struct CreateNoteView: View {
                             HStack(spacing: 6) {
                                 Image(systemName: "arrow.right")
                                     .font(.bodyTextSemibold)
-                                Text("노트 생성")
+                                Text(LocalizedText(korean: "노트 생성", english: "Create Note").text)
                                     .font(.bodyTextSemibold)
                             }
                             .padding(.vertical, 12)
@@ -82,7 +83,7 @@ struct CreateNoteView: View {
                             HStack(spacing: 6) {
                                 Image(systemName: "arrow.right")
                                     .font(.system(size: 14, weight: .semibold))
-                                Text("노트 생성")
+                                Text(LocalizedText(korean: "노트 생성", english: "Create Note").text)
                                     .font(.system(size: 15, weight: .semibold))
                             }
                             .foregroundStyle(.white)

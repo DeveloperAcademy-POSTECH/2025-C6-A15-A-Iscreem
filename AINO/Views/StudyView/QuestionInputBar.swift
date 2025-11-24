@@ -17,12 +17,13 @@ struct QuestionInputBar: View {
     var placeholder: String
     var onTapLightbulb: () -> Void
     var onSend: () -> Void
+    @EnvironmentObject private var localizationManager: LocalizationManager
 
     var body: some View {
         HStack(spacing: 12) {
             // 메뉴 버튼
             Menu {
-                Toggle("영상 캡쳐 포함", isOn: $includeScreenshot)
+                Toggle(LocalizedText(korean: "영상 캡쳐 포함", english: "Include Screenshot").text, isOn: $includeScreenshot)
             } label: {
                 Image(systemName: includeScreenshot ? "checkmark.circle.fill" : "ellipsis.circle")
                     .font(.system(size: 18))
@@ -90,7 +91,7 @@ struct QuestionInputBar: View {
             .disabled(!isEnabled || text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("질문 입력 바")
+        .accessibilityLabel(LocalizedText(korean: "질문 입력 바", english: "Question Input Bar").text)
     }
 }
 

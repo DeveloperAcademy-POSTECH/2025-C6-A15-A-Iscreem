@@ -72,7 +72,7 @@ extension HomeView {
         let rowHorizontalPadding: CGFloat = 8
         
         HStack(spacing: 6) {
-            Text("제목")
+            Text(LocalizedText(korean: "제목", english: "Title").text)
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Color.text3)
                 .lineLimit(1)
@@ -80,21 +80,21 @@ extension HomeView {
                 .padding(.leading, rowHorizontalPadding + thumbWidth + titleSpacing)
                 .frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
             
-            Text("강의 길이")
+            Text(LocalizedText(korean: "강의 길이", english: "Duration").text)
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Color.text3)
                 .lineLimit(1)
                 .minimumScaleFactor(0.9)
                 .frame(width: 60, alignment: .trailing)
             
-            Text("수강률")
+            Text(LocalizedText(korean: "수강률", english: "Progress").text)
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Color.text3)
                 .lineLimit(1)
                 .minimumScaleFactor(0.9)
                 .frame(width: 60, alignment: .trailing)
             
-            Text("최근 학습 일시")
+            Text(LocalizedText(korean: "최근 학습 일시", english: "Last Studied").text)
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Color.text3)
                 .lineLimit(1)
@@ -242,7 +242,7 @@ extension HomeView {
                     folderToRename.wrappedValue = folder
                     renameText.wrappedValue = folder.name
                 } label: {
-                    Label("이름 변경", systemImage: "pencil")
+                    Label(LocalizedText(korean: "이름 변경", english: "Rename").text, systemImage: "pencil")
                 }
 
                 Button {
@@ -250,7 +250,7 @@ extension HomeView {
                     folder.trashedAt = Date()
                     try? modelContext.save()
                 } label: {
-                    Label("휴지통으로 이동", systemImage: "trash")
+                    Label(LocalizedText(korean: "휴지통으로 이동", english: "Move to Trash").text, systemImage: "trash")
                 }
             }
             .shadow(color: .black.opacity(0.04), radius: 4, x: 0, y: 1)

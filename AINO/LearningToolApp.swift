@@ -136,6 +136,7 @@ struct LearningToolApp: App {
     
     @StateObject private var captionAnalyzer = CaptionAnalyzer()
     @StateObject private var learningLogStore: LearningLogStore
+    @StateObject private var localizationManager = LocalizationManager.shared
 
     private let modelContainer: ModelContainer
     
@@ -247,6 +248,7 @@ struct LearningToolApp: App {
             HomeView.AppRootView()
                 .environmentObject(captionAnalyzer)
                 .environmentObject(learningLogStore)
+                .environmentObject(localizationManager)
                 .onAppear {
                     print("📱 [Main App] HomeView onAppear - Initial appearance")
                     // 앱이 나타날 때마다 공유된 URL 확인

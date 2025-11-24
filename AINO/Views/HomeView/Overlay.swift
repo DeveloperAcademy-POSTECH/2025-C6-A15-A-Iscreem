@@ -275,10 +275,10 @@ struct RenameNoteSheet: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("노트 이름 변경")
+            Text(LocalizedText(korean: "노트 이름 변경", english: "Rename Note").text)
                 .font(.title3.weight(.semibold))
             
-            TextField("제목", text: $renameText)
+            TextField(LocalizedText(korean: "제목", english: "Title").text, text: $renameText)
                 .textFieldStyle(.roundedBorder)
                 .padding(.vertical, 4)
             
@@ -286,7 +286,7 @@ struct RenameNoteSheet: View {
                 Spacer()
                 
                 // 🔵 취소 버튼 (Liquid Glass)
-                Button("취소") {
+                Button(LocalizedText(korean: "취소", english: "Cancel").text) {
                     noteToRename = nil
                 }
                 .buttonStyle(.bordered)
@@ -298,7 +298,7 @@ struct RenameNoteSheet: View {
                     try? modelContext.save()
                     noteToRename = nil
                 } label: {
-                    Text("저장")
+                    Text(LocalizedText(korean: "저장", english: "Save").text)
                         .fontWeight(.semibold)
                 }
                 .buttonStyle(.borderedProminent)
@@ -339,7 +339,7 @@ struct RenameFolderSheet: View {
                     try? modelContext.save()
                     folderToRename = nil
                 } label: {
-                    Text("저장")
+                    Text(LocalizedText(korean: "저장", english: "Save").text)
                         .fontWeight(.semibold)
                 }
                 .buttonStyle(.borderedProminent)

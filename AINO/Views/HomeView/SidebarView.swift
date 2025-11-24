@@ -34,6 +34,7 @@ struct SidebarView: View {
     }
     
     @StateObject private var viewModel = SidebarViewModel()
+    @EnvironmentObject private var localizationManager: LocalizationManager
 
     @Environment(\.modelContext) private var modelContext
     @Query private var folders: [Folder]
@@ -140,7 +141,7 @@ struct SidebarView: View {
             return Alert(
                 title: title,
                 message: message,
-                primaryButton: .destructive(Text("삭제")) {
+                primaryButton: .destructive(Text(LocalizedText(korean: "삭제", english: "Delete").text)) {
                     // 실제 삭제 처리: 휴지통으로 이동 또는 즉시 삭제 정책에 맞게 구현
                     for id in pendingDeleteFolderIDs {
                         if let folder = folders.first(where: { $0.persistentModelID == id }) {
@@ -235,13 +236,13 @@ private extension SidebarView {
     var sortMenu: some View {
         Menu {
             Picker("정렬 기준", selection: $viewModel.currentSortOption) {
-                Label("가나다 순(↑)", systemImage: "a.circle")
+                Label(LocalizedText(korean: "가나다 순(↑)", english: "A-Z (↑)").text, systemImage: "a.circle")
                     .tag(SortOption.nameAscending)
-                Label("가나다 순(↓)", systemImage: "a.circle")
+                Label(LocalizedText(korean: "가나다 순(↓)", english: "A-Z (↓)").text, systemImage: "a.circle")
                     .tag(SortOption.nameDescending)
-                Label("생성일(↑)", systemImage: "clock")
+                Label(LocalizedText(korean: "생성일(↑)", english: "Date (↑)").text, systemImage: "clock")
                     .tag(SortOption.dateAscending)
-                Label("생성일(↓)", systemImage: "clock")
+                Label(LocalizedText(korean: "생성일(↓)", english: "Date (↓)").text, systemImage: "clock")
                     .tag(SortOption.dateDescending)
             }
         } label: {
@@ -268,7 +269,7 @@ private extension SidebarView {
                 Image(systemName: "square.grid.2x2.fill")
                     .foregroundStyle(isSelected ? Color.secondColor : Color.text2)
                     .font(.system(size: 20))
-                Text("전체 보기")
+                Text(LocalizedText(korean: "전체 보기", english: "All Items").text)
                     .foregroundStyle(isSelected ? Color.secondColor : Color.text2)
                     .font(.buttonText)
                 Spacer()
@@ -435,7 +436,7 @@ private extension SidebarView {
             Image(systemName: "folder.fill")
                 .foregroundStyle(Color.text2)
                 .font(.system(size: 20))
-            TextField("새 폴더 이름", text: $newFolderName)
+            TextField(LocalizedText(korean: "새 폴더 이름", english: "New Folder Name").text, text: $newFolderName)
                 .font(.buttonText)
                 .textFieldStyle(.plain)
                 .focused($newFolderFieldFocused)
@@ -459,7 +460,7 @@ private extension SidebarView {
                     Image(systemName: "clock.fill")
                         .foregroundStyle(isSelected ? Color.secondColor : Color.text2)
                         .font(.system(size: 20))
-                    Text("최근 열어본 항목")
+                    Text(LocalizedText(korean: "최근 열어본 항목", english: "Recently Opened").text)
                         .foregroundStyle(isSelected ? Color.secondColor : Color.text2)
                         .font(.buttonText)
                     Spacer()
@@ -473,12 +474,12 @@ private extension SidebarView {
     var newFolderSheet: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 16) {
-                Text("새 폴더 이름을 입력하세요")
+                Text(LocalizedText(korean: "새 폴더 이름을 입력하세요", english: "Enter folder name").text)
                     .font(.system(size: 16, weight: .medium))
                     .foregroundStyle(Color.text2)
                     .padding(.top, 8)
                 
-                TextField("폴더 이름", text: $newFolderNameForSheet)
+                TextField(LocalizedText(korean: "폴더 이름", english: "Folder Name").text, text: $newFolderNameForSheet)
                     .textFieldStyle(.roundedBorder)
                     .submitLabel(.done)
                     .focused($newFolderSheetFieldFocused)
@@ -488,7 +489,7 @@ private extension SidebarView {
             }
             .padding()
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .navigationTitle("새 폴더 만들기")
+            .navigationTitle(LocalizedText(korean: "새 폴더 만들기", english: "New Folder").text)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -497,7 +498,7 @@ private extension SidebarView {
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("완료") {
+                    Button(LocalizedText(korean: "완료", english: "Done").text) {
                         commitNewFolderFromSheet()
                     }
                     .disabled(newFolderNameForSheet.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -512,7 +513,7 @@ private extension SidebarView {
             Button { viewModel.helpTapped() } label: {
                 HStack(spacing: 12) {
                     Image(systemName: "questionmark.circle.fill").foregroundStyle(Color.text2).font(.system(size: 20))
-                    Text("도움말").foregroundStyle(Color.text2).font(.buttonText)
+                    Text(LocalizedText(korean: "도움말", english: "Help").text).foregroundStyle(Color.text2).font(.buttonText)
                     Spacer()
                 }
                 .padding(.horizontal, 20)
@@ -523,7 +524,7 @@ private extension SidebarView {
             Button { NotificationCenter.default.post(name: .showSettings, object: nil) } label: {
                 HStack(spacing: 12) {
                     Image(systemName: "gearshape.fill").foregroundStyle(Color.text2).font(.system(size: 20))
-                    Text("설정").foregroundStyle(Color.text2).font(.buttonText)
+                    Text(LocalizedText(korean: "설정", english: "Settings").text).foregroundStyle(Color.text2).font(.buttonText)
                     Spacer()
                 }
                 .padding(.horizontal, 20)
@@ -534,7 +535,7 @@ private extension SidebarView {
             Button { NotificationCenter.default.post(name: .showTrash, object: nil) } label: {
                 HStack(spacing: 12) {
                     Image(systemName: "trash").foregroundStyle(Color.errorColor).font(.system(size: 20))
-                    Text("휴지통").foregroundStyle(Color.errorColor).font(.buttonText)
+                    Text(LocalizedText(korean: "휴지통", english: "Trash").text).foregroundStyle(Color.errorColor).font(.buttonText)
                     Spacer()
                 }
                 .padding(.horizontal, 20)

@@ -10,7 +10,7 @@ import SwiftData
 import Combine
 
 struct HomeView: View {
-    @State var headerSubtitle: String = "최근 열어본 항목"
+    @State var headerSubtitle: String = ""
     @State var selectedFolderName: String? = nil
     @StateObject var viewModel = HomeViewModel()
     @State var showCreateNote = false
@@ -18,6 +18,7 @@ struct HomeView: View {
     @State var noteTitle = ""
     
     @EnvironmentObject private var learningLogStore: LearningLogStore
+    @EnvironmentObject private var localizationManager: LocalizationManager
     @State private var showStudyHistory: Bool = false
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.scenePhase) private var scenePhase
@@ -187,11 +188,11 @@ struct HomeView: View {
             NavigationSplitView(columnVisibility: $splitVisibility, preferredCompactColumn: $preferredCompactColumn) {
                 SidebarView(onFolderSelected: { name in
                     if name == "__ALL__" {
-                        applySelection(folderName: "__ALL__", subtitle: "전체 보기")
+                        applySelection(folderName: "__ALL__", subtitle: LocalizedText(korean: "전체 보기", english: "All Items").text)
                     } else if let name {
                         applySelection(folderName: name, subtitle: name)
                     } else {
-                        applySelection(folderName: nil, subtitle: "최근 열어본 항목")
+                        applySelection(folderName: nil, subtitle: LocalizedText(korean: "최근 열어본 항목", english: "Recently Opened").text)
                     }
                 }, isHelpPresented: $isHelpPresented, requestDeleteConfirmation: { ids in
                     folderIDsPendingDelete = ids
@@ -296,7 +297,7 @@ struct HomeView: View {
                     withAnimation(.easeInOut(duration: 0.2)) {
                         isShowingSettings = true
                         isShowingTrash = false
-                        headerSubtitle = "설정"
+                        headerSubtitle = LocalizedText(korean: "설정", english: "Settings").text
                     }
                 }
                 .onReceive(NotificationCenter.default.publisher(for: .hideSettings)) { _ in
@@ -309,7 +310,7 @@ struct HomeView: View {
                     withAnimation(.easeInOut(duration: 0.2)) {
                         isShowingTrash = true
                         isShowingSettings = false
-                        headerSubtitle = "휴지통"
+                        headerSubtitle = LocalizedText(korean: "휴지통", english: "Trash").text
                     }
                 }
                 .onReceive(NotificationCenter.default.publisher(for: .hideTrash)) { _ in
@@ -547,7 +548,7 @@ struct HomeView: View {
                                                 .minimumScaleFactor(0.85)
                                         }
                                         .buttonStyle(.plain)
-                                        .disabled(selectedFolderName == nil || selectedFolderName == "__ALL__" || headerSubtitle == "최근 열어본 항목" || headerSubtitle == "설정" || headerSubtitle == "휴지통")
+                                        .disabled(selectedFolderName == nil || selectedFolderName == "__ALL__" || headerSubtitle == LocalizedText(korean: "최근 열어본 항목", english: "Recently Opened").text || headerSubtitle == LocalizedText(korean: "설정", english: "Settings").text || headerSubtitle == LocalizedText(korean: "휴지통", english: "Trash").text)
                                         
                                         Spacer()
                                         
@@ -607,7 +608,7 @@ struct HomeView: View {
                                                 .minimumScaleFactor(0.85)
                                         }
                                         .buttonStyle(.plain)
-                                        .disabled(selectedFolderName == nil || selectedFolderName == "__ALL__" || headerSubtitle == "최근 열어본 항목" || headerSubtitle == "설정" || headerSubtitle == "휴지통")
+                                        .disabled(selectedFolderName == nil || selectedFolderName == "__ALL__" || headerSubtitle == LocalizedText(korean: "최근 열어본 항목", english: "Recently Opened").text || headerSubtitle == LocalizedText(korean: "설정", english: "Settings").text || headerSubtitle == LocalizedText(korean: "휴지통", english: "Trash").text)
                                     }
                                     
                                     Spacer()
@@ -751,7 +752,7 @@ struct HomeView: View {
                                 HStack(spacing: 8) {
                                     Image(systemName: "magnifyingglass")
                                         .foregroundStyle(Color.text3)
-                                    TextField("노트 검색", text: $viewModel.searchText, axis: .horizontal)
+                                    TextField(LocalizedText(korean: "노트 검색", english: "Search Notes").text, text: $viewModel.searchText, axis: .horizontal)
                                         .font(.system(size: 16))
                                         .lineLimit(1)
                                 }
@@ -772,17 +773,17 @@ struct HomeView: View {
                                 // 정렬 기준 선택 (Menu + Picker)
                                 Picker("정렬 기준", selection: $headerSort) {
                                     // HeaderSortOption은 기존 코드와 동일한 케이스명을 사용합니다.
-                                    Label("가나다 순(↑)", systemImage: "a.circle")
+                                    Label(LocalizedText(korean: "가나다 순(↑)", english: "A-Z (↑)").text, systemImage: "a.circle")
                                         .tag(HeaderSortOption.alphabeticalAsc)
-                                    Label("가나다 순(↓)", systemImage: "a.circle")
+                                    Label(LocalizedText(korean: "가나다 순(↓)", english: "A-Z (↓)").text, systemImage: "a.circle")
                                         .tag(HeaderSortOption.alphabeticalDesc)
-                                    Label("최근 열어본  항목(↑)", systemImage: "clock")
+                                    Label(LocalizedText(korean: "최근 열어본 항목(↑)", english: "Recently Opened (↑)").text, systemImage: "clock")
                                         .tag(HeaderSortOption.recentlyOpenedAsc)
-                                    Label("최근 열어본 항목(↓)", systemImage: "clock")
+                                    Label(LocalizedText(korean: "최근 열어본 항목(↓)", english: "Recently Opened (↓)").text, systemImage: "clock")
                                         .tag(HeaderSortOption.recentlyOpenedDesc)
-                                    Label("학습 진행률(↑)", systemImage: "progress.indicator")
+                                    Label(LocalizedText(korean: "학습 진행률(↑)", english: "Progress (↑)").text, systemImage: "progress.indicator")
                                         .tag(HeaderSortOption.progressAsc)
-                                    Label("학습 진행률(↓)", systemImage: "progress.indicator")
+                                    Label(LocalizedText(korean: "학습 진행률(↓)", english: "Progress (↓)").text, systemImage: "progress.indicator")
                                         .tag(HeaderSortOption.progressDesc)
                                 }
                             } label: {
@@ -880,9 +881,9 @@ struct HomeView: View {
                                         .font(.system(size: 16))
                                         .foregroundStyle(Color.text3)
                                     
-                                    Text("도움말 버튼을 클릭해 보세요!")
-                                        .font(.system(size: 16, weight: .regular))
-                                        .foregroundStyle(Color.text3)
+                    Text(LocalizedText(korean: "도움말 버튼을 클릭해 보세요!", english: "Click the Help button!").text)
+                        .font(.system(size: 16, weight: .regular))
+                        .foregroundStyle(Color.text3)
                                 }
                             }
                             .multilineTextAlignment(.center)
@@ -953,7 +954,7 @@ struct HomeView: View {
                                 HStack(spacing: 6) {
                                     Image(systemName: "chart.line.uptrend.xyaxis")
                                         .font(.bodyTextSemibold)
-                                    Text("학습 기록")
+                                    Text(LocalizedText(korean: "학습 기록", english: "Learning History").text)
                                         .font(.bodyTextSemibold)
                                 }
                                 .padding(.horizontal, 16)
@@ -977,23 +978,23 @@ struct HomeView: View {
                             Menu {
                                 // 전체 보기
                                 Button {
-                                    applySelection(folderName: "__ALL__", subtitle: "전체 보기")
+                                    applySelection(folderName: "__ALL__", subtitle: LocalizedText(korean: "전체 보기", english: "All Items").text)
                                 } label: {
-                                    Label("전체 보기", systemImage: "square.grid.2x2")
+                                    Label(LocalizedText(korean: "전체 보기", english: "All Items").text, systemImage: "square.grid.2x2")
                                 }
                                 
                                 // 최근 열어본 항목
                                 Button {
-                                    applySelection(folderName: nil, subtitle: "최근 열어본 항목")
+                                    applySelection(folderName: nil, subtitle: LocalizedText(korean: "최근 열어본 항목", english: "Recently Opened").text)
                                 } label: {
-                                    Label("최근 열어본 항목", systemImage: "clock")
+                                    Label(LocalizedText(korean: "최근 열어본 항목", english: "Recently Opened").text, systemImage: "clock")
                                 }
                                 
                                 // 폴더 추가
                                 Button {
                                     createNewFolderAndSelect()
                                 } label: {
-                                    Label("새 폴더 만들기", systemImage: "folder.badge.plus")
+                                    Label(LocalizedText(korean: "새 폴더 만들기", english: "New Folder").text, systemImage: "folder.badge.plus")
                                 }
                                 
                                 // 폴더 목록
@@ -1017,10 +1018,10 @@ struct HomeView: View {
                                         withAnimation(.easeInOut(duration: 0.2)) {
                                             isShowingSettings = true
                                             isShowingTrash = false
-                                            headerSubtitle = "설정"
+                                            headerSubtitle = LocalizedText(korean: "설정", english: "Settings").text
                                         }
                                     } label: {
-                                        Label("설정", systemImage: "gearshape")
+                                        Label(LocalizedText(korean: "설정", english: "Settings").text, systemImage: "gearshape")
                                     }
                                     
                                     Button {
@@ -1029,16 +1030,16 @@ struct HomeView: View {
                                         withAnimation(.easeInOut(duration: 0.2)) {
                                             isShowingTrash = true
                                             isShowingSettings = false
-                                            headerSubtitle = "휴지통"
+                                            headerSubtitle = LocalizedText(korean: "휴지통", english: "Trash").text
                                         }
                                     } label: {
-                                        Label("휴지통", systemImage: "trash")
+                                        Label(LocalizedText(korean: "휴지통", english: "Trash").text, systemImage: "trash")
                                     }
                                     
                                     Button {
                                         isHelpPresented = true
                                     } label: {
-                                        Label("도움말", systemImage: "questionmark.circle")
+                                        Label(LocalizedText(korean: "도움말", english: "Help").text, systemImage: "questionmark.circle")
                                     }
                                 }
                             } label: {
@@ -1100,7 +1101,7 @@ struct HomeView: View {
                                 // 아이패드: 기존 방식 (사이드바에 인라인 입력)
                                 // 중복 방지 이름 생성
                                 let existing = Set(folders.map { $0.name })
-                                let base = "새 폴더"
+                                let base = LocalizedText(korean: "새 폴더", english: "New Folder").text
                                 var finalName = base
                                 if existing.contains(finalName) {
                                     var i = 1
@@ -1239,7 +1240,7 @@ struct HomeView: View {
                         // MARK: - Handler Methods
                         private func handleOnAppear() {
                             if selectedFolderName == nil {
-                                setSelection(folderName: "__ALL__", subtitle: "전체 보기")
+                                setSelection(folderName: "__ALL__", subtitle: LocalizedText(korean: "전체 보기", english: "All Items").text)
                             }
                             _ = learningLogStore.bootstrapSessionsIfNeeded(currentNotes: notes)
                             _ = learningLogStore.enrichSessionsFromNotes(currentNotes: notes)
@@ -1533,12 +1534,12 @@ struct HomeView: View {
                         private var newFolderSheet: some View {
                             NavigationStack {
                                 VStack(alignment: .leading, spacing: 16) {
-                                    Text("새 폴더 이름을 입력하세요")
+                                    Text(LocalizedText(korean: "새 폴더 이름을 입력하세요", english: "Enter folder name").text)
                                         .font(.system(size: 16, weight: .medium))
                                         .foregroundStyle(Color.text2)
                                         .padding(.top, 8)
                                     
-                                    TextField("폴더 이름", text: $newFolderName)
+                                    TextField(LocalizedText(korean: "폴더 이름", english: "Folder Name").text, text: $newFolderName)
                                         .textFieldStyle(.roundedBorder)
                                         .submitLabel(.done)
                                         .focused($newFolderFieldFocused)
@@ -1548,16 +1549,16 @@ struct HomeView: View {
                                 }
                                 .padding()
                                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                                .navigationTitle("새 폴더 만들기")
+                                .navigationTitle(LocalizedText(korean: "새 폴더 만들기", english: "New Folder").text)
                                 .navigationBarTitleDisplayMode(.inline)
                                 .toolbar {
                                     ToolbarItem(placement: .cancellationAction) {
-                                        Button("취소") {
+                                        Button(LocalizedText(korean: "취소", english: "Cancel").text) {
                                             showNewFolderSheet = false
                                         }
                                     }
                                     ToolbarItem(placement: .confirmationAction) {
-                                        Button("완료") {
+                                        Button(LocalizedText(korean: "완료", english: "Done").text) {
                                             commitNewFolder()
                                         }
                                         .disabled(newFolderName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -1905,8 +1906,8 @@ struct HomeView: View {
                         private var title: String {
                             switch step {
                             case .makeFolder, .makeFolderIphone: return "폴더 만들기"
-                            case .fab: return "노트 생성 · 학습 기록"
-                            case .searchCluster: return "검색 · 정렬 · 보기 전환"
+                            case .fab: return LocalizedText(korean: "노트 생성 · 학습 기록", english: "Create Note · Learning History").text
+                            case .searchCluster: return LocalizedText(korean: "검색 · 정렬 · 보기 전환", english: "Search · Sort · View Toggle").text
                             case .done: return ""
                             }
                         }
@@ -1918,9 +1919,9 @@ struct HomeView: View {
                             case .makeFolderIphone:
                                 return "새 폴더 만들기  메뉴를 누르면 학습노트를 담을 수 있는 폴더를 생성할 수 있습니다."
                             case .fab:
-                                return "우하단 버튼을 누르면 ‘노트 생성’과 ‘학습 기록’이 나타나요. 첫 노트를 만들어 보세요."
+                                return LocalizedText(korean: "우하단 버튼을 누르면 '노트 생성'과 '학습 기록'이 나타나요. 첫 노트를 만들어 보세요.", english: "Tap the bottom right button to see 'Create Note' and 'Learning History'. Create your first note!").text
                             case .searchCluster:
-                                return "이름으로 검색하고, 노트 정렬과 리스트/그리드 보기로 여기서 바꿔요."
+                                return LocalizedText(korean: "이름으로 검색하고, 노트 정렬과 리스트/그리드 보기로 여기서 바꿔요.", english: "Search by name, and change note sorting and list/grid view here.").text
                             case .done:
                                 return ""
                             }
@@ -2069,7 +2070,7 @@ struct HomeView: View {
                         private var title: String {
                             switch step {
                             case .list:     return "노트 목록"
-                            case .controls: return "검색 · 정렬 · 보기 전환"
+                            case .controls: return LocalizedText(korean: "검색 · 정렬 · 보기 전환", english: "Search · Sort · View Toggle").text
                             case .done:     return ""
                             }
                         }
@@ -2079,7 +2080,7 @@ struct HomeView: View {
                             case .list:
                                 return "방금 만든 노트가 여기 목록에 표시돼요. 목록에서 노트를 눌러 학습을 이어가요."
                             case .controls:
-                                return "여기서 이름으로 검색하고, 정렬을 바꾸고, 리스트/그리드 보기로 전환할 수 있어요."
+                                return LocalizedText(korean: "여기서 이름으로 검색하고, 정렬을 바꾸고, 리스트/그리드 보기로 전환할 수 있어요.", english: "Here you can search by name, change sorting, and switch between list/grid view.").text
                             case .done:
                                 return ""
                             }
@@ -2274,10 +2275,10 @@ struct HomeView: View {
                         
                         private var title: String {
                             switch step {
-                            case .list:          return "폴더 목록"
-                            case .recentButton:  return "최근 열어본 항목"
-                            case .sort:          return "정렬 바꾸기"
-                            case .tips:          return "빠른 사용 팁"
+                            case .list:          return LocalizedText(korean: "폴더 목록", english: "Folder List").text
+                            case .recentButton:  return LocalizedText(korean: "최근 열어본 항목", english: "Recently Opened").text
+                            case .sort:          return LocalizedText(korean: "정렬 바꾸기", english: "Change Sort").text
+                            case .tips:          return LocalizedText(korean: "빠른 사용 팁", english: "Quick Tips").text
                             case .done:          return ""
                             }
                         }
@@ -2285,13 +2286,13 @@ struct HomeView: View {
                         private var message: String {
                             switch step {
                             case .list:
-                                return "생성된 폴더는 좌측에 **목록으로 표시**됩니다. 폴더를 탭하면 해당 폴더 안의 노트를 볼 수 있어요."
+                                return LocalizedText(korean: "생성된 폴더는 좌측에 **목록으로 표시**됩니다. 폴더를 탭하면 해당 폴더 안의 노트를 볼 수 있어요.", english: "Created folders are **displayed as a list** on the left. Tap a folder to view notes inside it.").text
                             case .recentButton:
-                                return "‘최근 열어본 항목’은 **폴더 목록 바로 아래에 있는 버튼**이에요. 여기에는 **최근에 열어본 노트만** 표시됩니다. ‘전체 보기’로 이동하면 **노트와 폴더를 함께** 볼 수 있어요. (정렬과는 **별개** 동작입니다.)"
+                                return LocalizedText(korean: "'최근 열어본 항목'은 **폴더 목록 바로 아래에 있는 버튼**이에요. 여기에는 **최근에 열어본 노트만** 표시됩니다. '전체 보기'로 이동하면 **노트와 폴더를 함께** 볼 수 있어요. (정렬과는 **별개** 동작입니다.)", english: "'Recently Opened' is a **button right below the folder list**. It shows **only recently opened notes**. Go to 'All Items' to see **notes and folders together**. (This is **separate** from sorting.)").text
                             case .sort:
-                                return "사이드바 상단 **+ 버튼의 오른쪽에 있는 정렬 아이콘**을 누르면 메뉴가 열려요. 여기서 **가나다 순(↑/↓)**, **생성일(↑/↓)** 중 선택해 **폴더/노트 표시 순서**를 바꿀 수 있어요. (※ ‘최근 열어본 항목’ 버튼과는 **별개**입니다.)"
+                                return LocalizedText(korean: "사이드바 상단 **+ 버튼의 오른쪽에 있는 정렬 아이콘**을 누르면 메뉴가 열려요. 여기서 **가나다 순(↑/↓)**, **생성일(↑/↓)** 중 선택해 **폴더/노트 표시 순서**를 바꿀 수 있어요. (※ '최근 열어본 항목' 버튼과는 **별개**입니다.)", english: "Tap the **sort icon to the right of the + button** at the top of the sidebar to open the menu. Choose from **A-Z (↑/↓)**, **Date (↑/↓)** to change the **folder/note display order**. (※ This is **separate** from the 'Recently Opened' button.)").text
                             case .tips:
-                                return "폴더 이름을 **오른쪽으로 스와이프 → 이름 변경**, **왼쪽으로 스와이프 → 삭제** 할 수 있어요."
+                                return LocalizedText(korean: "폴더 이름을 **오른쪽으로 스와이프 → 이름 변경**, **왼쪽으로 스와이프 → 삭제** 할 수 있어요.", english: "Swipe folder names **right → rename**, **left → delete**.").text
                             case .done:
                                 return ""
                             }

@@ -10,6 +10,7 @@ import SwiftData
 
 struct StudyHistoryView: View {
     @EnvironmentObject private var learningLogStore: LearningLogStore
+    @EnvironmentObject private var localizationManager: LocalizationManager
     @Query private var notes: [Note]
 
     private let dateFormatter: DateFormatter = {
@@ -93,17 +94,17 @@ struct StudyHistoryView: View {
         let totalNotes = Set(learningLogStore.sessions.map { $0.noteTitle }).count
 
         return VStack(alignment: .leading, spacing: 8) {
-            Text("나의 학습 기록")
+            Text(LocalizedText(korean: "나의 학습 기록", english: "My Learning History").text)
                 .font(.system(size: 22, weight: .bold))
                 .foregroundStyle(Color.text1)
 
-            Text("학습한 노트의 마지막 재생 위치, 핵심 내용, 선택된 키워드, Q&A 기록이 여기에 모입니다.")
+            Text(LocalizedText(korean: "학습한 노트의 마지막 재생 위치, 핵심 내용, 선택된 키워드, Q&A 기록이 여기에 모입니다.", english: "Last playback positions, key content, selected keywords, and Q&A records from your studied notes are collected here.").text)
                 .font(.captionText)
                 .foregroundStyle(Color.text2)
 
             HStack(spacing: 16) {
-                summaryChip(label: "총 학습 세션", value: "\(totalSessions)")
-                summaryChip(label: "학습한 노트 수", value: "\(totalNotes)")
+                summaryChip(label: LocalizedText(korean: "총 학습 세션", english: "Total Sessions").text, value: "\(totalSessions)")
+                summaryChip(label: LocalizedText(korean: "학습한 노트 수", english: "Studied Notes").text, value: "\(totalNotes)")
             }
             .padding(.top, chipsTopPadding) // ← 설명 문장과 칩 사이 간격
         }
@@ -132,11 +133,11 @@ struct StudyHistoryView: View {
                 .font(.system(size: 40))
                 .foregroundStyle(Color.secondColor.opacity(0.7))
 
-            Text("아직 기록된 학습 세션이 없습니다.")
+            Text(LocalizedText(korean: "아직 기록된 학습 세션이 없습니다.", english: "No learning sessions recorded yet.").text)
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(Color.text2)
 
-            Text("노트에서 영상을 학습하고 키워드를 선택하거나\nAI에게 질문하면 이곳에 자동으로 기록됩니다.")
+            Text(LocalizedText(korean: "노트에서 영상을 학습하고 키워드를 선택하거나\nAI에게 질문하면 이곳에 자동으로 기록됩니다.", english: "Study videos in notes, select keywords, or ask AI questions,\nand they will be automatically recorded here.").text)
                 .font(.system(size: 13))
                 .foregroundStyle(Color.text3)
                 .multilineTextAlignment(.center)
@@ -233,7 +234,7 @@ struct StudyHistoryView: View {
             if let pos = s.lastPosition {
                 let mm = Int(pos) / 60
                 let ss = Int(pos) % 60
-                Text("마지막 재생 위치 \(String(format: "%d:%02d", mm, ss))")
+                Text(LocalizedText(korean: "마지막 재생 위치", english: "Last Position").text + " \(String(format: "%d:%02d", mm, ss))")
                     .font(.system(size: 11))
                     .foregroundStyle(Color.text3)
             }
@@ -245,7 +246,7 @@ struct StudyHistoryView: View {
                     ForEach(Array(chapters.enumerated()), id: \.offset) { idx, ch in
                         VStack(alignment: .leading, spacing: 4) {
                             HStack(spacing: 6) {
-                                Text("챕터 \(idx + 1)")
+                                Text(LocalizedText(korean: "챕터", english: "Chapter").text + " \(idx + 1)")
                                     .font(.system(size: 10, weight: .semibold))
                                     .foregroundStyle(Color.text2)
                                     .padding(.horizontal, 6)
@@ -253,7 +254,7 @@ struct StudyHistoryView: View {
                                     .background(Color.background2)
                                     .cornerRadius(6)
 
-                                Text(ch.title.isEmpty ? "제목" : ch.title)
+                                Text(ch.title.isEmpty ? LocalizedText(korean: "제목", english: "Title").text : ch.title)
                                     .font(.system(size: 12, weight: .semibold))
                                     .foregroundStyle(Color.text1)
                                     .lineLimit(1)
@@ -393,7 +394,7 @@ struct StudyHistoryView: View {
                 EmptyView()
             } else {
                 VStack(alignment: .leading, spacing: keywordCloudTitleSpacing) {
-                    Text("자주 선택된 키워드")
+                    Text(LocalizedText(korean: "자주 선택된 키워드", english: "Frequently Selected Keywords").text)
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(Color.text2)
                         .padding(.horizontal, 4)

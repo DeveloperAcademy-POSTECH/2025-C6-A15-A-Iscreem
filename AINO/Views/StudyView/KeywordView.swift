@@ -11,6 +11,7 @@ struct KeywordView: View {
     @ObservedObject var analyzer: CaptionAnalyzer
     @ObservedObject var studyViewModel: StudyViewModel
     @EnvironmentObject private var learningLogStore: LearningLogStore
+    @EnvironmentObject private var localizationManager: LocalizationManager
     
     @State private var selectedKeyword: String? = nil
     
@@ -42,7 +43,7 @@ struct KeywordView: View {
         VStack(alignment: .leading, spacing: 0) {
             // 헤더
             HStack(spacing: 12) {
-                Text("이 강의에서 자주 언급되는 핵심 키워드들이 나열됩니다.")
+                Text(LocalizedText(korean: "이 강의에서 자주 언급되는 핵심 키워드들이 나열됩니다.", english: "Key keywords frequently mentioned in this lecture are listed here.").text)
                     .font(.bodyText)
                     .foregroundStyle(Color.text2)
                 
@@ -124,7 +125,7 @@ struct KeywordView: View {
         VStack(spacing: 15) {
             Spacer()
             ProgressView()
-            Text("키워드 도출 중...")
+            Text(LocalizedText(korean: "키워드 도출 중...", english: "Extracting keywords...").text)
                 .font(.system(size: 16))
                 .foregroundStyle(Color.text3)
             Spacer()
