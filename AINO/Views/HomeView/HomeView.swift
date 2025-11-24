@@ -857,23 +857,23 @@ struct HomeView: View {
                         // MARK: - Empty State
                         private var emptyStateView: some View {
                             VStack(spacing: 4) {
-                                Text("아직은 노트가 없어요!")
+                                Text(LocalizedText(korean: "아직은 노트가 없어요!", english: "No notes yet!").text)
                                     .font(.system(size: 16, weight: .regular))
                                     .foregroundStyle(Color.text3)
                                 
-                                Text("하단 추가 버튼을 눌러서 첫 학습을 시작해 보세요!")
+                                Text(LocalizedText(korean: "하단 추가 버튼을 눌러서 첫 학습을 시작해 보세요!", english: "Tap the add button at the bottom to start your first learning!").text)
                                     .font(.system(size: 16, weight: .regular))
                                     .foregroundStyle(Color.text3)
                                 
                                 Spacer()
                                     .frame(height: 12)
                                 
-                                Text("사용법을 알고 싶으신가요?")
+                                Text(LocalizedText(korean: "사용법을 알고 싶으신가요?", english: "Want to know how to use it?").text)
                                     .font(.system(size: 16, weight: .regular))
                                     .foregroundStyle(Color.text3)
                                 
                                 HStack(spacing: 4) {
-                                    Text("좌측 하단의")
+                                    Text(LocalizedText(korean: "좌측 하단의", english: "Click the").text)
                                         .font(.system(size: 16, weight: .regular))
                                         .foregroundStyle(Color.text3)
                                     
@@ -881,7 +881,7 @@ struct HomeView: View {
                                         .font(.system(size: 16))
                                         .foregroundStyle(Color.text3)
                                     
-                    Text(LocalizedText(korean: "도움말 버튼을 클릭해 보세요!", english: "Click the Help button!").text)
+                    Text(LocalizedText(korean: "도움말 버튼을 클릭해 보세요!", english: "Help button at the bottom left!").text)
                         .font(.system(size: 16, weight: .regular))
                         .foregroundStyle(Color.text3)
                                 }
@@ -999,7 +999,7 @@ struct HomeView: View {
                                 
                                 // 폴더 목록
                                 if !folders.isEmpty {
-                                    Section("폴더") {
+                                    Section(LocalizedText(korean: "폴더", english: "Folders").text) {
                                         ForEach(folders) { folder in
                                             Button {
                                                 applySelection(folderName: folder.name, subtitle: folder.name)

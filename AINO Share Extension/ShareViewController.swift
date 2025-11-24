@@ -15,6 +15,17 @@ class ShareViewController: UIViewController {
     private var sharedURL: String?
     private var noteTitle: String = ""
     
+    // 시스템 언어 감지 및 텍스트 반환
+    private var isEnglish: Bool {
+        let preferredLanguage = Locale.preferredLanguages.first ?? "ko"
+        let languageCode = preferredLanguage.prefix(2).lowercased()
+        return languageCode == "en"
+    }
+    
+    private func localizedText(korean: String, english: String) -> String {
+        return isEnglish ? english : korean
+    }
+    
     // UI Components
     private let containerView = UIView()
     private let titleLabel = UILabel()
@@ -96,7 +107,7 @@ class ShareViewController: UIViewController {
         
         // URL TextField
         urlTextField.translatesAutoresizingMaskIntoConstraints = false
-        urlTextField.placeholder = "YouTube 링크를 입력하세요!"
+        urlTextField.placeholder = localizedText(korean: "YouTube 링크를 입력하세요!", english: "Enter YouTube link!")
         urlTextField.font = .systemFont(ofSize: 16)
         urlTextField.textColor = UIColor { trait in
             trait.userInterfaceStyle == .dark ? .white : UIColor(hex: "1A1A1A")
@@ -118,7 +129,7 @@ class ShareViewController: UIViewController {
         
         // Title TextField
         titleTextField.translatesAutoresizingMaskIntoConstraints = false
-        titleTextField.placeholder = "저장할 노트 제목을 입력하세요!"
+        titleTextField.placeholder = localizedText(korean: "저장할 노트 제목을 입력하세요!", english: "Enter note title to save!")
         titleTextField.font = .systemFont(ofSize: 16)
         titleTextField.textColor = UIColor { trait in
             trait.userInterfaceStyle == .dark ? .white : UIColor(hex: "1A1A1A")
@@ -131,7 +142,7 @@ class ShareViewController: UIViewController {
         
         // Cancel Button
         cancelButton.translatesAutoresizingMaskIntoConstraints = false
-        cancelButton.setTitle("취소", for: .normal)
+        cancelButton.setTitle(localizedText(korean: "취소", english: "Cancel"), for: .normal)
         cancelButton.titleLabel?.font = .systemFont(ofSize: 17, weight: .regular)
         cancelButton.setTitleColor(UIColor { trait in
             trait.userInterfaceStyle == .dark ? UIColor(white: 0.85, alpha: 1.0) : UIColor(hex: "555555")
@@ -141,7 +152,7 @@ class ShareViewController: UIViewController {
         
         // Create Button
         createButton.translatesAutoresizingMaskIntoConstraints = false
-        createButton.setTitle("노트 생성", for: .normal)
+        createButton.setTitle(localizedText(korean: "노트 생성", english: "Create Note"), for: .normal)
         createButton.titleLabel?.font = .systemFont(ofSize: 15, weight: .semibold)
         createButton.setTitleColor(.white, for: .normal)
         createButton.backgroundColor = UIColor(hex: "5BC0BE")
@@ -416,17 +427,18 @@ class ShareViewController: UIViewController {
                     }
                     
                     // Share Extension 종료 전에 사용자에게 메시지 표시
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+                        guard let self = self else { return }
                         // 성공 메시지를 보여주고 종료
                         let alert = UIAlertController(
-                            title: "저장 완료",
-                            message: "AINO 앱을 열어 노트를 확인하세요.",
+                            title: self.localizedText(korean: "저장 완료", english: "Saved"),
+                            message: self.localizedText(korean: "AINO 앱을 열어 노트를 확인하세요.", english: "Open the AINO app to view your note."),
                             preferredStyle: .alert
                         )
-                        alert.addAction(UIAlertAction(title: "확인", style: .default) { _ in
-                            self?.extensionContext?.completeRequest(returningItems: [], completionHandler: nil)
+                        alert.addAction(UIAlertAction(title: self.localizedText(korean: "확인", english: "OK"), style: .default) { _ in
+                            self.extensionContext?.completeRequest(returningItems: [], completionHandler: nil)
                         })
-                        self?.present(alert, animated: true)
+                        self.present(alert, animated: true)
                         print("🔵 [Share Extension] ========== createTapped END ==========")
                     }
                 }

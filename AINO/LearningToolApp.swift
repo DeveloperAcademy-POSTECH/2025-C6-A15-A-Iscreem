@@ -31,10 +31,36 @@ final class LearningToolAppDelegate: NSObject, UIApplicationDelegate {
     func applicationDidBecomeActive(_ application: UIApplication) {
         print("✅ [Main App] ========== applicationDidBecomeActive 호출됨 ==========")
         print("✅ [Main App] 앱이 활성화되었습니다.")
+        
+        // 시스템 언어 변경 감지 및 업데이트
+        checkAndUpdateSystemLanguage()
+        
         print("✅ [Main App] NotificationCenter를 통해 알림 전송 중...")
         // NotificationCenter를 통해 알림 전송
         NotificationCenter.default.post(name: .appDidBecomeActive, object: nil)
         print("✅ [Main App] ✅ 알림 전송 완료")
+    }
+    
+    // 시스템 언어 확인 및 업데이트
+    private func checkAndUpdateSystemLanguage() {
+        // 사용자가 수동으로 언어를 설정하지 않은 경우에만 시스템 언어를 따름
+        let languageManuallySet = UserDefaults.standard.bool(forKey: "languageManuallySet")
+        
+        if !languageManuallySet {
+            let preferredLanguage = Locale.preferredLanguages.first ?? "ko"
+            let languageCode = preferredLanguage.prefix(2).lowercased()
+            let systemLanguage = languageCode == "en" ? "english" : "korean"
+            
+            // 현재 설정과 다르면 업데이트
+            let currentLanguage = UserDefaults.standard.string(forKey: "selectedLanguage") ?? "korean"
+            if currentLanguage != systemLanguage {
+                UserDefaults.standard.set(systemLanguage, forKey: "selectedLanguage")
+                UserDefaults.standard.synchronize()
+                // LocalizationManager에 변경 알림
+                NotificationCenter.default.post(name: .languageDidChange, object: nil)
+                print("🌐 [Main App] System language changed to: \(systemLanguage)")
+            }
+        }
     }
     
     // 앱이 백그라운드로 이동할 때 호출
@@ -128,6 +154,7 @@ final class LearningToolAppDelegate: NSObject, UIApplicationDelegate {
 extension Notification.Name {
     static let appWillEnterForeground = Notification.Name("AppWillEnterForeground")
     static let appDidBecomeActive = Notification.Name("AppDidBecomeActive")
+    static let languageDidChange = Notification.Name("LanguageDidChange")
 }
 
 @main
