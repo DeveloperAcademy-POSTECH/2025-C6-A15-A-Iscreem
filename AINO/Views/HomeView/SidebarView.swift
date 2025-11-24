@@ -16,21 +16,29 @@ struct SidebarView: View {
     let requestDeleteConfirmation: ((Set<PersistentIdentifier>) -> Void)?
     // ✅ 홈에서 현재 선택된 카테고리(전체/최근/특정 폴더 이름)를 바인딩으로 전달받아 동기화
     @Binding var selectedFolderName: String?
+    
+    // 🔵 추가: 설정/휴지통 오버레이 표시 여부와 연동해서 하단 버튼 색 바꾸기
+        @Binding var isShowingSettings: Bool
+        @Binding var isShowingTrash: Bool
 
     init(
         onFolderSelected: ((String?) -> Void)? = nil,
         isHelpPresented: Binding<Bool> = .constant(false),
         requestDeleteConfirmation: ((Set<PersistentIdentifier>) -> Void)? = nil,
         selectedFolderName: Binding<String?> = .constant(nil),
+        isShowingSettings: Binding<Bool> = .constant(false),
+        isShowingTrash: Binding<Bool> = .constant(false),
         folderToRename: Binding<Folder?> = .constant(nil),
-            folderRenameText: Binding<String> = .constant("")
+        folderRenameText: Binding<String> = .constant("")
     ) {
         self.onFolderSelected = onFolderSelected
         self._isHelpPresented = isHelpPresented
         self.requestDeleteConfirmation = requestDeleteConfirmation
         self._selectedFolderName = selectedFolderName
+        self._isShowingSettings = isShowingSettings
+        self._isShowingTrash = isShowingTrash
         self._folderToRename = folderToRename
-            self._folderRenameText = folderRenameText
+        self._folderRenameText = folderRenameText
     }
     
     @StateObject private var viewModel = SidebarViewModel()
@@ -234,6 +242,9 @@ private extension SidebarView {
             NotificationCenter.default.post(name: .hideSettings, object: nil)
         } label: {
             let isSelected = (viewModel.selection == .all)
+                && !isHelpPresented
+                && !isShowingSettings
+                && !isShowingTrash
             HStack(spacing: 12) {
                 Image(systemName: "square.grid.2x2.fill")
                     .foregroundStyle(isSelected ? Color.secondColor : Color.text2)
@@ -327,6 +338,10 @@ private extension SidebarView {
             onFolderSelected?(folder.name)
         } label: {
             let isSelected: Bool = {
+                // 하단 메뉴(도움말/설정/휴지통)가 활성화된 동안에는 폴더 하이라이트를 끈다
+                if isHelpPresented || isShowingSettings || isShowingTrash {
+                    return false
+                }
                 if case .folder(let id) = viewModel.selection {
                     return id == folder.persistentModelID
                 }
@@ -425,6 +440,9 @@ private extension SidebarView {
                 onFolderSelected?(nil)
             } label: {
                 let isSelected = (viewModel.selection == .recent)
+                    && !isHelpPresented
+                    && !isShowingSettings
+                    && !isShowingTrash
                 HStack/*(spacing: 12)*/ {
                     Image(systemName: "clock.fill")
                         .foregroundStyle(isSelected ? Color.secondColor : Color.text2)
@@ -443,10 +461,16 @@ private extension SidebarView {
     
     var bottomBar: some View {
         VStack(spacing: 0) {
+            // ✅ 도움말 버튼
             Button { viewModel.helpTapped() } label: {
+                let isSelected = isHelpPresented
                 HStack(spacing: 12) {
-                    Image(systemName: "questionmark.circle.fill").foregroundStyle(Color.text2).font(.system(size: 20))
-                    Text("도움말").foregroundStyle(Color.text2).font(.buttonText)
+                    Image(systemName: "questionmark.circle.fill")
+                        .foregroundStyle(isSelected ? Color.secondColor : Color.text2)
+                        .font(.system(size: 20))
+                    Text("도움말")
+                        .foregroundStyle(isSelected ? Color.secondColor : Color.text2)
+                        .font(.buttonText)
                     Spacer()
                 }
                 .padding(.horizontal, 20)
@@ -454,10 +478,16 @@ private extension SidebarView {
             }
             .buttonStyle(.plain)
 
+            // ✅ 설정 버튼
             Button { NotificationCenter.default.post(name: .showSettings, object: nil) } label: {
+                let isSelected = isShowingSettings
                 HStack(spacing: 12) {
-                    Image(systemName: "gearshape.fill").foregroundStyle(Color.text2).font(.system(size: 20))
-                    Text("설정").foregroundStyle(Color.text2).font(.buttonText)
+                    Image(systemName: "gearshape.fill")
+                        .foregroundStyle(isSelected ? Color.secondColor : Color.text2)
+                        .font(.system(size: 20))
+                    Text("설정")
+                        .foregroundStyle(isSelected ? Color.secondColor : Color.text2)
+                        .font(.buttonText)
                     Spacer()
                 }
                 .padding(.horizontal, 20)
@@ -465,10 +495,16 @@ private extension SidebarView {
             }
             .buttonStyle(.plain)
 
+            // ✅ 휴지통 버튼
             Button { NotificationCenter.default.post(name: .showTrash, object: nil) } label: {
+                let isSelected = isShowingTrash
                 HStack(spacing: 12) {
-                    Image(systemName: "trash").foregroundStyle(Color.errorColor).font(.system(size: 20))
-                    Text("휴지통").foregroundStyle(Color.errorColor).font(.buttonText)
+                    Image(systemName: "trash")
+                        .foregroundStyle(isSelected ? Color.errorColor : Color.errorColor.opacity(0.75))
+                        .font(.system(size: 20))
+                    Text("휴지통")
+                        .foregroundStyle(isSelected ? Color.errorColor : Color.errorColor.opacity(0.75))
+                        .font(.buttonText)
                     Spacer()
                 }
                 .padding(.horizontal, 20)
@@ -476,8 +512,6 @@ private extension SidebarView {
             }
             .buttonStyle(.plain)
         }
-        // 고정 30 → 안전영역 포함 하단 패딩 (조금 줄임)
-        //.safeAreaPadding(.bottom, 5)
         .ignoresSafeArea(.keyboard, edges: .bottom)
         .padding(.horizontal, 12)
         .contentShape(Rectangle())

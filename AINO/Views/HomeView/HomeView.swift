@@ -124,23 +124,29 @@ struct HomeView: View {
             )
             
             NavigationSplitView(columnVisibility: $splitVisibility, preferredCompactColumn: $preferredCompactColumn) {
-                SidebarView(onFolderSelected: { name in
-                    if name == "__ALL__" {
-                        applySelection(folderName: "__ALL__", subtitle: "전체 보기")
-                    } else if let name {
-                        applySelection(folderName: name, subtitle: name)
-                    } else {
-                        applySelection(folderName: nil, subtitle: "최근 열어본 항목")
-                    }
-                }, isHelpPresented: $isHelpPresented, requestDeleteConfirmation: { ids in
-                    folderIDsPendingDelete = ids
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        isFolderDeletePresented = true
-                    }
-                }, selectedFolderName: $selectedFolderName,
-                            folderToRename: $folderToRename,
-                            folderRenameText: $renameText    // ← HomeView의 renameText 재사용
-                        ) // ✅ Pass binding so Sidebar syncs highlight
+                SidebarView(
+                    onFolderSelected: { name in
+                        if name == "__ALL__" {
+                            applySelection(folderName: "__ALL__", subtitle: "전체 보기")
+                        } else if let name {
+                            applySelection(folderName: name, subtitle: name)
+                        } else {
+                            applySelection(folderName: nil, subtitle: "최근 열어본 항목")
+                        }
+                    },
+                    isHelpPresented: $isHelpPresented,
+                    requestDeleteConfirmation: { ids in
+                        folderIDsPendingDelete = ids
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            isFolderDeletePresented = true
+                        }
+                    },
+                    selectedFolderName: $selectedFolderName,
+                    isShowingSettings: $isShowingSettings,
+                    isShowingTrash: $isShowingTrash,
+                    folderToRename: $folderToRename,
+                    folderRenameText: $renameText    // ← HomeView의 renameText 재사용
+                ) // ✅ Pass binding so Sidebar syncs highlight
                 .navigationSplitViewColumnWidth(
                     min: sidebarWidth,
                     ideal: sidebarWidth,
@@ -285,6 +291,7 @@ struct HomeView: View {
                     isShowingTrash = false
                 }
             }
+            /*
             // ✅ 사이드바 숨김 토글 노티 수신 → 실제 표시 상태 토글
             .onReceive(NotificationCenter.default.publisher(for: .toggleSidebar)) { _ in
                 withAnimation(.easeInOut(duration: 0.2)) {
@@ -297,6 +304,26 @@ struct HomeView: View {
 //                    restore(from: snap)
 //                }
 //            }
+
+              
+              */
+            .onReceive(NotificationCenter.default.publisher(for: .toggleSidebar)) { _ in
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                splitVisibility = (splitVisibility == .all) ? .detailOnly : .all
+                            }
+                        }
+                        .onReceive(NotificationCenter.default.publisher(for: .goBack)) { _ in
+                            // 직전 화면 스냅샷이 있으면 복원
+                            if let snap = backStack.popLast() {
+                                restore(from: snap)
+                            } else {
+                                // 스냅샷이 없으면 설정/휴지통 오버레이만 닫기
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    if isShowingSettings { isShowingSettings = false }
+                                    if isShowingTrash { isShowingTrash = false }
+                                }
+                            }
+                        }
             .onReceive(NotificationCenter.default.publisher(for: .returnedFromStudyView)) { _ in
                 // 사용자가 StudyView에서 홈으로 돌아왔을 때,
                 // 아직 포스트 온보딩을 보지 않았다면 다시 표시되도록 재무장
@@ -585,10 +612,10 @@ struct HomeView: View {
                         // 심볼: 사이드바 토글 느낌
                         Image(systemName: "sidebar.left")
                             .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(Color.text2)
                             .frame(width: metrics.sortButtonSize, height: metrics.sortButtonSize)
                     }
                     .buttonStyle(.plain)
-                    .tint(Color.text2)
                     .glassEffect()
                     .glassEffectUnionCompat(id: "sidebar-toggle", namespace: glassNS)
                     .accessibilityLabel(splitVisibility == .all ? "사이드바 숨기기" : "사이드바 보이기")
@@ -1108,7 +1135,7 @@ extension View {
         }
     }
 }
-
+/*
 // 라우팅용 노티피케이션 추가
 extension Notification.Name {
     static let showSettings = Notification.Name("ShowSettings")
@@ -1116,6 +1143,16 @@ extension Notification.Name {
     static let showTrash = Notification.Name("ShowTrash")
     static let hideTrash = Notification.Name("HideTrash")
     static let returnedFromStudyView = Notification.Name("ReturnedFromStudyView")
+}
+*/
+
+extension Notification.Name {
+    static let showSettings = Notification.Name("ShowSettings")
+    static let hideSettings = Notification.Name("HideSettings")
+    static let showTrash = Notification.Name("ShowTrash")
+    static let hideTrash = Notification.Name("HideTrash")
+    static let returnedFromStudyView = Notification.Name("ReturnedFromStudyView")
+    static let goBack = Notification.Name("GoBack")
 }
 // MARK: - Onboarding (Coach Marks)
 

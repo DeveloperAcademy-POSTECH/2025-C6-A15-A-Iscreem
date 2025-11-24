@@ -37,6 +37,7 @@ struct SettingsDetailView: View {
     }
     
     var body: some View {
+        /*
         VStack(spacing: 0) {
             // 헤더 (HomeView와 일관된 스타일)
             HStack(spacing: 12) {
@@ -57,6 +58,41 @@ struct SettingsDetailView: View {
                     .accessibilityLabel("뒤로가기")
                 }
 #endif
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("설정")
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundStyle(Color.text2)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .minimumScaleFactor(0.85)
+                }
+                Spacer()
+            }
+            .padding()
+            .safeAreaPadding([.top, .horizontal])
+            
+            Divider().background(Color.borderColor)
+         */
+        VStack(spacing: 0) {
+            // 헤더 (HomeView와 일관된 스타일)
+            HStack(spacing: 12) {
+                // 🔙 좌측 상단 뒤로가기 버튼 (항상 표시)
+                Button {
+                    performDismiss()
+                } label: {
+                    ZStack {
+                        Circle()
+                            .fill(Color.background2.opacity(0.96))
+                            .frame(width: 32, height: 32)
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(Color.text2)
+                    }
+                    .contentShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("뒤로가기")
+                
                 VStack(alignment: .leading, spacing: 4) {
                     Text("설정")
                         .font(.system(size: 22, weight: .bold))
@@ -201,7 +237,7 @@ struct SettingsDetailView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(.systemBackground))
         // ✅ 드래그 오프셋 적용
-        .offset(x: dragOffset)
+        //.offset(x: dragOffset)
         // ✅ 드래그 중일 때 살짝 어둡게
         .overlay(
             Color.black.opacity(isDragging ? 0.1 : 0)
@@ -263,6 +299,7 @@ struct SettingsDetailView: View {
             }
     }
     
+    /*
     private func performDismiss() {
         withAnimation(.easeOut(duration: 0.25)) {
             dragOffset = UIScreen.main.bounds.width
@@ -271,6 +308,16 @@ struct SettingsDetailView: View {
         // 뒤로가기 로직
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
             NotificationCenter.default.post(name: .hideSettings, object: nil)
+        }
+    }*/
+    private func performDismiss() {
+        withAnimation(.easeOut(duration: 0.25)) {
+            dragOffset = UIScreen.main.bounds.width
+        }
+        
+        // 뒤로가기 로직: 직전 화면으로 복귀 요청
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            NotificationCenter.default.post(name: .goBack, object: nil)
         }
     }
 }
