@@ -669,6 +669,7 @@ struct HomeView: View {
                                         .frame(width: metrics.toggleWidth, height: metrics.toggleHeight)
                                         .layoutPriority(2)
                                     }
+                                    .tagTarget(.searchCluster)
                                     .tagPostHomeTarget(.searchCluster)
                                 }
                                 .padding()
@@ -2338,3 +2339,4 @@ struct HomeView: View {
                             }
                         }
                     }
+
