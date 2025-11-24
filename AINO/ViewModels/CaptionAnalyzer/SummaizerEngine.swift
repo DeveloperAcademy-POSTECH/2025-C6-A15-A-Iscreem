@@ -98,9 +98,9 @@ final class SummarizerEngine {
                 linesOut.append("• " + stripBulletPrefix(firstLine(trimmed)))
             }
             
-            // UI에 간헐적으로 누적 반영 (시간 스로틀: 0.8s)
+            // UI에 간헐적으로 누적 반영 (시간 스로틀: 3s)
             let now = Date()
-            if now.timeIntervalSince(lastFlush) > 0.8 {
+            if now.timeIntervalSince(lastFlush) > 3.0 {
                 lastFlush = now
                 let current = linesOut.joined(separator: "\n")
                 self.log.info("sum[\(runTag)] flush lines=\(linesOut.count)")
@@ -141,7 +141,7 @@ final class SummarizerEngine {
     /// Remove any leading bullet/dash so we can add a single "• " in step 4 only.
     private func stripBulletPrefix(_ s: String) -> String {
         var t = s.trimmingCharacters(in: .whitespacesAndNewlines)
-        let prefixes = ["•", "-", "–", "—", "∙", "·", "●", "*"]
+        let prefixes = ["• "]
         if let p = prefixes.first(where: { t.hasPrefix($0) }) {
             t.removeFirst(p.count)
             t = t.trimmingCharacters(in: .whitespaces)
