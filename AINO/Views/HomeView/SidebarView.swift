@@ -173,14 +173,14 @@ private extension SidebarView {
                 Spacer()
 
                 // ✅ 숨김 버튼을 정렬 버튼 왼쪽에, 5pt 간격으로 항상 표시
-                hideSidebarButton
+                sortMenu
                     .padding(.trailing, 5)
 
-                sortMenu
+                hideSidebarButton
             }
             .padding(.horizontal, 20)
             // 고정 50 → 안전영역을 고려한 top 패딩
-            .safeAreaPadding(.top, 12)
+            .safeAreaPadding(.top, 16)
             .padding(.bottom, 16)
             .contentShape(Rectangle())
 
@@ -544,7 +544,7 @@ private extension SidebarView {
             .buttonStyle(.plain)
         }
         // 고정 30 → 안전영역 포함 하단 패딩
-        .safeAreaPadding(.bottom, 16)
+        .safeAreaPadding(.bottom, 5)
         .ignoresSafeArea(.keyboard, edges: .bottom)
         .padding(.horizontal, 12)
         .contentShape(Rectangle())
