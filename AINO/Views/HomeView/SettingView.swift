@@ -17,10 +17,7 @@ struct SettingsDetailView: View {
     
     // AppStorage를 사용하여 테마 설정을 영구적으로 저장
     @AppStorage("selectedTheme") private var selectedTheme: String = "system"
-    @AppStorage("selectedLanguage") private var selectedLanguage: String = "korean"
-    
-    // 리퀴드 글래스 설정 (기본값: true)
-    @AppStorage("useVibrancy") private var useVibrancy: Bool = true
+    @StateObject private var localizationManager = LocalizationManager.shared
     
     @Environment(\.modelContext) private var modelContext
     @Query private var folders: [Folder]
@@ -41,7 +38,7 @@ struct SettingsDetailView: View {
             // 헤더 (HomeView와 일관된 스타일)
             HStack(spacing: 12) {
 #if os(iOS)
-                if UIDevice.current.userInterfaceIdiom == .phone {
+                if UIDevice.current.userInterfaceIdiom == .pad {
                     Button {
                         performDismiss()
                     } label: {
@@ -58,7 +55,7 @@ struct SettingsDetailView: View {
                 }
 #endif
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("설정")
+                    Text(LocalizedText(korean: "설정", english: "Settings").text)
                         .font(.system(size: 22, weight: .bold))
                         .foregroundStyle(Color.text2)
                         .lineLimit(1)
@@ -74,106 +71,101 @@ struct SettingsDetailView: View {
             
             // 메인 설정 영역
             ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    // 기본 설정 섹션
-                    VStack(alignment: .leading, spacing: 20) {
-                        VStack(alignment: .leading, spacing: 16) {
-                            Text("기본 설정")
-                                .font(.system(size: 20, weight: .semibold))
+                VStack(alignment: .leading, spacing: 29) {
+                    // 테마 설정
+                    HStack(alignment: .top, spacing: 24) {
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text(LocalizedText(korean: "테마", english: "Theme").text)
+                                .font(.system(size: 19, weight: .medium))
                                 .foregroundStyle(Color.text1)
-                            
-                            // 구분선
-                            Rectangle()
-                                .fill(Color.borderColor)
-                                .frame(height: 1)
+                            Text(LocalizedText(korean: "내 기기에서 AINO의 모습을 바꿔보세요!", english: "Customize how AINO looks on your device!").text)
+                                .font(.system(size: 17, weight: .regular))
+                                .foregroundStyle(Color.text3)
                         }
                         
-                        // 테마 설정
-                        HStack(alignment: .top, spacing: 20) {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("테마")
-                                    .font(.system(size: 16, weight: .medium))
-                                    .foregroundStyle(Color.text1)
-                                Text("내 기기에서 AINO의 모습을 바꿔보세요!")
-                                    .font(.system(size: 14, weight: .regular))
-                                    .foregroundStyle(Color.text3)
-                            }
-                            
-                            Spacer()
-                            
-                            ThemeModePicker(selection: $selectedTheme, useVibrancy: $useVibrancy)
-                        }
+                        Spacer()
                         
-                        // 언어 설정
-                        HStack(alignment: .top, spacing: 20) {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("언어")
-                                    .font(.system(size: 16, weight: .medium))
-                                    .foregroundStyle(Color.text1)
-                                Text("AINO로 학습할 언어를 설정하세요!")
-                                    .font(.system(size: 14, weight: .regular))
-                                    .foregroundStyle(Color.text3)
-                            }
-                            
-                            Spacer()
-                            
-                            LanguageModePicker(selection: $selectedLanguage, useVibrancy: $useVibrancy)
-                        }
+                        ThemeModePicker(selection: $selectedTheme)
                     }
                     
-                    // 외관 설정 섹션
-                    VStack(alignment: .leading, spacing: 20) {
-                        VStack(alignment: .leading, spacing: 16) {
-                            Text("외관 설정")
-                                .font(.system(size: 20, weight: .semibold))
+                    // 언어 설정
+                    HStack(alignment: .top, spacing: 24) {
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text(LocalizedText(korean: "언어", english: "Language").text)
+                                .font(.system(size: 19, weight: .medium))
                                 .foregroundStyle(Color.text1)
-                            
-                            // 구분선
-                            Rectangle()
-                                .fill(Color.borderColor)
-                                .frame(height: 1)
+                            Text(LocalizedText(korean: "AINO로 학습할 언어를 설정하세요!", english: "Set your preferred language for AINO!").text)
+                                .font(.system(size: 17, weight: .regular))
+                                .foregroundStyle(Color.text3)
                         }
                         
-                        // 리퀴드 글래스 (Vibrancy) 설정
-                        HStack(alignment: .top, spacing: 20) {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("리퀴드 글래스 효과")
-                                    .font(.system(size: 16, weight: .medium))
-                                    .foregroundStyle(Color.text1)
-                                Text("반투명한 유리 같은 효과를 적용합니다.")
-                                    .font(.system(size: 14, weight: .regular))
-                                    .foregroundStyle(Color.text3)
-                            }
-                            
-                            Spacer()
-                            
-                            Toggle("", isOn: $useVibrancy)
-                                .labelsHidden()
-                                .toggleStyle(SwitchToggleStyle(tint: .blue))
-                        }
+                        Spacer()
+                        
+                        LanguageModePicker(selection: $localizationManager.currentLanguage)
                     }
-                }
-                .padding(.horizontal, 24)
-                .padding(.top, 12)
-                .padding(.bottom, 24)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            
-            // 푸터 영역 (Caution!)
-            VStack(spacing: 0) {
-                VStack(alignment: .leading, spacing: 16) {
+                    
                     // 구분선
                     Rectangle()
                         .fill(Color.borderColor)
                         .frame(height: 1)
+                        .padding(.vertical, 10)
                     
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("노트 초기화")
-                                .font(.system(size: 16, weight: .medium))
+                    // 이용약관
+                    Link(destination: URL(string: "https://aino-offcial.notion.site/AIno-2a8f803b925e8068b5b5d731c767d579?pvs=143")!) {
+                        HStack {
+                            Text(LocalizedText(korean: "이용약관", english: "Terms of Service").text)
+                                .font(.system(size: 19, weight: .medium))
                                 .foregroundStyle(Color.text1)
-                            Text("AINO에서 작성한 모든 노트가 초기화 됩니다.")
-                                .font(.system(size: 14, weight: .regular))
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 17, weight: .medium))
+                                .foregroundStyle(Color.text3)
+                        }
+                        .padding(.vertical, 5)
+                    }
+                    .buttonStyle(.plain)
+                    
+                    // 개인정보처리방침
+                    Link(destination: URL(string: "https://aino-offcial.notion.site/AIno-2a8f803b925e801fa42de7476e50316c?pvs=143")!) {
+                        HStack {
+                            Text(LocalizedText(korean: "개인정보처리방침", english: "Privacy Policy").text)
+                                .font(.system(size: 19, weight: .medium))
+                                .foregroundStyle(Color.text1)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 17, weight: .medium))
+                                .foregroundStyle(Color.text3)
+                        }
+                        .padding(.vertical, 5)
+                    }
+                    .buttonStyle(.plain)
+                    
+                    // 앱 버전
+                    HStack {
+                        Text(LocalizedText(korean: "버전", english: "Version").text)
+                            .font(.system(size: 19, weight: .medium))
+                            .foregroundStyle(Color.text1)
+                        Spacer()
+                        Text(appVersion)
+                            .font(.system(size: 17, weight: .regular))
+                            .foregroundStyle(Color.text3)
+                    }
+                    .padding(.vertical, 5)
+                    
+                    // 구분선
+                    Rectangle()
+                        .fill(Color.borderColor)
+                        .frame(height: 1)
+                        .padding(.vertical, 10)
+                    
+                    // 노트 초기화
+                    HStack {
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text(LocalizedText(korean: "노트 초기화", english: "Reset Notes").text)
+                                .font(.system(size: 19, weight: .medium))
+                                .foregroundStyle(Color.text1)
+                            Text(LocalizedText(korean: "AINO에서 작성한 모든 노트가 초기화 됩니다.", english: "All notes created in AINO will be reset.").text)
+                                .font(.system(size: 17, weight: .regular))
                                 .foregroundStyle(Color.text3)
                         }
                         
@@ -182,21 +174,24 @@ struct SettingsDetailView: View {
                         Button {
                             withAnimation(.easeInOut(duration: 0.2)) { showResetConfirm = true }
                         } label: {
-                            Text("초기화")
-                                .font(.system(size: 14, weight: .medium))
+                            Text(LocalizedText(korean: "초기화", english: "Reset").text)
+                                .font(.system(size: 17, weight: .medium))
                                 .foregroundStyle(Color.errorColor)
-                                .padding(.horizontal, 20)
-                                .padding(.vertical, 8)
+                                .padding(.horizontal, 24)
+                                .padding(.vertical, 10)
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: 8)
+                                    RoundedRectangle(cornerRadius: 10)
                                         .stroke(Color.borderColor, lineWidth: 1)
                                 )
                         }
                         .buttonStyle(.plain)
                     }
                 }
-                .padding(24)
+                .padding(.horizontal, 29)
+                .padding(.top, 24)
+                .padding(.bottom, 29)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(.systemBackground))
@@ -273,6 +268,13 @@ struct SettingsDetailView: View {
             NotificationCenter.default.post(name: .hideSettings, object: nil)
         }
     }
+    
+    // 앱 버전 가져오기
+    private var appVersion: String {
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
+        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
+        return "\(version) (\(build))"
+    }
 }
 
 struct SettingView: View {
@@ -341,42 +343,29 @@ struct SettingView: View {
 // 테마 선택 Picker 컴포넌트
 struct ThemeModePicker: View {
     @Binding var selection: String
-    @Binding var useVibrancy: Bool
+    @StateObject private var localizationManager = LocalizationManager.shared
     
     var body: some View {
         Picker("", selection: $selection) {
-            Text("시스템")
+            Text(LocalizedText(korean: "시스템", english: "System").text)
                 .tag("system")
-            Text("라이트")
+            Text(LocalizedText(korean: "라이트", english: "Light").text)
                 .tag("light")
-            Text("다크")
+            Text(LocalizedText(korean: "다크", english: "Dark").text)
                 .tag("dark")
         }
         .pickerStyle(.segmented)
         .labelsHidden()
         .background(.clear)
-        .frame(minWidth: 200, idealWidth: 320, maxWidth: 460)
+        .frame(minWidth: 240, idealWidth: 384, maxWidth: 552)
         .background(.clear, in: Capsule())
         .overlay(Capsule().stroke(Color.borderColor.opacity(0.5), lineWidth: 1))
-    }
-    
-    private var vibrancyBackground: AnyShapeStyle {
-        if useVibrancy {
-            if #available(iOS 15.0, *) {
-                return AnyShapeStyle(.ultraThinMaterial)
-            } else {
-                return AnyShapeStyle(Color.background2)
-            }
-        } else {
-            return AnyShapeStyle(Color.background2)
-        }
     }
 }
 
 // 언어 선택 Picker 컴포넌트
 struct LanguageModePicker: View {
     @Binding var selection: String
-    @Binding var useVibrancy: Bool
     
     var body: some View {
         Picker("", selection: $selection) {
@@ -387,21 +376,9 @@ struct LanguageModePicker: View {
         }
         .pickerStyle(.segmented)
         .labelsHidden()
-        .frame(minWidth: 200, idealWidth: 320, maxWidth: 460)
+        .frame(minWidth: 240, idealWidth: 384, maxWidth: 552)
         .background(.clear, in: Capsule())
         .overlay(Capsule().stroke(Color.borderColor.opacity(0.5), lineWidth: 1))
-    }
-    
-    private var vibrancyBackground: AnyShapeStyle {
-        if useVibrancy {
-            if #available(iOS 15.0, *) {
-                return AnyShapeStyle(.ultraThinMaterial)
-            } else {
-                return AnyShapeStyle(Color.background2)
-            }
-        } else {
-            return AnyShapeStyle(Color.background2)
-        }
     }
 }
 

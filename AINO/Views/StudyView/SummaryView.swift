@@ -16,6 +16,7 @@ struct Summary: Identifiable, Hashable {
 
 struct SummaryView: View {
     @EnvironmentObject private var captionAnalyzer: CaptionAnalyzer
+    @EnvironmentObject private var localizationManager: LocalizationManager
     @State private var currentPage: Int = 0
     
     @Binding var isExpanded: Bool
@@ -32,7 +33,7 @@ struct SummaryView: View {
         VStack(alignment: .leading, spacing: 0) {
             // 헤더
             HStack(spacing: 12) {
-                Text("AI가 구간별 요약을 제공합니다.")
+                Text(LocalizedText(korean: "AI가 구간별 요약을 제공합니다.", english: "AI provides section-by-section summaries.").text)
                     .font(.bodyText)
                     .foregroundStyle(Color.text2)
                 
@@ -88,7 +89,7 @@ struct SummaryView: View {
             }
         case .failed(let msg):
             VStack(alignment: .leading, spacing: 12) {
-                Text("요약을 불러올 수 없습니다.")
+                Text(LocalizedText(korean: "요약을 불러올 수 없습니다.", english: "Unable to load summary.").text)
                     .font(.system(size: isIPhone ? 18 : 16, weight: .semibold))
                     .foregroundStyle(Color.text1)
                 Text(msg)
@@ -120,10 +121,10 @@ struct SummaryView: View {
 
     private var statusLine: String {
         switch captionAnalyzer.summaryStatus {
-        case .idle: return "준비 중…"
-        case .summarizing: return "구간별 요약 생성 중…"
-        case .ready: return "완료"
-        case .failed: return "실패"
+        case .idle: return LocalizedText(korean: "준비 중…", english: "Preparing...").text
+        case .summarizing: return LocalizedText(korean: "구간별 요약 생성 중…", english: "Generating summaries...").text
+        case .ready: return LocalizedText(korean: "완료", english: "Done").text
+        case .failed: return LocalizedText(korean: "실패", english: "Failed").text
         }
     }
 
@@ -131,7 +132,7 @@ struct SummaryView: View {
     private var summaries: [Summary] {
         let total = max(captionAnalyzer.chapters.count, 1)
         return captionAnalyzer.chapters.enumerated().map { (idx, ch) in
-            let title = ch.title.isEmpty ? "제목 생성 중…" : ch.title
+            let title = ch.title.isEmpty ? LocalizedText(korean: "제목 생성 중…", english: "Generating title...").text : ch.title
             let bullets = captionAnalyzer.chapterBullets[ch.id] ?? fallbackBullets(for: ch)
             return Summary(
                 id: ch.id,

@@ -33,6 +33,7 @@ struct SuggestionBubbleView: View {
     let selectedKeyword: String?
     let onRegenerate: () -> Void
     let onPick: (String) -> Void
+    @EnvironmentObject private var localizationManager: LocalizationManager
     
     // 말풍선 크기 설정 (더 넓은 가로 사이즈)
     private let bubbleWidth: CGFloat = 360
@@ -49,7 +50,7 @@ struct SuggestionBubbleView: View {
                         Image(systemName: "lightbulb.fill")
                             .font(.system(size: 12))
                             .foregroundStyle(Color.orange)
-                        Text("AI 추천 질문")
+                        Text(LocalizedText(korean: "AI 추천 질문", english: "AI Suggested Questions").text)
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundStyle(Color.text1)
                     }
@@ -99,7 +100,7 @@ struct SuggestionBubbleView: View {
                         ProgressView()
                             .tint(Color.secondColor)
                             .scaleEffect(0.8)
-                        Text("질문을 생성하고 있습니다...")
+                        Text(LocalizedText(korean: "질문을 생성하고 있습니다...", english: "Generating questions...").text)
                             .font(.system(size: 12))
                             .foregroundStyle(Color.text3)
                     }
@@ -167,7 +168,7 @@ struct SuggestionBubbleView: View {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .font(.system(size: 16))
                             .foregroundStyle(Color.orange)
-                        Text("추천질문을 생성할 수 없습니다")
+                        Text(LocalizedText(korean: "추천질문을 생성할 수 없습니다", english: "Unable to generate suggestions").text)
                             .font(.system(size: 12))
                             .foregroundStyle(Color.text3)
                     }
@@ -204,6 +205,7 @@ struct QuestionView: View {
     @ObservedObject var studyViewModel: StudyViewModel
     @ObservedObject var viewModel: QuestionViewModel
     @Binding var isGlobalInputActive: Bool
+    @EnvironmentObject private var localizationManager: LocalizationManager
     
     // ChatGPT API 키 상태는 ViewModel에서 관리
     
@@ -250,11 +252,12 @@ struct QuestionView: View {
             // 인라인 입력 바 (항상 표시)
             QuestionInputBar(
                 text: $viewModel.currentMessage,
+                includeScreenshot: $viewModel.includeScreenshot,
                 isEnabled: viewModel.isAPIKeyValid && !viewModel.isLoading,
                 isSending: viewModel.isLoading,
                 isGenerating: viewModel.isLoadingSuggestions,
                 focus: $isTextFieldFocused,
-                placeholder: viewModel.isAPIKeyValid ? "AI에게 질문하세요..." : "API 키를 확인해주세요",
+                placeholder: viewModel.isAPIKeyValid ? LocalizedText(korean: "AI에게 질문하세요...", english: "Ask AI...").text : LocalizedText(korean: "API 키를 확인해주세요", english: "Please check API key").text,
                 onTapLightbulb: {
                     // 추천질문 생성
                     let context = studyViewModel.summaryContext
@@ -310,9 +313,6 @@ struct QuestionView: View {
                     viewModel.currentMessage += " "
                 }
                 viewModel.currentMessage += keyword
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    isTextFieldFocused = true
-                }
                 studyViewModel.keywordInserted()
             }
         }
