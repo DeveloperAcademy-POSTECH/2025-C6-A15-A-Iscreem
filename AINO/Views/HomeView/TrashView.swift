@@ -129,24 +129,22 @@ struct TrashView: View {
         VStack(spacing: 0) {
             // 홈뷰와 일치하는 헤더 바
             HStack(spacing: 12) {
-                // .compact 환경에서 뒤로가기 버튼 제공
-#if os(iOS)
-                if UIDevice.current.userInterfaceIdiom == .phone {
-                    Button {
-                        NotificationCenter.default.post(name: .hideTrash, object: nil)
-                    } label: {
+                // 🔙 좌측 상단 뒤로가기 버튼 (설정 화면과 동일한 스타일)
+                Button {
+                    NotificationCenter.default.post(name: .goBack, object: nil)
+                } label: {
+                    ZStack {
+                        Circle()
+                            .fill(Color.background2.opacity(0.96))
+                            .frame(width: 32, height: 32)
                         Image(systemName: "chevron.left")
                             .font(.system(size: 16, weight: .semibold))
-                            .padding(8)
-                            .frame(minWidth: 44, minHeight: 44)
-                            .contentShape(Circle())
-                            .clipShape(Circle())
-                            .tint(Color.text2)
+                            .foregroundStyle(Color.text2)
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("뒤로가기")
+                    .contentShape(Circle())
                 }
-#endif
+                .buttonStyle(.plain)
+                .accessibilityLabel("뒤로가기")
                 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("휴지통")

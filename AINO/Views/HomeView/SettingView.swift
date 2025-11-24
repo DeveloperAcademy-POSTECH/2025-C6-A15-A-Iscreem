@@ -37,25 +37,25 @@ struct SettingsDetailView: View {
         VStack(spacing: 0) {
             // 헤더 (HomeView와 일관된 스타일)
             HStack(spacing: 12) {
-#if os(iOS)
-                if UIDevice.current.userInterfaceIdiom == .pad {
-                    Button {
-                        performDismiss()
-                    } label: {
+                // 🔙 좌측 상단 뒤로가기 버튼 (항상 표시)
+                Button {
+                    performDismiss()
+                } label: {
+                    ZStack {
+                        Circle()
+                            .fill(Color.background2.opacity(0.96))
+                            .frame(width: 32, height: 32)
                         Image(systemName: "chevron.left")
                             .font(.system(size: 16, weight: .semibold))
-                            .padding(8)
-                            .frame(minWidth: 44, minHeight: 44)
-                            .contentShape(Circle())
-                            .clipShape(Circle())
-                            .tint(Color.text2)
+                            .foregroundStyle(Color.text2)
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("뒤로가기")
+                    .contentShape(Circle())
                 }
-#endif
+                .buttonStyle(.plain)
+                .accessibilityLabel("뒤로가기")
+                
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(LocalizedText(korean: "설정", english: "Settings").text)
+                    Text("설정")
                         .font(.system(size: 22, weight: .bold))
                         .foregroundStyle(Color.text2)
                         .lineLimit(1)
@@ -195,8 +195,6 @@ struct SettingsDetailView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(.systemBackground))
-        // ✅ 드래그 오프셋 적용
-        .offset(x: dragOffset)
         // ✅ 드래그 중일 때 살짝 어둡게
         .overlay(
             Color.black.opacity(isDragging ? 0.1 : 0)
@@ -258,22 +256,22 @@ struct SettingsDetailView: View {
             }
     }
     
-    private func performDismiss() {
-        withAnimation(.easeOut(duration: 0.25)) {
-            dragOffset = UIScreen.main.bounds.width
-        }
-        
-        // 뒤로가기 로직
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-            NotificationCenter.default.post(name: .hideSettings, object: nil)
-        }
-    }
-    
     // 앱 버전 가져오기
     private var appVersion: String {
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
         let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
         return "\(version) (\(build))"
+    }
+    
+    private func performDismiss() {
+        withAnimation(.easeOut(duration: 0.25)) {
+            dragOffset = UIScreen.main.bounds.width
+        }
+        
+        // 뒤로가기 로직: 직전 화면으로 복귀 요청
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            NotificationCenter.default.post(name: .goBack, object: nil)
+        }
     }
 }
 
@@ -316,27 +314,27 @@ struct SettingView: View {
             .preferredColorScheme(colorScheme)
         }
         /*
-        .overlay {
-            if showResetConfirm {
-                Color.black.opacity(0.4)
-                    .ignoresSafeArea()
-                    .onTapGesture {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            showResetConfirm = false
-                        }
-                    }
-                
-                ResetConfirmAlertView(
-                    isPresented: $showResetConfirm,
-                    onConfirm: {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            showResetConfirm = false
-                        }
-                    }
-                )
-                .transition(.opacity.combined(with: .scale))
-            }
-        }*/
+         .overlay {
+         if showResetConfirm {
+         Color.black.opacity(0.4)
+         .ignoresSafeArea()
+         .onTapGesture {
+         withAnimation(.easeInOut(duration: 0.2)) {
+         showResetConfirm = false
+         }
+         }
+         
+         ResetConfirmAlertView(
+         isPresented: $showResetConfirm,
+         onConfirm: {
+         withAnimation(.easeInOut(duration: 0.2)) {
+         showResetConfirm = false
+         }
+         }
+         )
+         .transition(.opacity.combined(with: .scale))
+         }
+         }*/
     }
 }
 
@@ -424,7 +422,7 @@ struct ResetConfirmAlertView: View {
                         .autocorrectionDisabled(true)
                         .font(.system(size: 15))
                         .foregroundStyle(Color.text1)
-                        //.padding(.vertical, 8)
+                    //.padding(.vertical, 8)
                 }
                 .padding(16)
                 .background(Color.background2)
