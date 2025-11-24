@@ -95,11 +95,11 @@ struct StudyHistoryView: View {
 
         return VStack(alignment: .leading, spacing: 8) {
             Text(LocalizedText(korean: "나의 학습 기록", english: "My Learning History").text)
-                .font(.system(size: 22, weight: .bold))
+                .font(.system(size: 26, weight: .bold))
                 .foregroundStyle(Color.text1)
 
             Text(LocalizedText(korean: "학습한 노트의 마지막 재생 위치, 핵심 내용, 선택된 키워드, Q&A 기록이 여기에 모입니다.", english: "Last playback positions, key content, selected keywords, and Q&A records from your studied notes are collected here.").text)
-                .font(.captionText)
+                .font(.system(size: 15))
                 .foregroundStyle(Color.text2)
 
             HStack(spacing: 16) {
@@ -113,10 +113,10 @@ struct StudyHistoryView: View {
     private func summaryChip(label: String, value: String) -> some View {
         HStack(spacing: 6) {
             Text(value)
-                .font(.system(size: 16, weight: .bold))
+                .font(.system(size: 18, weight: .bold))
                 .foregroundStyle(Color.secondColor)
             Text(label)
-                .font(.system(size: 12))
+                .font(.system(size: 14))
                 .foregroundStyle(Color.text3)
         }
         .padding(.horizontal, 12)
@@ -134,11 +134,11 @@ struct StudyHistoryView: View {
                 .foregroundStyle(Color.secondColor.opacity(0.7))
 
             Text(LocalizedText(korean: "아직 기록된 학습 세션이 없습니다.", english: "No learning sessions recorded yet.").text)
-                .font(.system(size: 15, weight: .semibold))
+                .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(Color.text2)
 
             Text(LocalizedText(korean: "노트에서 영상을 학습하고 키워드를 선택하거나\nAI에게 질문하면 이곳에 자동으로 기록됩니다.", english: "Study videos in notes, select keywords, or ask AI questions,\nand they will be automatically recorded here.").text)
-                .font(.system(size: 13))
+                .font(.system(size: 15))
                 .foregroundStyle(Color.text3)
                 .multilineTextAlignment(.center)
         }
@@ -173,7 +173,7 @@ struct StudyHistoryView: View {
     private func sectionFor(dateKey: String, sessions: [StudySession]) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(dateKey)
-                .font(.system(size: 13, weight: .semibold))
+                .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(Color.text3)
                 .padding(.horizontal, 4)
 
@@ -215,7 +215,7 @@ struct StudyHistoryView: View {
             HStack(spacing: 6) {
                 if let folder = s.folderName, !folder.isEmpty {
                     Text(folder)
-                        .font(.system(size: 10))
+                        .font(.system(size: 12))
                         .foregroundStyle(Color.text3)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
@@ -224,7 +224,7 @@ struct StudyHistoryView: View {
                 }
 
                 Text(s.noteTitle)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(Color.text1)
 
                 Spacer()
@@ -235,7 +235,7 @@ struct StudyHistoryView: View {
                 let mm = Int(pos) / 60
                 let ss = Int(pos) % 60
                 Text(LocalizedText(korean: "마지막 재생 위치", english: "Last Position").text + " \(String(format: "%d:%02d", mm, ss))")
-                    .font(.system(size: 11))
+                    .font(.system(size: 13))
                     .foregroundStyle(Color.text3)
             }
 
@@ -247,7 +247,7 @@ struct StudyHistoryView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             HStack(spacing: 6) {
                                 Text(LocalizedText(korean: "챕터", english: "Chapter").text + " \(idx + 1)")
-                                    .font(.system(size: 10, weight: .semibold))
+                                    .font(.system(size: 12, weight: .semibold))
                                     .foregroundStyle(Color.text2)
                                     .padding(.horizontal, 6)
                                     .padding(.vertical, 2)
@@ -255,7 +255,7 @@ struct StudyHistoryView: View {
                                     .cornerRadius(6)
 
                                 Text(ch.title.isEmpty ? LocalizedText(korean: "제목", english: "Title").text : ch.title)
-                                    .font(.system(size: 12, weight: .semibold))
+                                    .font(.system(size: 14, weight: .semibold))
                                     .foregroundStyle(Color.text1)
                                     .lineLimit(1)
                             }
@@ -263,7 +263,7 @@ struct StudyHistoryView: View {
                             VStack(alignment: .leading, spacing: 2) {
                                 ForEach(Array(ch.bullets.prefix(4)), id: \.self) { line in
                                     Text(line)
-                                        .font(.system(size: 11))
+                                        .font(.system(size: 13))
                                         .foregroundStyle(Color.text2)
                                         .lineLimit(2)
                                 }
@@ -274,7 +274,7 @@ struct StudyHistoryView: View {
                                 HStack(spacing: 6) {
                                     ForEach(Array(ch.keywords.prefix(6)), id: \.self) { kw in
                                         Text(kw)
-                                            .font(.system(size: 10))
+                                            .font(.system(size: 12))
                                             .foregroundStyle(Color.text2)
                                             .padding(.horizontal, 8)
                                             .padding(.vertical, 3)
@@ -283,7 +283,7 @@ struct StudyHistoryView: View {
                                     }
                                     if ch.keywords.count > 6 {
                                         Text("+\(ch.keywords.count - 6)")
-                                            .font(.system(size: 10))
+                                            .font(.system(size: 12))
                                             .foregroundStyle(Color.text3)
                                     }
                                 }
@@ -306,7 +306,7 @@ struct StudyHistoryView: View {
                 HStack(spacing: 6) {
                     ForEach(Array(s.keywords.prefix(6)), id: \.self) { kw in
                         Text(kw)
-                            .font(.system(size: 10))
+                            .font(.system(size: 12))
                             .foregroundStyle(Color.text2)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
@@ -315,7 +315,7 @@ struct StudyHistoryView: View {
                     }
                     if s.keywords.count > 6 {
                         Text("+\(s.keywords.count - 6)")
-                            .font(.system(size: 10))
+                            .font(.system(size: 12))
                             .foregroundStyle(Color.text3)
                     }
                 }
@@ -327,12 +327,12 @@ struct StudyHistoryView: View {
             if let qa = s.qaPairs.last {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Q. \(qa.question)")
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(Color.primaryColor)
                         .lineLimit(1)
 
                     Text("A. \(qa.answer)")
-                        .font(.system(size: 10))
+                        .font(.system(size: 12))
                         .foregroundStyle(Color.text3)
                         .lineLimit(2)
                 }
@@ -395,7 +395,7 @@ struct StudyHistoryView: View {
             } else {
                 VStack(alignment: .leading, spacing: keywordCloudTitleSpacing) {
                     Text(LocalizedText(korean: "자주 선택된 키워드", english: "Frequently Selected Keywords").text)
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(Color.text2)
                         .padding(.horizontal, 4)
 
@@ -414,9 +414,9 @@ struct StudyHistoryView: View {
     private func keywordChip(for stat: KeywordStat) -> some View {
         HStack(spacing: 4) {
             Text(stat.keyword)
-                .font(.system(size: 11, weight: .medium))
+                .font(.system(size: 13, weight: .medium))
             Text("\(stat.count)")
-                .font(.system(size: 10, weight: .regular))
+                .font(.system(size: 12, weight: .regular))
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
@@ -564,3 +564,4 @@ private struct FlowLayout: Layout {
         .environmentObject(LearningLogStore.previewStore())
 }
 #endif
+

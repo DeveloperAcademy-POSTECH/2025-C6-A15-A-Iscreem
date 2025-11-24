@@ -388,9 +388,49 @@ struct HomeView: View {
         
         func body(content: Content) -> some View {
             content
-                .sheet(isPresented: $showStudyHistory) {
-                    StudyHistoryView()
-                        .environmentObject(learningLogStore)
+                .overlay {
+                    if showStudyHistory {
+                        GeometryReader { proxy in
+                            ZStack {
+                                // Dimmed background
+                                Color.black.opacity(0.35)
+                                    .ignoresSafeArea()
+                                    .onTapGesture {
+                                        withAnimation(.spring(response: 0.3, dampingFraction: 0.9)) {
+                                            showStudyHistory = false
+                                        }
+                                    }
+
+                                // Centered modal card
+                                StudyHistoryView()
+                                    .environmentObject(learningLogStore)
+                                    .frame(
+                                        width: proxy.size.width * 0.8,
+                                        height: proxy.size.height * 0.7
+                                    )
+                                    .background(Color.background1)
+                                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                                    .shadow(color: Color.black.opacity(0.2), radius: 24, x: 0, y: 12)
+                                    .overlay(alignment: .topTrailing) {
+                                        Button {
+                                            withAnimation(.spring(response: 0.3, dampingFraction: 0.9)) {
+                                                showStudyHistory = false
+                                            }
+                                        } label: {
+                                            Image(systemName: "xmark")
+                                                .font(.system(size: 14, weight: .bold))
+                                                .padding(8)
+                                                .background(Color.black.opacity(0.35))
+                                                .clipShape(Circle())
+                                        }
+                                        .buttonStyle(.plain)
+                                        .padding(12)
+                                    }
+                            }
+                        }
+                        .transition(.opacity.combined(with: .scale))
+                        .zIndex(2)
+                    }
                 }
                 .sheet(isPresented: $showNewFolderSheet, onDismiss: {
                     newFolderName = ""
