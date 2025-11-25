@@ -23,7 +23,7 @@ struct HelpView: View {
     
     // Apple Intelligence 링크가 포함된 AttributedString
     private var attributedString: AttributedString {
-        let prefixText = LocalizedText(korean: "Apple Intelligence 지원 기기확인은 ", english: "Check Apple Intelligence supported devices at ").text
+        let prefixText = LocalizedText(korean: "⚠️ Apple Intelligence 지원 기기확인은 ", english: "⚠️ Check Apple Intelligence supported devices at ").text
         var attributedString = AttributedString(prefixText)
         attributedString.foregroundColor = UIColor(Color.text2)
         
@@ -127,6 +127,13 @@ struct HelpView: View {
                 Text(LocalizedText(korean: "링크를 통해 만들 수 있답니다!", english: "links!").text)
                     .font(.system(size: 14))
                     .foregroundStyle(Color.text2)
+                
+                Text(LocalizedText(
+                    korean: "또는 Youtube 영상 공유시 \"더보기\"를 누르면, AINO앱 아이콘을 통해 노트를 바로 생성하실 수도 있습니다.",
+                    english: "Alternatively, when sharing a YouTube video, tap \"More\" and you can create a note directly via the AINO app icon."
+                ).text)
+                .font(.system(size: 14))
+                .foregroundStyle(Color.text2)
                 
                 Text(LocalizedText(korean: "AINO는 학습자 여러분들이 노트 생성과 동시에, 강의 속의 핵심 키워드가 되는 단어들과 더불어 구간별 요약 정보를 불러와서 학습에 도움이 되기 위해 뒤에서 열심히 작업을 진행합니다!", english: "AINO works hard behind the scenes to help your learning by extracting key keywords and section summaries from lectures as soon as you create notes!").text)
                     .font(.system(size: 14))
